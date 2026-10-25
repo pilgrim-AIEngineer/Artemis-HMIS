@@ -1,4 +1,5 @@
-import { burnHash, loadUserAccess, readSettings, verifySecret, withTx, type Db } from '@hmis/db';
+import { loadUserAccess, readSettings, withTx, type Db } from '@hmis/db';
+import { burnHash, verifySecret } from '@hmis/db/auth';
 import { appUser, facility, session } from '@hmis/db/schema';
 import { ipInCidrs, LOCALE_COOKIE, type SettingValue } from '@hmis/shared';
 import { eq, sql } from 'drizzle-orm';

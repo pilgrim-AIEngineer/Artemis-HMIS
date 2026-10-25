@@ -10,7 +10,8 @@
 import { ROLE_KEYS } from '@hmis/shared';
 import { and, eq } from 'drizzle-orm';
 import { appUser } from '../schema';
-import { bootstrapFacility, createDb, insertUser, resolveDatabaseUrl, withTx } from '../src';
+import { createDb, resolveDatabaseUrl, withTx } from '../src';
+import { bootstrapFacility, insertUser } from '../src/auth';
 import { loadRootEnv } from '../src/load-root-env';
 
 const demo = process.argv.includes('--demo');

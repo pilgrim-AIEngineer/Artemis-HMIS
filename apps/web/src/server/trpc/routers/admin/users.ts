@@ -1,4 +1,4 @@
-import { hashSecret } from '@hmis/db';
+import { hashSecret } from '@hmis/db/auth';
 import { appUser, role, session, userRole, workstation } from '@hmis/db/schema';
 import {
   fullNameSchema,

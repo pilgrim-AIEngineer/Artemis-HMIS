@@ -3,7 +3,8 @@
  * default roles, a set of users, and `TestBrowser` — a cookie jar in front of the tRPC caller
  * with an injectable clock, so lockout, idle lock and expiry are tested without waiting.
  */
-import { ensureFacilityRbac, insertUser, withTx, type Db } from '@hmis/db';
+import { ensureFacilityRbac, withTx, type Db } from '@hmis/db';
+import { insertUser } from '@hmis/db/auth';
 import { setupPlatformDb, seedFacility, type PlatformTestDb } from '@hmis/db/testing/platform';
 import { TRPCError } from '@trpc/server';
 import { CSRF_COOKIE } from '@/lib/auth-constants';

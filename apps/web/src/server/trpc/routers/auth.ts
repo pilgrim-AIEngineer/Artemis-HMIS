@@ -1,4 +1,5 @@
-import { hashSecret, readSettings } from '@hmis/db';
+import { readSettings, type Db } from '@hmis/db';
+import { hashSecret } from '@hmis/db/auth';
 import { appUser, session } from '@hmis/db/schema';
 import {
   loginPasswordSchema,
@@ -54,14 +55,18 @@ function meView(auth: AuthSession, totpRequired: boolean) {
 
 export type MeView = ReturnType<typeof meView>;
 
+/** `auth.me` for a resolved session (also used by Server Components). */
+export async function loadMeView(db: Db, auth: AuthSession): Promise<MeView> {
+  const s = await readSettings(db, auth.facilityId, ['auth.totpRequiredRoles']);
+  const required = s['auth.totpRequiredRoles'].some((r) => auth.roles.includes(r));
+  return meView(auth, required);
+}
+
 export const authRouter = router({
   /** The caller's session, or null when signed out. Reveals nothing about other users. */
   me: publicProcedure.meta({ permission: 'public' }).query(async ({ ctx }) => {
     const auth = await resolveSession(ctx.db(), sessionTokenFromHeaders(ctx.headers), ctx.now());
-    if (!auth) return null;
-    const s = await readSettings(ctx.db(), auth.facilityId, ['auth.totpRequiredRoles']);
-    const required = s['auth.totpRequiredRoles'].some((r) => auth.roles.includes(r));
-    return meView(auth, required);
+    return auth ? loadMeView(ctx.db(), auth) : null;
   }),
 
   login: publicProcedure
