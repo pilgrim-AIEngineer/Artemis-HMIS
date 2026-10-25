@@ -436,7 +436,9 @@ describe('idempotency (AGENTS.md rule 9, docs/02 §7)', () => {
     let calls = 0;
     const exec = () => Promise.resolve({ n: ++calls });
     const rs = await Promise.all(
-      Array.from({ length: 5 }, () => run(f.facilityId, 'payment.create', key, { amount: 1 }, exec)),
+      Array.from({ length: 5 }, () =>
+        run(f.facilityId, 'payment.create', key, { amount: 1 }, exec),
+      ),
     );
     expect(calls).toBe(1);
     expect(new Set(rs.map((r) => JSON.stringify(r))).size).toBe(1);
