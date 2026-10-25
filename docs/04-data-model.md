@@ -38,7 +38,7 @@ Relational core in PostgreSQL. Every table below implicitly has: `id uuid pk (UU
 
 | Table | Key columns |
 | --- | --- |
-| `patient` | uhid unique, first_name, middle_name, last_name, full_name (generated), name_hi, sex (`F`,`M`,`O`), dob, dob_is_estimated, mobile, alt_mobile, relation_to_mobile_owner (`self`, `wife`, `daughter`, `son`, `mother`, ...), guardian_name, guardian_relation (`husband`, `father`, `mother`, `other`), address_line, locality_id, district, state, pincode, blood_group, marital_status, occupation, referred_by, photo_file_id, is_deceased, deceased_at, merged_into_id, search_name_norm, search_name_phonetic, status |
+| `patient` | uhid unique, first_name, middle_name, last_name, full_name (generated), name_hi, sex (`F`,`M`,`O`), dob, dob_is_estimated, mobile, alt_mobile, relation_to_mobile_owner (`self`, `wife`, `daughter`, `son`, `mother`, ...), guardian_name, guardian_relation (`husband`, `father`, `mother`, `other`), address_line, locality_id, district, state, pincode, blood_group, marital_status, occupation, referred_by, photo_file_id, is_deceased, deceased_at, merged_into_id, search_name_norm, search_name_phonetic, no_mobile_reason, identity_changed_at (name/DOB/sex edited after registration), duplicate_override_reason ("Create new anyway"), status + cancel fields |
 | `patient_identifier` | patient_id, type (`abha_number`, `abha_address`, `aadhaar_masked`, `pmjay_id`, `insurance_member_id`, `employee_id`, `other`), value, verified_at. Never store full Aadhaar. |
 | `patient_allergy` | patient_id, allergen, reaction, severity, noted_by |
 | `patient_alert` | patient_id, kind (`high_risk_pregnancy`, `allergy`, `vip`, `mlc`, `other`), text, active |

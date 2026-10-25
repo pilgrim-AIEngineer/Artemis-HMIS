@@ -2,7 +2,7 @@
  * Patient registration and search (docs/10 §2–3, docs/04 §3, REG-01/REG-02): enums backing the
  * CHECK constraints, zod schemas shared by the tRPC procedures and the reception forms, and the
  * pure helpers (title-casing, age entry, search-box classification) tested without a database.
- * Fetal sex is never a patient field (AGENTS.md rule 7); `sex` is the patient's own.
+ * Nothing here describes a fetus (AGENTS.md rule 7); `sex` is the patient's own.
  */
 import { z } from 'zod';
 import {
