@@ -131,8 +131,8 @@ export const MASTER_DEFS: Record<MasterKind, MasterDef> = {
       f.check('isActive', { help: 'isActive' }),
     ],
     columns: [
-      { key: 'code', as: 'code' },
       { key: 'name' },
+      { key: 'code', as: 'code' },
       { key: 'nameHi', secondary: true },
       { key: 'isClinical', as: 'bool', secondary: true },
     ],
@@ -190,8 +190,8 @@ export const MASTER_DEFS: Record<MasterKind, MasterDef> = {
       f.check('isActive', { help: 'isActive' }),
     ],
     columns: [
-      { key: 'code', as: 'code' },
       { key: 'name' },
+      { key: 'code', as: 'code' },
       { key: 'category', as: 'enum', enum: 'serviceCategory' },
       { key: 'unit', as: 'enum', enum: 'serviceUnit', secondary: true },
       { key: 'defaultGstRateBp', as: 'gst', secondary: true },
@@ -300,8 +300,8 @@ export const MASTER_DEFS: Record<MasterKind, MasterDef> = {
       f.check('isActive', { help: 'isActive' }),
     ],
     columns: [
-      { key: 'code', as: 'code' },
       { key: 'name' },
+      { key: 'code', as: 'code' },
       { key: 'department', as: 'enum', enum: 'labDepartment' },
       { key: 'unit', secondary: true },
       { key: 'isOutsourced', as: 'bool', secondary: true },
@@ -327,8 +327,8 @@ export const MASTER_DEFS: Record<MasterKind, MasterDef> = {
       f.check('isActive', { help: 'isActive' }),
     ],
     columns: [
-      { key: 'code', as: 'code' },
       { key: 'name' },
+      { key: 'code', as: 'code' },
       { key: 'category', as: 'enum', enum: 'usgCategory' },
       { key: 'requiresFormFIfPregnant', as: 'bool' },
     ],
@@ -348,8 +348,8 @@ export const MASTER_DEFS: Record<MasterKind, MasterDef> = {
       f.check('isActive', { help: 'isActive' }),
     ],
     columns: [
-      { key: 'kind', as: 'enum', enum: 'reasonKind' },
       { key: 'label' },
+      { key: 'kind', as: 'enum', enum: 'reasonKind' },
       { key: 'labelHi', secondary: true },
       { key: 'code', as: 'code', secondary: true },
     ],

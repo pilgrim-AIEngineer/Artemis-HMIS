@@ -96,3 +96,23 @@ to `admin.audit.view`). MTP-01 adds a restricted audit sink before the first res
   adds them to every facility.
 - Secrets in `audit_log` are redacted: `app_user.password_hash/pin_hash/totp_secret_enc`,
   `session.token_hash`, `workstation.pairing_token_hash`.
+
+## Masters, seeds and rates (FND-07)
+
+- Tables (`schema/masters.ts`, docs/04 §2): `department`, `doctor_profile`, `consultation_rule`,
+  `payer`, `tariff`, `service`, `service_rate`, `drug`, `lab_test`, `usg_procedure`, `locality`,
+  `reason_code`. All carry `facility_id`, the audit columns, audit/touch triggers and the soft-cancel
+  fields (`status`, `cancel_reason`, `cancelled_by/at`; `hmis_app` has no DELETE). `is_active` is the
+  reversible "switched off" flag; `status = 'cancelled'` is the removal with a reason.
+- `search_text` is a generated column (`hmis_search_text(...)`, migration 0005) with a trigram GIN
+  index; query it with `search_text like '%q%' or q <% search_text` (see the masters router).
+- Rates: `setServiceRate` adds an effective-dated row (a same-day correction cancels the old row
+  with a reason), `getRate` resolves the price on a date (room-specific, else room-agnostic) and
+  `pickTariff` the payer's tariff or the default one (docs/12 §1). Bills must snapshot the rate.
+- `pnpm db:seed` runs `seed/masters.ts` (docs/33 §1–3, §6–7): idempotent, never overwrites edits,
+  no rates. `--demo` runs the steps listed in `seed/demo/index.ts` (synthetic doctors and rates;
+  `people.ts`/`rng.ts` generate Indian names and `9xxxxxxxxx` mobiles for later steps). Add a step
+  module there when a PR adds data worth demoing.
+- `seed/templates/*.xlsx` are the MIG-01 import templates (docs/33 §9), generated from
+  `seed/templates/spec.ts` by `pnpm --filter @hmis/db db:templates`; `src/templates.test.ts` keeps
+  files and spec in step. Never commit a filled-in template.
