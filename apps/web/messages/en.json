@@ -1,0 +1,26 @@
+{
+  "app": {
+    "name": "HMIS",
+    "title": "Hospital Management System",
+    "subtitle": "The system is installed. Sign-in and the role home screens arrive in the next release."
+  },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "hi": "हिन्दी"
+  },
+  "status": {
+    "title": "System status",
+    "server": "Server",
+    "database": "Database",
+    "version": "Version",
+    "running": "Running",
+    "connected": "Connected",
+    "unreachable": "Not reachable",
+    "checking": "Checking…",
+    "refresh": "Check again"
+  },
+  "errors": {
+    "internal": "Something went wrong. Please try again."
+  }
+}

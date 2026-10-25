@@ -1,0 +1,16 @@
+# TLS with Caddy's internal CA (docs/01 §9). Install the root certificate on every client PC:
+#   docker compose ... exec caddy cat /data/caddy/pki/authorities/local/root.crt
+{
+	admin off
+}
+
+{$HMIS_HOSTNAME:hmis.local}, localhost {
+	tls internal
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		-Server
+	}
+	reverse_proxy web:3000
+}

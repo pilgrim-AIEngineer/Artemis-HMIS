@@ -1,0 +1,5 @@
+# Dev override: publishes Postgres on loopback for `pnpm dev`, `pnpm db:*` and local tools.
+services:
+  postgres:
+    ports:
+      - '127.0.0.1:${PG_PORT:-55432}:5432'

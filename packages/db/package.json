@@ -1,0 +1,30 @@
+{
+  "name": "@hmis/db",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./migrate": "./src/migrate.ts",
+    "./schema": "./schema/index.ts",
+    "./testing": "./testing/postgres.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/migrate-cli.ts",
+    "db:seed": "tsx seed/index.ts"
+  },
+  "dependencies": {
+    "@hmis/shared": "workspace:*",
+    "drizzle-orm": "0.45.4",
+    "pg": "8.23.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@testcontainers/postgresql": "12.2.1",
+    "@types/pg": "^8.23.1",
+    "drizzle-kit": "0.31.11",
+    "testcontainers": "12.2.1"
+  }
+}
