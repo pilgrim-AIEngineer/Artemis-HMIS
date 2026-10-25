@@ -1,5 +1,5 @@
 import 'server-only';
-import { createDb, resolveDatabaseUrl, type Db } from '@hmis/db';
+import { createDb, resolveAppDatabaseUrl, type Db } from '@hmis/db';
 
 const globalForDb = globalThis as unknown as { hmisDb?: Db };
 
@@ -9,7 +9,7 @@ const globalForDb = globalThis as unknown as { hmisDb?: Db };
  */
 export function getDb(): Db {
   globalForDb.hmisDb ??= createDb({
-    connectionString: resolveDatabaseUrl(),
+    connectionString: resolveAppDatabaseUrl(),
     applicationName: 'hmis-web',
   });
   return globalForDb.hmisDb;

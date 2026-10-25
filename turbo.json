@@ -4,6 +4,9 @@
   "globalDependencies": ["tsconfig.base.json"],
   "globalPassThroughEnv": [
     "DATABASE_URL",
+    "APP_DATABASE_URL",
+    "APP_DB_USER",
+    "APP_DB_PASSWORD",
     "NODE_ENV",
     "CI",
     "NEXT_TELEMETRY_DISABLED",
