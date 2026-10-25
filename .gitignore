@@ -1,0 +1,32 @@
+# dependencies
+node_modules/
+
+# build output
+.next/
+dist/
+out/
+*.tsbuildinfo
+next-env.d.ts
+
+# tooling caches
+.turbo/
+coverage/
+.eslintcache
+
+# playwright
+playwright-report/
+test-results/
+blob-report/
+
+# env files: only .env.example is committed
+.env
+.env.*
+!.env.example
+
+# runtime data
+/data/
+/backup/
+
+# OS / editor
+.DS_Store
+*.log

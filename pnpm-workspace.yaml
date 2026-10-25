@@ -1,0 +1,11 @@
+packages:
+  - apps/*
+  - packages/*
+allowBuilds:
+  '@parcel/watcher': false
+  '@swc/core': false
+  cpu-features: false
+  esbuild: true
+  protobufjs: false
+  ssh2: false
+  unrs-resolver: false

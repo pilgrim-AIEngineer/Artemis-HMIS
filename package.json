@@ -1,0 +1,39 @@
+{
+  "name": "hmis",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.15.0",
+  "engines": {
+    "node": "^24.11.0",
+    "pnpm": ">=12.15.0"
+  },
+  "scripts": {
+    "dev": "node infra/scripts/dev.mjs",
+    "dev:down": "node infra/scripts/dev.mjs down",
+    "build": "turbo run build",
+    "db:generate": "pnpm --filter @hmis/db db:generate",
+    "db:migrate": "pnpm --filter @hmis/db db:migrate",
+    "db:seed": "pnpm --filter @hmis/db db:seed",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "e2e": "turbo run e2e",
+    "lint": "eslint . --max-warnings=0 && prettier --check .",
+    "format": "prettier --write .",
+    "typecheck": "turbo run typecheck && tsc -p tsconfig.json",
+    "check:forbidden": "tsx packages/shared/src/compliance/cli.ts"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@types/node": "^24.19.2",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.4.3",
+    "globals": "^17.13.0",
+    "prettier": "3.9.10",
+    "prettier-plugin-tailwindcss": "^0.8.1",
+    "tsx": "4.23.15",
+    "turbo": "2.11.10",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.0",
+    "vitest": "5.0.5"
+  }
+}
