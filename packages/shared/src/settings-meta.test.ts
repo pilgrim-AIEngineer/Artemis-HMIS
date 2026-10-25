@@ -6,6 +6,7 @@ import {
   GENERIC_SETTING_KEYS,
   HIDDEN_SETTINGS,
   isEditableSetting,
+  isGenericSetting,
   SETTING_GROUPS,
   settingEditor,
   settingGroup,
@@ -85,5 +86,13 @@ describe('settings screen metadata (FND-06)', () => {
           break;
       }
     }
+  });
+
+  it('tells the generic editor to skip dedicated keys but show every generic one', () => {
+    // The list API returns all editable keys (the print screen needs print.header); the generic
+    // editor must filter with this predicate or it renders them without wording (#29).
+    for (const k of DEDICATED_SETTINGS) expect(isGenericSetting(k), k).toBe(false);
+    for (const k of GENERIC_SETTING_KEYS) expect(isGenericSetting(k), k).toBe(true);
+    for (const k of HIDDEN_SETTINGS) expect(isGenericSetting(k), k).toBe(false);
   });
 });
