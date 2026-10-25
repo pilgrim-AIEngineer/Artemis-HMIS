@@ -1,6 +1,6 @@
 {
-  "id": "4ee7cbf6-f395-4af3-826d-537d5247fed8",
-  "prevId": "884f5c41-3ad2-459d-a711-43f9d9c4e598",
+  "id": "9a6eca21-b296-4a88-a5a3-c3df0096bfc6",
+  "prevId": "fe79141a-bdc3-42fc-b85f-fffbbf1b0ea5",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -5063,7 +5063,7 @@
           "name": "full_name",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "generated": {
             "type": "stored",
             "as": "btrim(regexp_replace(coalesce(first_name, '') || ' ' || coalesce(middle_name, '') || ' ' || coalesce(last_name, ''), '\\s+', ' ', 'g'))"

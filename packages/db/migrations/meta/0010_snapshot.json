@@ -1,5 +1,5 @@
 {
-  "id": "884f5c41-3ad2-459d-a711-43f9d9c4e598",
+  "id": "fe79141a-bdc3-42fc-b85f-fffbbf1b0ea5",
   "prevId": "a064ef4f-811a-4493-bf32-0f5244953580",
   "version": "7",
   "dialect": "postgresql",
@@ -5063,7 +5063,7 @@
           "name": "full_name",
           "type": "text",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "generated": {
             "as": "btrim(regexp_replace(coalesce(first_name, '') || ' ' || coalesce(middle_name, '') || ' ' || coalesce(last_name, ''), '\\s+', ' ', 'g'))",
             "type": "stored"
