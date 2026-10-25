@@ -38,6 +38,9 @@ export const GENERIC_SETTING_KEYS: readonly SettingKey[] = EDITABLE_SETTING_KEYS
   (k) => !dedicated.has(k),
 );
 
+export const isGenericSetting = (k: string): boolean =>
+  (GENERIC_SETTING_KEYS as readonly string[]).includes(k);
+
 export const SETTING_GROUPS = [
   'opd',
   'queue',
