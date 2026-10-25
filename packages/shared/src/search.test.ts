@@ -91,6 +91,12 @@ describe('phoneticKey (docs/01 §6 rules)', () => {
     expect(phoneticKey('सुनीता')).toBe('सुनीता');
   });
 
+  it('regression: repeated h after a consonant folds in one pass (found by the property test)', () => {
+    expect(phoneticKey('bhh')).toBe('b');
+    expect(phoneticKey(phoneticKey('bhh'))).toBe(phoneticKey('bhh'));
+    expect(phoneticKey('Rakhhi')).toBe(phoneticKey('Rakhi'));
+  });
+
   it('property: idempotent and never longer than the normalised name', () => {
     fc.assert(
       fc.property(fc.stringMatching(/^[a-zA-Z ]{0,30}$/), (s) => {
@@ -98,6 +104,7 @@ describe('phoneticKey (docs/01 §6 rules)', () => {
         expect(phoneticKey(k)).toBe(k);
         expect(k.length).toBeLessThanOrEqual(normaliseName(s).length);
       }),
+      { numRuns: 2000 },
     );
   });
 
