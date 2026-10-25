@@ -4,6 +4,7 @@ export * from './env';
 export * from './health';
 export * from './masters';
 export * from './number-series';
+export * from './patients';
 export * from './print';
 export * from './rbac';
 export * from './settings';

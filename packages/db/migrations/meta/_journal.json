@@ -57,6 +57,20 @@
       "when": 1792954218274,
       "tag": "0007_masters_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792956591750,
+      "tag": "0008_patients",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792956594905,
+      "tag": "0009_patients_audit",
+      "breakpoints": true
     }
   ]
 }
