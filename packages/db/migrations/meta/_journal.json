@@ -36,6 +36,27 @@
       "when": 1792951656996,
       "tag": "0004_print_log_copy_key",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792954207269,
+      "tag": "0005_masters_search_fn",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792954207945,
+      "tag": "0006_masters",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792954218274,
+      "tag": "0007_masters_audit",
+      "breakpoints": true
     }
   ]
 }

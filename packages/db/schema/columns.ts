@@ -1,5 +1,6 @@
 import { sql, type SQL, type AnyColumn } from 'drizzle-orm';
-import { timestamp, uuid } from 'drizzle-orm/pg-core';
+import { RECORD_STATUSES } from '@hmis/shared';
+import { check, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 import { uuidv7 } from 'uuidv7';
 
 /** Current actor as set by `withTx` (`SET LOCAL app.user_id`); NULL for system jobs/seed. */
@@ -26,3 +27,23 @@ export function sqlIn(column: AnyColumn, values: readonly string[]): SQL {
   }
   return sql`${column} in ${sql.raw(`(${values.map((v) => `'${v}'`).join(', ')})`)}`;
 }
+
+/** Soft-cancel fields (AGENTS.md rule 4): rows are cancelled with a reason, never deleted. */
+export const cancelColumns = () => ({
+  status: text().notNull().default('active'),
+  cancelReason: text(),
+  cancelledBy: uuid(),
+  cancelledAt: timestamp({ withTimezone: true }),
+});
+
+/** `status` is a known value and `cancelled` holds exactly when reason and time are set. */
+export const cancelChecks = (
+  name: string,
+  t: { status: AnyColumn; cancelReason: AnyColumn; cancelledAt: AnyColumn },
+) => [
+  check(`${name}_status`, sqlIn(t.status, RECORD_STATUSES)),
+  check(
+    `${name}_cancel_fields`,
+    sql`(${t.status} = 'cancelled') = (${t.cancelledAt} is not null and ${t.cancelReason} is not null)`,
+  ),
+];

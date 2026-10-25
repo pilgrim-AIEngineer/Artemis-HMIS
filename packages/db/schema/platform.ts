@@ -69,7 +69,7 @@ export const facility = pgTable(
   ],
 );
 
-const facilityRef = () =>
+export const facilityRef = () =>
   uuid()
     .notNull()
     .references(() => facility.id);
