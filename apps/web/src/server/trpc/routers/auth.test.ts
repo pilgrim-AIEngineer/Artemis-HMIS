@@ -222,6 +222,25 @@ describe('session lifetime: idle lock → PIN, absolute expiry', () => {
     expect((await me(br))?.state).toBe('active');
   });
 
+  it('PIN lockout holds under concurrent wrong guesses (#12)', async () => {
+    await clearLock(f.users.reception.id);
+    const clock = createClock();
+    const br = f.browser(clock);
+    await br.login(f.users.reception.username);
+    await br.call((c) => c.auth.lock());
+    await Promise.allSettled(
+      Array.from({ length: 10 }, () => br.call((c) => c.auth.unlockWithPin({ pin: '9753' }))),
+    );
+    const [u] = await f.db.select().from(appUser).where(eq(appUser.id, f.users.reception.id));
+    expect(u?.pinLockedUntil).not.toBeNull();
+    // The correct PIN is now refused.
+    await br.login(f.users.reception.username);
+    await br.call((c) => c.auth.lock());
+    const blocked = await trpcError(br.call((c) => c.auth.unlockWithPin({ pin: PIN })));
+    expect(blocked.message).toBe('errors.auth.pinLockedOut');
+    await clearLock(f.users.reception.id);
+  });
+
   it('a user without a PIN unlocks with the password', async () => {
     const clock = createClock();
     const br = f.browser(clock);
