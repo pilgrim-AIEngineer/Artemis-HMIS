@@ -18,7 +18,11 @@ export const DEFAULT_LAN_CIDRS = [
 
 /** 128-bit value of an address; IPv4 (and IPv4-mapped IPv6) map into ::ffff:0:0/96. */
 function parseIp(raw: string): bigint | null {
-  const ip = raw.trim().replace(/^\[|\]$/g, '').split('%')[0] ?? '';
+  const ip =
+    raw
+      .trim()
+      .replace(/^\[|\]$/g, '')
+      .split('%')[0] ?? '';
   const v4 = parseIpv4(ip);
   if (v4 !== null) return 0xffff00000000n | v4;
   if (!ip.includes(':')) return null;
