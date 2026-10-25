@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "print_log_copy_key" ON "print_log" USING btree ("facility_id","template","entity_id","copy_no");

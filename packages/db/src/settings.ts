@@ -1,5 +1,10 @@
-import { resolveSetting, type SettingKey, type SettingValue } from '@hmis/shared';
-import { and, eq, inArray } from 'drizzle-orm';
+import {
+  parseSettingValue,
+  resolveSetting,
+  type SettingKey,
+  type SettingValue,
+} from '@hmis/shared';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { setting } from '../schema';
 import type { Db } from './client';
 import type { Tx } from './tx';
@@ -32,4 +37,24 @@ export async function readSetting<K extends SettingKey>(
 ): Promise<SettingValue<K>> {
   const all = await readSettings(q, facilityId, [key]);
   return all[key];
+}
+
+/**
+ * Validates and stores a setting (insert or update). Returns the stored (parsed) value. The audit
+ * trigger records who changed what; settings are never deleted, "reset" stores the default.
+ */
+export async function writeSetting<K extends SettingKey>(
+  tx: Tx,
+  facilityId: string,
+  key: K,
+  raw: unknown,
+): Promise<SettingValue<K>> {
+  const value = parseSettingValue(key, raw);
+  // A JSON null (e.g. "no accent colour") must be the jsonb value 'null', not SQL NULL.
+  const stored = value === null ? sql`'null'::jsonb` : value;
+  await tx
+    .insert(setting)
+    .values({ facilityId, key, value: stored })
+    .onConflictDoUpdate({ target: [setting.facilityId, setting.key], set: { value: stored } });
+  return value;
 }
