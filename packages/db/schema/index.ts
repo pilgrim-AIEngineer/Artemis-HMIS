@@ -6,3 +6,4 @@
  */
 export * from './platform';
 export * from './masters';
+export { currentAppUserId } from './columns';

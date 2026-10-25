@@ -100,7 +100,9 @@
       "settings": "Settings",
       "settingsHint": "Rules and switches for the whole hospital",
       "print": "Print header",
-      "printHint": "Hindi lines, footer, colour and test prints"
+      "printHint": "Hindi lines, footer, colour and test prints",
+      "masters": "Master data",
+      "mastersHint": "Services, rates, doctors, drugs, lab tests, payers"
     }
   },
   "account": {
@@ -543,6 +545,322 @@
       "testPrintsHelp": "Opens a sample document at each paper size so you can check the layout on the real printer. It contains no patient data.",
       "save": "Save",
       "saved": "Saved."
+    },
+    "masters": {
+      "title": "Master data",
+      "search": "Search",
+      "searchPlaceholder": "Type a name or short code",
+      "showCancelled": "Show removed",
+      "allOf": "All: {what}",
+      "loadMore": "Show more",
+      "truncated": "Showing the best matches only. Type more letters to narrow down.",
+      "noResults": "Nothing matches. Check the spelling or clear the filters.",
+      "loadFailed": "The list could not be loaded. Please try again.",
+      "loading": "Loading…",
+      "save": "Save",
+      "close": "Close",
+      "yes": "Yes",
+      "no": "No",
+      "allPayers": "All payers (default)",
+      "openRates": "Rates",
+      "editHelp": "Change the details and press Save.",
+      "cancelRecord": "Remove…",
+      "cancelReasonLabel": "Reason for removing",
+      "cancelReasonPlaceholder": "For example: duplicate entry",
+      "cancelHelp": "Nothing is deleted. The record stays in the history and can be restored.",
+      "keep": "Keep it",
+      "confirmCancel": "Remove",
+      "restore": "Restore",
+      "cancelledOn": "Removed on {at}",
+      "removed": "\"{name}\" removed.",
+      "undo": "Undo",
+      "status": {
+        "active": "Active",
+        "inactive": "Switched off",
+        "cancelled": "Removed"
+      },
+      "help": {
+        "hub": "Names, prices and lists that the whole hospital uses. Nothing here is ever deleted: removed items stay in the history.",
+        "isActive": "Switch off to hide it from pick lists without removing it.",
+        "deptCode": "Short capital code, for example GYN. Cannot be changed later.",
+        "doctorUser": "Link to a login if this doctor signs in. Leave blank for visiting doctors.",
+        "serviceCode": "Unique code used in imports and reports. Cannot be changed later.",
+        "shortCode": "Letters staff can type to find this quickly.",
+        "nameHiBill": "Printed on bills for patients.",
+        "sacCode": "Healthcare services use SAC 9993. Your CA confirms.",
+        "isExempt": "Healthcare services are normally GST exempt. Your CA confirms before go-live.",
+        "gstPercent": "Leave 0 if exempt. For example 5 or 12.5.",
+        "linkedLab": "Connects this service to a lab test so lab orders can be billed.",
+        "tariffPayer": "Leave blank for the default tariff used when a payer has none of its own.",
+        "effectiveTo": "Optional last day. Leave blank if open-ended.",
+        "creditDays": "Days allowed to pay the invoice.",
+        "payerActive": "Only Cash / Self can be switched on for now. Other payers can be prepared but stay off until insurance billing is released.",
+        "schedule": "Legal drug schedule. The pharmacist must set Schedule H, H1 or X correctly before the pharmacy opens.",
+        "hsn": "HSN code for GST (pharmacist / CA).",
+        "drugGst": "GST percent on sale, for example 5 or 12.",
+        "labUnit": "Result unit and ranges are confirmed by the pathologist.",
+        "formF": "When on, a scan on a pregnant woman cannot be finalised without a complete Form F. Keep it on unless the Appropriate Authority advises otherwise.",
+        "reasonCode": "Small letters, digits and underscore. Cannot be changed later."
+      },
+      "kinds": {
+        "departments": {
+          "title": "Departments",
+          "hint": "Gynaecology, paediatrics, radiology and others",
+          "help": "The departments of the hospital. Services and doctors belong to one.",
+          "new": "New department",
+          "empty": "No departments yet."
+        },
+        "doctors": {
+          "title": "Doctors",
+          "hint": "Doctors, OPD days, consultation fee and follow-up rules",
+          "help": "Doctors who see patients. Open a doctor to set consultation services and follow-up rules.",
+          "new": "New doctor",
+          "empty": "No doctors yet."
+        },
+        "services": {
+          "title": "Services",
+          "hint": "Everything that can appear on a bill",
+          "help": "Consultations, procedures, scans, tests and bed charges. Prices are set under Tariffs → Rates.",
+          "new": "New service",
+          "empty": "No services yet."
+        },
+        "tariffs": {
+          "title": "Tariffs and rates",
+          "hint": "Price lists and the price of every service",
+          "help": "A tariff is a price list. Open Rates to enter the price of each service.",
+          "new": "New tariff",
+          "empty": "No tariffs yet."
+        },
+        "payers": {
+          "title": "Payers",
+          "hint": "Cash, and later PM-JAY, insurance and corporate",
+          "help": "Who pays the bill. Only Cash / Self is in use now; others are prepared for later.",
+          "new": "New payer",
+          "empty": "No payers yet."
+        },
+        "drugs": {
+          "title": "Drugs",
+          "hint": "Drug list used for prescriptions",
+          "help": "The list used when a prescription is typed in. The starter list is only a beginning: import the real list later.",
+          "new": "New drug",
+          "empty": "No drugs yet."
+        },
+        "lab-tests": {
+          "title": "Lab tests",
+          "hint": "Tests that can be ordered",
+          "help": "Tests that doctors can order. Units and ranges are confirmed by the pathologist.",
+          "new": "New lab test",
+          "empty": "No lab tests yet."
+        },
+        "usg-procedures": {
+          "title": "Ultrasound procedures",
+          "hint": "Scan types and Form F rule",
+          "help": "Scan types the hospital performs and whether Form F is needed for a pregnant woman.",
+          "new": "New scan type",
+          "empty": "No scan types yet."
+        },
+        "reason-codes": {
+          "title": "Reasons",
+          "hint": "Pick lists for discounts, cancellations and refunds",
+          "help": "Reasons staff pick when giving a discount, cancelling or refunding.",
+          "new": "New reason",
+          "empty": "No reasons yet."
+        }
+      },
+      "fields": {
+        "name": "Name",
+        "nameHi": "Name in Hindi",
+        "code": "Code",
+        "shortCode": "Short code",
+        "isActive": "In use",
+        "isClinical": "Clinical department",
+        "sortOrder": "Order on screen",
+        "status": "Status",
+        "displayName": "Name as printed",
+        "displayNameHi": "Name in Hindi",
+        "departmentId": "Department",
+        "userId": "Login account",
+        "qualifications": "Qualifications",
+        "registrationCouncil": "Medical council",
+        "registrationNo": "Registration number",
+        "opdDays": "OPD days",
+        "isVisiting": "Visiting doctor",
+        "type": "Type",
+        "contact": "Contact",
+        "creditDays": "Credit days",
+        "requiresPreauth": "Needs pre-authorisation",
+        "payerId": "Payer",
+        "effectiveFrom": "Valid from",
+        "effectiveTo": "Valid until",
+        "category": "Category",
+        "unit": "Charged",
+        "sacCode": "SAC code",
+        "defaultGstRateBp": "GST",
+        "isExempt": "GST exempt",
+        "linkedLabTestId": "Lab test",
+        "linkedUsgProcedureId": "Scan type",
+        "brandName": "Brand / name",
+        "genericName": "Generic (salt) name",
+        "strength": "Strength",
+        "form": "Form",
+        "manufacturer": "Manufacturer",
+        "hsnCode": "HSN code",
+        "gstRateBp": "GST",
+        "schedule": "Drug schedule",
+        "isStocked": "Sold by our pharmacy",
+        "defaultDoseText": "Usual dose wording",
+        "packSize": "Pack size",
+        "department": "Lab section",
+        "sampleType": "Sample",
+        "container": "Container",
+        "method": "Method",
+        "resultType": "Result type",
+        "decimals": "Decimals",
+        "tatHours": "Turnaround (hours)",
+        "isOutsourced": "Sent to outside lab",
+        "outsourceLab": "Outside lab name",
+        "requiresFormFIfPregnant": "Form F if pregnant",
+        "kind": "Used for",
+        "label": "Reason",
+        "labelHi": "Reason in Hindi",
+        "service": "Service"
+      },
+      "enums": {
+        "serviceCategory": {
+          "consultation": "Consultation",
+          "procedure": "Procedure",
+          "usg": "Ultrasound",
+          "lab": "Lab test",
+          "bed": "Bed",
+          "nursing": "Nursing",
+          "ot": "OT / labour room",
+          "doctor_visit": "Doctor visit",
+          "equipment": "Equipment",
+          "misc": "Other",
+          "cardiology": "Cardiology",
+          "icu": "ICU"
+        },
+        "serviceUnit": {
+          "per_visit": "Per visit",
+          "per_day": "Per day",
+          "per_hour": "Per hour",
+          "per_unit": "Per unit"
+        },
+        "payerType": {
+          "self": "Cash / Self",
+          "pmjay": "PM-JAY",
+          "state_scheme": "State scheme",
+          "tpa": "TPA",
+          "insurer": "Insurer",
+          "corporate": "Corporate",
+          "cghs": "CGHS",
+          "echs": "ECHS",
+          "other": "Other"
+        },
+        "drugForm": {
+          "tab": "Tablet",
+          "cap": "Capsule",
+          "syp": "Syrup",
+          "inj": "Injection",
+          "drops": "Drops",
+          "cream": "Cream",
+          "pessary": "Pessary",
+          "sachet": "Sachet",
+          "inhaler": "Inhaler",
+          "other": "Other"
+        },
+        "drugSchedule": {
+          "none": "None",
+          "H": "Schedule H",
+          "H1": "Schedule H1",
+          "X": "Schedule X",
+          "G": "Schedule G",
+          "NDPS": "NDPS"
+        },
+        "labDepartment": {
+          "haematology": "Haematology",
+          "biochemistry": "Biochemistry",
+          "serology": "Serology",
+          "microbiology": "Microbiology",
+          "clin_path": "Clinical pathology",
+          "hormones": "Hormones",
+          "other": "Other"
+        },
+        "labResultType": {
+          "numeric": "Number",
+          "text": "Text",
+          "option": "Choose from options",
+          "culture": "Culture",
+          "formula": "Calculated"
+        },
+        "usgCategory": {
+          "obstetric": "Obstetric",
+          "gynae": "Gynaecology",
+          "abdomen": "Abdomen",
+          "pelvis": "Pelvis",
+          "follicular": "Follicular",
+          "doppler": "Doppler",
+          "other": "Other"
+        },
+        "reasonKind": {
+          "discount": "Discount",
+          "cancel": "Cancellation",
+          "refund": "Refund",
+          "stock_adjust": "Stock adjustment",
+          "no_show": "No-show"
+        },
+        "visitType": {
+          "new": "New visit",
+          "follow_up": "Follow-up",
+          "emergency": "Emergency",
+          "anc": "ANC visit",
+          "paeds_vaccination": "Vaccination visit"
+        },
+        "weekday": {
+          "mon": "Mon",
+          "tue": "Tue",
+          "wed": "Wed",
+          "thu": "Thu",
+          "fri": "Fri",
+          "sat": "Sat",
+          "sun": "Sun"
+        }
+      },
+      "rules": {
+        "title": "Consultation fee and follow-up",
+        "help": "For each kind of visit choose the service that is billed. Leave validity or free count blank to use the hospital default.",
+        "empty": "No rules yet. Without a rule the visit type cannot be billed for this doctor.",
+        "visitType": "Visit type",
+        "service": "Service billed",
+        "fee": "Fee today",
+        "validity": "Follow-up valid (days)",
+        "free": "Free follow-ups",
+        "default": "Default",
+        "noRate": "No rate yet",
+        "save": "Save rule",
+        "invalid": "Choose a service and use whole numbers for days and counts."
+      },
+      "rates": {
+        "title": "Rates: {tariff}",
+        "help": "The price of each service in this tariff. A new price applies from the date you choose; bills already made keep their old price.",
+        "back": "Back to tariffs",
+        "rate": "Rate today",
+        "since": "Since",
+        "noRate": "— not set",
+        "changesOn": "Changes on {date}",
+        "onlyMissing": "Only services without a rate",
+        "allPriced": "Every service has a rate.",
+        "newRate": "New rate (₹)",
+        "effectiveFrom": "Applies from",
+        "effectiveHelp": "Today or a future date. Entering the same date again corrects that day’s rate.",
+        "save": "Save rate",
+        "invalidAmount": "Enter rupees with up to two decimals, for example 500 or 1250.50.",
+        "noRateYet": "No rate set yet. This service cannot be billed until a rate is entered.",
+        "currentRate": "Rate today: {rate}",
+        "history": "Rate history",
+        "noHistory": "No rates entered yet.",
+        "replaced": "corrected"
+      }
     }
   },
   "modules": {
@@ -590,7 +908,11 @@
     "phone": "Enter a valid phone number.",
     "email": "Enter a valid email address.",
     "gstin": "GSTIN has 15 letters and digits.",
-    "color": "Choose a colour like #1a5fb4."
+    "color": "Choose a colour like #1a5fb4.",
+    "tooLong": "This is too long.",
+    "code": "Use capital letters and digits, 2 to 24 characters.",
+    "dateOrder": "The last date cannot be before the first date.",
+    "exemptNoGst": "An exempt service has no GST. Set GST to 0 or untick exempt."
   },
   "mobile": {
     "invalid": "Enter a 10-digit mobile number starting with 6, 7, 8 or 9."
@@ -626,6 +948,22 @@
       "workstationNameTaken": "A workstation with this name already exists.",
       "ownerOnly": "Only the owner can do this for owner or MTP accounts and roles.",
       "settingNotEditable": "This setting cannot be changed here."
+    },
+    "masters": {
+      "duplicate": "This already exists.",
+      "badReference": "A linked item was not found or has been removed. Choose it again.",
+      "invalid": "Please check the values and try again.",
+      "cancelled": "This item was removed. Restore it first to change it.",
+      "notCancelled": "This item is not removed.",
+      "codeTaken": "This code is already used. Codes of removed items are also reserved.",
+      "nameTaken": "This name is already used.",
+      "inUse": "Still in use by active doctors, services or tariffs. Move or remove those first.",
+      "doctorUserTaken": "This login is already linked to another doctor.",
+      "payerPhase": "Only Cash / Self can be switched on for now. Prepare other payers switched off.",
+      "selfPayerProtected": "Cash / Self is needed for billing and cannot be removed or switched off.",
+      "defaultTariffProtected": "There must always be one active default tariff.",
+      "drugTaken": "A drug with the same name, strength, form and maker already exists.",
+      "notConsultation": "Choose a consultation service."
     }
   },
   "nav": {

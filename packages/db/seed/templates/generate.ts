@@ -10,7 +10,7 @@ import { TEMPLATES, type TemplateSpec } from './spec';
 const FIXED_DATE = new Date('2026-10-26T00:00:00Z');
 export const TEMPLATE_DIR = path.dirname(fileURLToPath(import.meta.url));
 
-export async function buildWorkbook(spec: TemplateSpec): Promise<ExcelJS.Workbook> {
+export function buildWorkbook(spec: TemplateSpec): ExcelJS.Workbook {
   const wb = new ExcelJS.Workbook();
   wb.creator = 'HMIS';
   wb.created = FIXED_DATE;
@@ -58,7 +58,7 @@ export async function buildWorkbook(spec: TemplateSpec): Promise<ExcelJS.Workboo
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   for (const spec of TEMPLATES) {
-    const wb = await buildWorkbook(spec);
+    const wb = buildWorkbook(spec);
     await wb.xlsx.writeFile(path.join(TEMPLATE_DIR, spec.file));
     console.log(`db:templates: wrote ${spec.file}`);
   }

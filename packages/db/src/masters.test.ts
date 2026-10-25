@@ -183,7 +183,8 @@ describe('master seeds (docs/33)', () => {
       ...STARTER_DRUGS.map((d) => d.name),
       ...REASON_CODES.flatMap((r) => [r.label, r.labelHi]),
     ];
-    for (const text of texts) expect(findForbiddenTerms(text, 'strict'), text).toEqual([]);
+    for (const text of texts)
+      expect(findForbiddenTerms(text, { tier: 'strict' }), text).toEqual([]);
   });
 });
 
@@ -422,11 +423,11 @@ describe('demo seed skeleton', () => {
       'rates: 0 synthetic demo rate(s) in the default tariff',
     ]);
     const rules = (
-      await t.owner.$client.query(
+      await t.owner.$client.query<{ n: number }>(
         `select count(*)::int as n from consultation_rule where facility_id = $1`,
         [f.facilityId],
       )
-    ).rows[0].n;
+    ).rows[0]!.n;
     expect(rules).toBe(7);
   });
 
