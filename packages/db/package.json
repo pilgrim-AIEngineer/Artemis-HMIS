@@ -9,7 +9,9 @@
     "./migrate": "./src/migrate.ts",
     "./schema": "./schema/index.ts",
     "./testing": "./testing/postgres.ts",
-    "./testing/platform": "./testing/platform.ts"
+    "./testing/platform": "./testing/platform.ts",
+    "./seed": "./seed/masters.ts",
+    "./seed/demo": "./seed/demo/index.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
