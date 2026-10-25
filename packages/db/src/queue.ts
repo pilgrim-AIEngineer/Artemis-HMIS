@@ -543,13 +543,12 @@ export async function queueBoard(
       updatedAt: _u,
       doneAt: _n,
       ...t
-    }: (typeof mine)[number]) =>
-      ({
-        ...t,
-        priority: t.priority as QueuePriority,
-        queueState: t.queueState as QueueState,
-        visitType: t.visitType as VisitType,
-      }) as BoardToken;
+    }: (typeof mine)[number]) => ({
+      ...t,
+      priority: t.priority as QueuePriority,
+      queueState: t.queueState as QueueState,
+      visitType: t.visitType as VisitType,
+    });
     // `with_doctor` and later states sit above the pending queue so the current patient is first.
     const inFlow = mine
       .filter(

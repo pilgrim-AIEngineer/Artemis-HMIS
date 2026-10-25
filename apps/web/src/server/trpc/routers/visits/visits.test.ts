@@ -13,7 +13,6 @@ import {
 let f: AuthFixture;
 let opd: Omit<OpdFixture, 't' | 'f'>;
 let reception: TestBrowser;
-let cashier: TestBrowser;
 let doctor: TestBrowser;
 let assistant: TestBrowser;
 let nurse: TestBrowser;
@@ -33,9 +32,8 @@ beforeAll(async () => {
     await b.login(u.username);
     return b;
   };
-  [reception, cashier, doctor, assistant, nurse, admin, owner, noRoles] = await Promise.all([
+  [reception, doctor, assistant, nurse, admin, owner, noRoles] = await Promise.all([
     login(f.users.reception),
-    login(f.users.cashier),
     login(f.users.doctor),
     login(f.users.assistant),
     login(f.users.nurse),
@@ -55,7 +53,7 @@ const book = (b: TestBrowser, over: Record<string, unknown> = {}) =>
       doctorId: opd.doctorB,
       idempotencyKey: uuidv7(),
       ...over,
-    } as Parameters<typeof c.visit.create>[0]),
+    }),
   );
 
 describe('visit permissions (AGENTS.md rule 6)', () => {

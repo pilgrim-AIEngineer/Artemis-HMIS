@@ -75,7 +75,9 @@ export const encounter = pgTable(
     isDowntimeEntry: boolean().notNull().default(false),
     /** Consultation fee snapshot (rate of the tariff on the visit day); the bill reads it. */
     consultationServiceId: uuid().references(() => service.id),
-    consultationFeePaise: bigint({ mode: 'bigint' }).notNull().default(sql`0`),
+    consultationFeePaise: bigint({ mode: 'bigint' })
+      .notNull()
+      .default(sql`0`),
     feeBasis: text().notNull(),
     ...auditColumns(),
   },
