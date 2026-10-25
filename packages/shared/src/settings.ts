@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { accentColorSchema } from './accent';
 import { cidrSchema, DEFAULT_LAN_CIDRS } from './network';
 import { NUMBER_SERIES_CONFIG_SETTING, numberSeriesConfigSchema } from './number-series';
 import { ROLE_KEYS, type RoleKey } from './permissions';
@@ -36,6 +37,23 @@ const upiRefSchema = z.object({
   /** Threshold for `required_above_amount` (docs/12 §3 example: ₹2,000). */
   abovePaise: paiseJson.default(200_000),
 });
+
+/**
+ * Hospital header on every print (docs/05 §6). English name, address, phone and registration
+ * numbers come from the facility profile; this adds the Hindi line and wording, so printouts for
+ * patients are bilingual (Hindi first, docs/05 §6).
+ */
+export const printHeaderSchema = z.object({
+  nameHi: z.string().trim().max(120).default(''),
+  taglineEn: z.string().trim().max(120).default(''),
+  taglineHi: z.string().trim().max(120).default(''),
+  addressHi: z.string().trim().max(300).default(''),
+  /** Registration numbers (clinical establishment, GSTIN) under the address. */
+  showRegistrationNos: z.boolean().default(true),
+  footerNoteEn: z.string().trim().max(300).default(''),
+  footerNoteHi: z.string().trim().max(300).default(''),
+});
+export type PrintHeaderSettings = z.output<typeof printHeaderSchema>;
 
 interface SettingDef<T extends z.ZodType = z.ZodType> {
   schema: T;
@@ -94,6 +112,7 @@ export const SETTINGS = {
   'rx.verifySamplePercent': def(z.number().int().min(1).max(100), 10),
   'rx.requirePhoto': def(z.boolean(), false),
   'print.rxCopy': def(z.boolean(), false), // Q16
+  'print.header': def(printHeaderSchema, printHeaderSchema.parse({})),
   'usg.reportFooter': def(z.string().max(2000), ''),
   'pcpndt.patientDeclarationBeforeScan': def(z.boolean(), true),
   /** Gestation-based MTP rules, maintained by the MTP doctor (docs/14); free-form JSON. */
@@ -119,6 +138,8 @@ export const SETTINGS = {
   'features.pmjay': def(z.boolean(), false),
   'features.cardiology': def(z.boolean(), false),
   'features.trainingMode': def(z.boolean(), false),
+  /** Brand accent for the UI and print rules; null = neutral blue (Q20). */
+  'ui.accentColor': def(accentColorSchema.nullable(), null),
   /** Roles whose screens show `हिंदी / English` labels together (docs/05 §8). */
   'ui.bilingualLabels': def(z.array(roleKey), ['reception', 'cashier', 'nurse'] as RoleKey[]),
   [NUMBER_SERIES_CONFIG_SETTING]: def(numberSeriesConfigSchema, {}),
