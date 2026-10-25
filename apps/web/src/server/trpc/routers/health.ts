@@ -3,5 +3,8 @@ import { getHealth } from '../../health';
 import { publicProcedure, router } from '../init';
 
 export const healthRouter = router({
-  check: publicProcedure.output(healthStatusSchema).query(({ ctx }) => getHealth(ctx.db)),
+  check: publicProcedure
+    .meta({ permission: 'public' })
+    .output(healthStatusSchema)
+    .query(({ ctx }) => getHealth(ctx.db)),
 });

@@ -3,6 +3,7 @@ import { createTestDatabase } from '@hmis/db/testing';
 import { healthStatusSchema } from '@hmis/shared';
 import { TRPCError } from '@trpc/server';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
+import { testContext } from '../../../../test/context';
 import { formatError } from '../init';
 import { createCaller } from '../root';
 
@@ -18,7 +19,7 @@ afterAll(async () => {
 
 describe('health.check', () => {
   it('reports ok when the database answers', async () => {
-    const res = await createCaller({ db: () => db }).health.check();
+    const res = await createCaller(testContext({ db: () => db })).health.check();
     expect(healthStatusSchema.parse(res)).toEqual(res);
     expect(res.status).toBe('ok');
     expect(res.checks.db.ok).toBe(true);
@@ -27,7 +28,7 @@ describe('health.check', () => {
   it('reports degraded (not an error) when the database is unreachable', async () => {
     const dead = createDb({ connectionString: 'postgres://x:y@127.0.0.1:1/none' });
     try {
-      const res = await createCaller({ db: () => dead }).health.check();
+      const res = await createCaller(testContext({ db: () => dead })).health.check();
       expect(res.status).toBe('degraded');
       expect(res.checks.db).toEqual({ ok: false, latencyMs: null });
     } finally {
@@ -36,11 +37,13 @@ describe('health.check', () => {
   });
 
   it('reports degraded when the database is not configured', async () => {
-    const res = await createCaller({
-      db: () => {
-        throw new Error('Database not configured');
-      },
-    }).health.check();
+    const res = await createCaller(
+      testContext({
+        db: () => {
+          throw new Error('Database not configured');
+        },
+      }),
+    ).health.check();
     expect(res.status).toBe('degraded');
   });
 });
