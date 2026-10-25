@@ -17,7 +17,8 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/migrate-cli.ts",
-    "db:seed": "tsx seed/index.ts"
+    "db:seed": "tsx seed/index.ts",
+    "db:templates": "tsx seed/templates/generate.ts"
   },
   "dependencies": {
     "@hmis/shared": "workspace:*",
@@ -31,6 +32,7 @@
     "@testcontainers/postgresql": "12.2.1",
     "@types/pg": "^8.23.1",
     "drizzle-kit": "0.31.11",
+    "exceljs": "^4.4.0",
     "testcontainers": "12.2.1"
   }
 }
