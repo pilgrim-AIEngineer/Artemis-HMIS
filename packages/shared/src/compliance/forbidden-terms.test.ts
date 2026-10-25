@@ -21,10 +21,10 @@ const alwaysExample = example('pn01');
 const strictExample = example('pn15');
 
 describe('FORBIDDEN_TERMS', () => {
-  it('covers every pattern listed in docs/30 §1 with unique ids', () => {
-    expect(FORBIDDEN_TERMS).toHaveLength(15);
-    expect(new Set(FORBIDDEN_TERMS.map((t) => t.id)).size).toBe(15);
-    expect(FORBIDDEN_TERMS.filter((t) => t.tier === 'always')).toHaveLength(8);
+  it('covers every pattern in docs/30 §1 plus the issue #13 variants with unique ids', () => {
+    expect(FORBIDDEN_TERMS).toHaveLength(23);
+    expect(new Set(FORBIDDEN_TERMS.map((t) => t.id)).size).toBe(23);
+    expect(FORBIDDEN_TERMS.filter((t) => t.tier === 'always')).toHaveLength(17);
   });
 
   it.each(FORBIDDEN_TERMS.flatMap((t) => t.examples.map((e) => [t.id, e] as const)))(
@@ -146,10 +146,13 @@ describe('scanRepo', () => {
     expect(got).toEqual(
       [
         'apps/web/messages/hi.json#common.bad#pn01',
+        'apps/web/messages/hi.json#common.bad#pn16',
         'apps/web/messages/hi.json#usg.field#pn15',
         'packages/db/schema/patient.ts#2#pn01',
+        'packages/db/schema/patient.ts#2#pn16',
         'packages/db/schema/usg.ts#1#pn15',
         `packages/print/src/${alwaysExample.replace(' ', '-')}.tsx#path#pn01`,
+        `packages/print/src/${alwaysExample.replace(' ', '-')}.tsx#path#pn16`,
       ].sort(),
     );
   });
