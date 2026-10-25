@@ -1,7 +1,6 @@
-import type { Logger } from '@hmis/shared/logger';
 import { PgBoss } from 'pg-boss';
 import { JOBS } from './jobs';
-import type { JobDefinition } from './jobs/types';
+import type { JobContext, JobDefinition } from './jobs/types';
 
 export function createBoss(connectionString: string): PgBoss {
   return new PgBoss({
@@ -15,7 +14,7 @@ export function createBoss(connectionString: string): PgBoss {
 /** Creates queues and attaches handlers for every job definition. */
 export async function registerJobs(
   boss: PgBoss,
-  logger: Logger,
+  ctx: JobContext,
   jobs: readonly JobDefinition[] = JOBS,
 ): Promise<void> {
   for (const job of jobs) {
@@ -27,9 +26,13 @@ export async function registerJobs(
         // batchSize defaults to 1; guard anyway so a config change can't drop jobs silently.
         if (!first || rest.length > 0) throw new Error(`${job.name}: expected exactly one job`);
         const data = job.schema.parse(first.data);
-        return job.handle(data, { logger: logger.child({ job: job.name }), jobId: first.id });
+        return job.handle(data, {
+          ...ctx,
+          logger: ctx.logger.child({ job: job.name }),
+          jobId: first.id,
+        });
       },
     );
-    logger.info({ queue: job.name }, 'queue ready');
+    ctx.logger.info({ queue: job.name }, 'queue ready');
   }
 }

@@ -1,8 +1,14 @@
+import type { Db } from '@hmis/db';
 import type { Logger } from '@hmis/shared/logger';
 import type { z } from 'zod';
 
+/** What every job handler gets besides its payload. */
 export interface JobContext {
   logger: Logger;
+  /** Least-privileged app connection (same role the web app uses). */
+  db: Db;
+  /** Root of the local file volume (`/data/files`). */
+  filesDir: string;
 }
 
 /**

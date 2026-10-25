@@ -64,6 +64,9 @@ services:
     init: true
     environment:
       <<: *app-env
+    volumes:
+      # Rendered PDFs and (later) scans: docs/01 §2. Backed up with the database (OPS-01).
+      - files:/data/files
     depends_on:
       postgres:
         condition: service_healthy
@@ -103,6 +106,7 @@ services:
 
 volumes:
   pgdata:
+  files:
   caddy_data:
   caddy_config:
   backup:

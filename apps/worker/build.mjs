@@ -10,8 +10,9 @@ await build({
   target: 'node24',
   format: 'esm',
   sourcemap: true,
-  // pg's optional native binding is never used.
-  external: ['pg-native'],
+  // pg's optional native binding is never used; playwright-core is installed next to the bundle
+  // (worker image) because it locates its own driver files at runtime.
+  external: ['pg-native', 'playwright-core'],
   // Some CJS deps call require(); give the ESM bundle one.
   banner: {
     js: "import { createRequire as __hmisCreateRequire } from 'node:module'; const require = __hmisCreateRequire(import.meta.url);",

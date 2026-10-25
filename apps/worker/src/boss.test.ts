@@ -1,4 +1,4 @@
-import { createTestDatabase } from '@hmis/db/testing';
+import { setupPlatformDb, type PlatformTestDb } from '@hmis/db/testing/platform';
 import { createLogger } from '@hmis/shared/logger';
 import type { PgBoss } from 'pg-boss';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
@@ -6,6 +6,7 @@ import { createBoss, registerJobs } from './boss';
 import { noopJob } from './jobs/noop';
 
 let boss: PgBoss;
+let t: PlatformTestDb;
 
 async function waitForState(name: string, id: string, states: string[], timeoutMs = 15_000) {
   const deadline = Date.now() + timeoutMs;
@@ -18,13 +19,19 @@ async function waitForState(name: string, id: string, states: string[], timeoutM
 }
 
 beforeAll(async () => {
-  boss = createBoss(await createTestDatabase(inject('testPgAdminUrl')));
+  t = await setupPlatformDb(inject('testPgAdminUrl'));
+  boss = createBoss(t.owner.$client.options.connectionString!);
   await boss.start();
-  await registerJobs(boss, createLogger('test', 'silent'));
+  await registerJobs(boss, {
+    logger: createLogger('test', 'silent'),
+    db: t.app,
+    filesDir: '/nonexistent',
+  });
 });
 
 afterAll(async () => {
   await boss.stop({ graceful: false });
+  await t.close();
 });
 
 describe('worker queue', () => {
