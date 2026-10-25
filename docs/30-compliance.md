@@ -14,6 +14,7 @@ This is an engineering checklist, not legal advice. Each item names who must con
 
 - Scans: `packages/print/**/usg*`, `packages/shared/**/usg*`, `packages/db/schema/usg*`, `packages/db/seed/**/usg*`, `packages/shared/forms/form-f*`, any AI prompt files, and user-defined USG template JSON exported from the DB in tests.
 - Case-insensitive patterns (extend as needed): `fetal sex`, `foetal sex`, `sex of (the )?f(o)?etus`, `gender of (the )?f(o)?etus`, `f(o)?etal gender`, `baby gender`, `boy or girl`, `male fetus`, `female fetus`, `\bladka\b`, `\bladki\b`, `लड़का`, `लड़की`, `भ्रूण.*लिंग`, `लिंग`.
+- Scope and identifier normalisation were widened by decision D-5 (`docs/40-open-questions.md`); D-5 overrides the path list above.
 - Allowlist (exact keys only): `living_children[].sex` in Form F (sex of already-born living children, required by the form). Newborn/birth-register code paths (`newborn`, `birth_record`) are outside the scanned paths — sex of a born baby is normal data.
 - Runtime guard: USG template editor rejects field labels/keys matching the patterns.
 
