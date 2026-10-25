@@ -25,13 +25,15 @@ import {
   consultationRule,
   doctorProfile,
   encounter,
+  facility,
   opdToken,
   patient,
   queueEvent,
 } from '../schema';
+import type { Db } from './client';
 import { allocateDailyToken } from './number-series';
 import { readSetting } from './settings';
-import type { Tx } from './tx';
+import { withTx, type Tx } from './tx';
 import { VisitInputError, type Actor } from './visits';
 
 type TokenRow = typeof opdToken.$inferSelect;
@@ -609,4 +611,24 @@ export async function queueBoard(
       feePaise: a.feePaise.toString(),
     })),
   };
+}
+
+/**
+ * Scheduled end-of-day run (worker job `queue.endOfDay`, 23:30 IST): every active facility's
+ * unseen tokens of the day become `no_show`. One transaction per facility, so one failure does
+ * not undo the others. Returns the number of tokens changed per facility.
+ */
+export async function runEndOfDayNoShow(db: Db, now: Date): Promise<Record<string, number>> {
+  const facilities = await db
+    .select({ id: facility.id })
+    .from(facility)
+    .where(eq(facility.isActive, true));
+  const date = istDateString(now);
+  const out: Record<string, number> = {};
+  for (const f of facilities) {
+    out[f.id] = await withTx({ db, userId: null, facilityId: f.id }, (tx) =>
+      autoNoShow(tx, f.id, date, now),
+    );
+  }
+  return out;
 }

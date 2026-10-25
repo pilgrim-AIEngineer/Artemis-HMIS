@@ -377,3 +377,17 @@ describe('change notification (docs/01 §2)', () => {
     expect(payload).toMatchObject({ f: fx.f.facilityId, t: 'queue', d: fx.doctorB });
   });
 });
+
+describe('scheduled end of day', () => {
+  it('runs for every active facility and leaves seen patients alone', async () => {
+    const at = nextDay();
+    const toks = await queueUp(at(), 3);
+    await act((tx) => callNext(tx, fx.actor(), fx.doctorB, at()));
+    const { runEndOfDayNoShow } = await import('./queue');
+    const out = await runEndOfDayNoShow(fx.t.app, at('23', '30'));
+    expect(out[fx.f.facilityId]).toBe(2);
+    const states = await Promise.all(toks.map((x) => state(x.tokenId)));
+    expect(states.map((s) => s.queueState)).toEqual(['with_doctor', 'no_show', 'no_show']);
+    expect((await runEndOfDayNoShow(fx.t.app, at('23', '31')))[fx.f.facilityId]).toBe(0);
+  });
+});
