@@ -15,7 +15,6 @@ export function createLogger(name: string, level = process.env.LOG_LEVEL ?? 'inf
         'pin',
         '*.password',
         '*.pin',
-        'name',
         '*.name',
         'mobile',
         '*.mobile',
