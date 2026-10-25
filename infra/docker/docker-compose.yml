@@ -14,6 +14,9 @@ x-app-env: &app-env
   # In-network address; resolveDatabaseUrl() builds and escapes the URL from these.
   PG_HOST: postgres
   PG_PORT: '5432'
+  # Least-privileged app login (member of hmis_app); created/updated by the migrate step.
+  APP_DB_USER: ${APP_DB_USER:-hmis_app_login}
+  APP_DB_PASSWORD: ${APP_DB_PASSWORD:-}
   HMIS_VERSION: ${HMIS_VERSION:-dev}
   LOG_LEVEL: ${LOG_LEVEL:-info}
   TZ: Asia/Kolkata

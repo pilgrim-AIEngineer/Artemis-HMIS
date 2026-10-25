@@ -1,6 +1,7 @@
 /**
- * Drizzle schema entry point. Tables arrive from FND-04/05 onwards (docs/04-data-model.md).
+ * Drizzle schema entry point (docs/04-data-model.md).
  * Rules: singular snake_case tables, `facility_id` + audit columns on every table, money as
  * bigint paise, UUIDv7 ids (AGENTS.md §3). Migrations are additive only.
+ * New business tables: call `hmis_register_business_table()` in a custom migration (see README).
  */
-export {};
+export * from './platform';
