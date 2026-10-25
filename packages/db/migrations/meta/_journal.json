@@ -15,6 +15,20 @@
       "when": 1792916268824,
       "tag": "0001_platform_roles_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792948934449,
+      "tag": "0002_auth_sessions",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792948940784,
+      "tag": "0003_auth_audit_redact",
+      "breakpoints": true
     }
   ]
 }
