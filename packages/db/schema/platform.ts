@@ -406,6 +406,8 @@ export const printLog = pgTable(
   },
   (t) => [
     index('print_log_entity_idx').on(t.entity, t.entityId),
+    /** Copy numbers are allocated under a lock; this is the backstop (FND-06). */
+    uniqueIndex('print_log_copy_key').on(t.facilityId, t.template, t.entityId, t.copyNo),
     check('print_log_copy_no_positive', sql`${t.copyNo} >= 1`),
   ],
 );

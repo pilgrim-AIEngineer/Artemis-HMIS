@@ -31,7 +31,7 @@ function phoneticWord(word: string): string {
     .replace(/sh/g, 's')
     .replace(/v/g, 'w')
     .replace(/z/g, 'j')
-    .replace(/([bcdfgjklmnpqrstwxy])h/g, '$1') // kh→k, th→t, ch→c, gh→g, dh→d, bh→b …
+    .replace(/([bcdfgjklmnpqrstwxy])h+/g, '$1') // kh→k, th→t, ch→c, gh→g, dh→d, bh→b … (all h's: idempotent)
     .replace(/(\p{L})\1+/gu, '$1');
 }
 

@@ -33,7 +33,7 @@ import { generateTotpSecret, totpUri, verifyTotp } from '../../auth/totp';
 import { appError, protectedProcedure, publicProcedure, router, setCookie } from '../init';
 
 /** What the browser needs about its own session (lock screen, menus, idle timer). */
-function meView(auth: AuthSession, totpRequired: boolean) {
+function meView(auth: AuthSession, totpRequired: boolean, bilingualLabels: boolean) {
   return {
     userId: auth.userId,
     username: auth.username,
@@ -46,6 +46,8 @@ function meView(auth: AuthSession, totpRequired: boolean) {
     totpEnabled: auth.totpEnabled,
     /** True when this user's roles require TOTP for remote sign-in (setting). */
     totpRequired,
+    /** Show `हिंदी / English` labels (setting `ui.bilingualLabels` lists the roles, docs/05 §8). */
+    bilingualLabels,
     isRemote: auth.isRemote,
     workstationName: auth.workstationName,
     idleLockMinutes: auth.idleLockMinutes,
@@ -57,9 +59,13 @@ export type MeView = ReturnType<typeof meView>;
 
 /** `auth.me` for a resolved session (also used by Server Components). */
 export async function loadMeView(db: Db, auth: AuthSession): Promise<MeView> {
-  const s = await readSettings(db, auth.facilityId, ['auth.totpRequiredRoles']);
+  const s = await readSettings(db, auth.facilityId, [
+    'auth.totpRequiredRoles',
+    'ui.bilingualLabels',
+  ]);
   const required = s['auth.totpRequiredRoles'].some((r) => auth.roles.includes(r));
-  return meView(auth, required);
+  const bilingual = s['ui.bilingualLabels'].some((r) => auth.roles.includes(r));
+  return meView(auth, required, bilingual);
 }
 
 export const authRouter = router({

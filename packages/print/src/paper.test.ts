@@ -8,7 +8,8 @@ describe('paper sizes', () => {
 
   it('renders @page rules', () => {
     expect(pageCss('a5')).toBe('@page { size: 148mm 210mm; margin: 8mm; }');
-    expect(pageCss('thermal80')).toBe('@page { size: 80mm auto; margin: 3mm; }');
+    // `size: 80mm auto` is invalid CSS; the roll width comes from the printer driver.
+    expect(pageCss('thermal80')).toBe('@page { margin: 3mm; }');
   });
 
   it('narrows template names', () => {

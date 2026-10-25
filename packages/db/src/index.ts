@@ -3,6 +3,7 @@ export * from './client';
 export * from './env';
 export * from './health';
 export * from './number-series';
+export * from './print';
 export * from './rbac';
 export * from './settings';
 export * from './tx';

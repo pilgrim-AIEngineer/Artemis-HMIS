@@ -67,7 +67,13 @@ const child = spawn(
     cwd: root,
     stdio: 'inherit',
     detached: true,
-    env: { ...env, DATABASE_URL: databaseUrl, PORT: webPort },
+    env: {
+      ...env,
+      DATABASE_URL: databaseUrl,
+      PORT: webPort,
+      // Local stand-in for the /data/files volume (git-ignored); the worker writes PDFs here.
+      HMIS_FILES_DIR: env.HMIS_FILES_DIR ?? path.join(root, 'data/files'),
+    },
   },
 );
 for (const sig of ['SIGINT', 'SIGTERM', 'SIGHUP']) {

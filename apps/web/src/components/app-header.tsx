@@ -5,10 +5,11 @@ import { Globe, Lock, Monitor, UserRoundCog } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useSession } from './auth/session-provider';
+import { AppNav, type NavLabels } from './app-nav';
 import { LocaleSwitcher } from './locale-switcher';
 
 /** Top bar of every signed-in screen: who, where, Lock and the always-visible Switch user. */
-export function AppHeader() {
+export function AppHeader({ navLabels }: { navLabels: NavLabels }) {
   const t = useTranslations('auth.header');
   const tApp = useTranslations('app');
   const { me, lock, switchUser } = useSession();
@@ -48,6 +49,7 @@ export function AppHeader() {
           </Button>
         </nav>
       </div>
+      <AppNav labels={navLabels} />
     </header>
   );
 }
