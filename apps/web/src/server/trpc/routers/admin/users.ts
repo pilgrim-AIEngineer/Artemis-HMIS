@@ -16,7 +16,7 @@ import { revokeSession, revokeUserSessions } from '../../../auth/session';
 import { appError, protectedProcedure, type Context } from '../../init';
 import type { AuthSession } from '../../../auth/session';
 import type { Tx } from '@hmis/db';
-import { assertUserManagerRemains } from './guards';
+import { assertMayChangeRoles, assertMayManageUser, assertUserManagerRemains } from './guards';
 
 const manage = protectedProcedure.meta({ permission: 'admin.users.manage' });
 
@@ -57,16 +57,21 @@ async function setRoles(
     .select({ id: userRole.id, roleId: userRole.roleId })
     .from(userRole)
     .where(and(eq(userRole.userId, userId), isNull(userRole.revokedAt)));
-  for (const c of current) {
-    if (!wanted.has(c.roleId)) {
-      await tx
-        .update(userRole)
-        .set({ revokedAt: now, revokedBy: auth.userId })
-        .where(eq(userRole.id, c.id));
-    }
-  }
   const have = new Set(current.map((c) => c.roleId));
   const add = [...wanted].filter((r) => !have.has(r));
+  const removed = current.filter((c) => !wanted.has(c.roleId));
+  await assertMayChangeRoles(
+    tx,
+    auth,
+    add,
+    removed.map((c) => c.roleId),
+  );
+  for (const c of removed) {
+    await tx
+      .update(userRole)
+      .set({ revokedAt: now, revokedBy: auth.userId })
+      .where(eq(userRole.id, c.id));
+  }
   if (add.length > 0) {
     await tx
       .insert(userRole)
@@ -225,6 +230,7 @@ export const userProcedures = {
       const t = now(ctx);
       await ctx.tx(async (tx) => {
         const u = await userInFacility(tx, ctx.auth.facilityId, input.userId);
+        await assertMayManageUser(tx, ctx.auth, u.id);
         if (!u.isActive) return;
         await tx
           .update(appUser)
@@ -244,6 +250,7 @@ export const userProcedures = {
   reactivateUser: manage.input(userIdInput).mutation(async ({ ctx, input }) => {
     await ctx.tx(async (tx) => {
       const u = await userInFacility(tx, ctx.auth.facilityId, input.userId);
+      await assertMayManageUser(tx, ctx.auth, u.id);
       if (u.isActive) return;
       await tx
         .update(appUser)
@@ -261,6 +268,7 @@ export const userProcedures = {
       const t = now(ctx);
       await ctx.tx(async (tx) => {
         const u = await userInFacility(tx, ctx.auth.facilityId, input.userId);
+        await assertMayManageUser(tx, ctx.auth, u.id);
         await tx
           .update(appUser)
           .set({ passwordHash, passwordMustChange: true, failedLoginCount: 0, lockedUntil: null })
@@ -274,6 +282,7 @@ export const userProcedures = {
   resetPin: manage.input(userIdInput).mutation(async ({ ctx, input }) => {
     await ctx.tx(async (tx) => {
       const u = await userInFacility(tx, ctx.auth.facilityId, input.userId);
+      await assertMayManageUser(tx, ctx.auth, u.id);
       await tx
         .update(appUser)
         .set({ pinHash: null, pinFailedCount: 0, pinLockedUntil: null })
@@ -299,6 +308,7 @@ export const userProcedures = {
     const t = now(ctx);
     await ctx.tx(async (tx) => {
       const u = await userInFacility(tx, ctx.auth.facilityId, input.userId);
+      await assertMayManageUser(tx, ctx.auth, u.id);
       await tx
         .update(appUser)
         .set({ totpSecretEnc: null, totpConfirmedAt: null, totpLastStep: null })

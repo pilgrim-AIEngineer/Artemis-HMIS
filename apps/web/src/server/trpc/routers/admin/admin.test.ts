@@ -281,10 +281,20 @@ describe('roles and permission matrix', () => {
       ).message,
     ).toBe('errors.admin.restrictedPermission');
     const mtp = await roleId(f.a.facilityId, 'mtp_doctor');
+    // The MTP role is owner-only for an admin, and locked for everyone in this editor.
     expect(
       (
         await trpcError(
           admin.call((c) => c.admin.setRolePermissions({ roleId: mtp, permissions: [] })),
+        )
+      ).message,
+    ).toBe('errors.admin.ownerOnly');
+    const owner = f.browser();
+    await owner.login(f.users.owner.username);
+    expect(
+      (
+        await trpcError(
+          owner.call((c) => c.admin.setRolePermissions({ roleId: mtp, permissions: [] })),
         )
       ).message,
     ).toBe('errors.admin.restrictedPermission');
@@ -328,6 +338,110 @@ describe('roles and permission matrix', () => {
     await admin.call((c) =>
       c.admin.updateRole({ roleId: nurse, name: 'Nurse', nameHi: 'नर्स', isActive: true }),
     );
+  });
+});
+
+describe('owner-only zone: MTP roles and owner accounts', () => {
+  it('an admin cannot grant the MTP role or take over the owner; the owner can', async () => {
+    const mtp = await roleId(f.a.facilityId, 'mtp_doctor');
+    const nurse = await roleId(f.a.facilityId, 'nurse');
+    const ownerOnly = 'errors.admin.ownerOnly';
+    // Not to someone else, not to themselves.
+    for (const userId of [f.users.nurse.id, f.users.admin.id]) {
+      const roles =
+        userId === f.users.admin.id ? [await roleId(f.a.facilityId, 'admin'), mtp] : [nurse, mtp];
+      expect(
+        (await trpcError(admin.call((c) => c.admin.setUserRoles({ userId, roleIds: roles }))))
+          .message,
+      ).toBe(ownerOnly);
+    }
+    expect(
+      (
+        await trpcError(
+          admin.call((c) =>
+            c.admin.createUser({
+              username: 'mtp_sneak',
+              fullName: 'Sneak',
+              preferredLocale: 'en',
+              roleIds: [mtp],
+              password: 'sneaky-pass-1',
+            }),
+          ),
+        )
+      ).message,
+    ).toBe(ownerOnly);
+    // Owner account: no password reset, PIN/TOTP reset, deactivation or role change by an admin.
+    const target = f.users.owner.id;
+    for (const call of [
+      () => admin.call((c) => c.admin.resetPassword({ userId: target, password: 'takeover-pass' })),
+      () => admin.call((c) => c.admin.resetPin({ userId: target })),
+      () => admin.call((c) => c.admin.resetTotp({ userId: target })),
+      () => admin.call((c) => c.admin.deactivateUser({ userId: target, reason: 'take over' })),
+      () => admin.call((c) => c.admin.setUserRoles({ userId: target, roleIds: [] })),
+    ]) {
+      expect((await trpcError(call())).message).toBe(ownerOnly);
+    }
+    const ownerRole = await roleId(f.a.facilityId, 'owner');
+    expect(
+      (
+        await trpcError(
+          admin.call((c) =>
+            c.admin.updateRole({ roleId: ownerRole, name: 'Owner', nameHi: null, isActive: false }),
+          ),
+        )
+      ).message,
+    ).toBe(ownerOnly);
+
+    // The owner designates the MTP doctor, and the admin then cannot reset that account.
+    const owner = f.browser();
+    await owner.login(f.users.owner.username);
+    await owner.call((c) =>
+      c.admin.setUserRoles({ userId: f.users.nurse.id, roleIds: [nurse, mtp] }),
+    );
+    expect(
+      (
+        await trpcError(
+          admin.call((c) =>
+            c.admin.resetPassword({ userId: f.users.nurse.id, password: 'takeover-pass' }),
+          ),
+        )
+      ).message,
+    ).toBe(ownerOnly);
+    // Harmless actions stay open to the admin.
+    await admin.call((c) => c.admin.clearLockout({ userId: f.users.nurse.id }));
+    await owner.call((c) => c.admin.setUserRoles({ userId: f.users.nurse.id, roleIds: [nurse] }));
+    await admin.call((c) => c.admin.resetPin({ userId: f.users.nurse.id }));
+  });
+
+  it('while a facility has no owner, a user manager may designate the first one', async () => {
+    const ownerB = await roleId(f.b.facilityId, 'owner');
+    const adminRoleB = await roleId(f.b.facilityId, 'admin');
+    const { id } = await adminB.call((c) =>
+      c.admin.createUser({
+        username: 'owner_b',
+        fullName: 'Owner B',
+        preferredLocale: 'hi',
+        roleIds: [ownerB],
+        password: 'owner-b-pass',
+      }),
+    );
+    // Now there is one: a second owner, or touching the first, needs the owner.
+    expect(
+      (
+        await trpcError(
+          adminB.call((c) =>
+            c.admin.setUserRoles({ userId: f.users.adminB.id, roleIds: [adminRoleB, ownerB] }),
+          ),
+        )
+      ).message,
+    ).toBe('errors.admin.ownerOnly');
+    expect(
+      (
+        await trpcError(
+          adminB.call((c) => c.admin.resetPassword({ userId: id, password: 'takeover-pass' })),
+        )
+      ).message,
+    ).toBe('errors.admin.ownerOnly');
   });
 });
 

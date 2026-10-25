@@ -5,7 +5,7 @@ import { and, asc, eq, inArray, isNull } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
 import { z } from 'zod';
 import { appError, protectedProcedure } from '../../init';
-import { assertUserManagerRemains } from './guards';
+import { assertOwner, assertUserManagerRemains, protectedRoleIds } from './guards';
 
 const restricted: ReadonlySet<string> = new Set(RESTRICTED_PERMISSIONS);
 
@@ -106,6 +106,7 @@ export const roleProcedures = {
     )
     .mutation(async ({ ctx, input }) => {
       await ctx.tx(async (tx) => {
+        if ((await protectedRoleIds(tx, [input.roleId])).size > 0) assertOwner(ctx.auth);
         const updated = await tx
           .update(role)
           .set({ name: input.name, nameHi: input.nameHi, isActive: input.isActive })
@@ -137,6 +138,7 @@ export const roleProcedures = {
           .from(role)
           .where(and(eq(role.id, input.roleId), eq(role.facilityId, ctx.auth.facilityId)));
         if (!r) throw appError('NOT_FOUND', 'errors.notFound');
+        if ((await protectedRoleIds(tx, [r.id])).size > 0) assertOwner(ctx.auth);
         const current = await tx
           .select({ id: rolePermission.id, key: permission.key })
           .from(rolePermission)

@@ -309,7 +309,8 @@
       "cannotDeactivateSelf": "You cannot deactivate your own account.",
       "restrictedPermission": "MTP permissions cannot be changed here. Assign the “MTP doctor” role instead.",
       "roleKeyTaken": "A role with this key already exists.",
-      "workstationNameTaken": "A workstation with this name already exists."
+      "workstationNameTaken": "A workstation with this name already exists.",
+      "ownerOnly": "Only the owner can do this for owner or MTP accounts and roles."
     }
   }
 }
