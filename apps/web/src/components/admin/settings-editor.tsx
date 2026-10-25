@@ -1,6 +1,6 @@
 'use client';
 
-import { SETTING_GROUPS, type SettingEditor as EditorSpec } from '@hmis/shared';
+import { isGenericSetting, SETTING_GROUPS, type SettingEditor as EditorSpec } from '@hmis/shared';
 import { Button } from '@hmis/ui/components/button';
 import { FieldMessage, Label } from '@hmis/ui/components/label';
 import { Input } from '@hmis/ui/components/input';
@@ -298,7 +298,8 @@ export function SettingsEditor() {
   const list = useQuery(trpc.admin.listSettings.queryOptions());
   const [filter, setFilter] = useState('');
 
-  const items = (list.data?.items ?? []) as Item[];
+  // The list also carries dedicated keys (print.header, ui.accentColor) for their own screens.
+  const items = ((list.data?.items ?? []) as Item[]).filter((i) => isGenericSetting(i.key));
   const q = filter.trim().toLowerCase();
   const shown = (key: string) =>
     !q || t(`items.${key}.label`).toLowerCase().includes(q) || key.toLowerCase().includes(q);
