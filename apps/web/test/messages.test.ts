@@ -22,3 +22,34 @@ describe('i18n messages', () => {
     }
   });
 });
+
+describe('message keys used in code', () => {
+  /** Every `errors.*` / `validation.*` key thrown by the server or zod schemas has a text. */
+  it('exist in en (and so in hi)', async () => {
+    const { readFileSync, readdirSync, statSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const roots = [
+      new URL('../src/server', import.meta.url).pathname,
+      new URL('../src/lib', import.meta.url).pathname,
+      new URL('../../../packages/shared/src', import.meta.url).pathname,
+    ];
+    const files: string[] = [];
+    const walk = (dir: string) => {
+      for (const name of readdirSync(dir)) {
+        const p = join(dir, name);
+        if (statSync(p).isDirectory()) walk(p);
+        else if (/\.tsx?$/.test(name) && !name.endsWith('.test.ts')) files.push(p);
+      }
+    };
+    roots.forEach(walk);
+    const used = new Set<string>();
+    for (const f of files) {
+      for (const m of readFileSync(f, 'utf8').matchAll(/'((?:errors|validation)\.[a-zA-Z.]+)'/g)) {
+        used.add(m[1]!);
+      }
+    }
+    expect(used.size).toBeGreaterThan(20);
+    const all = new Set(keys(en));
+    expect([...used].filter((k) => !all.has(k))).toEqual([]);
+  });
+});
