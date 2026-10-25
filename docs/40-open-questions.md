@@ -28,3 +28,13 @@ Answered on 23-Oct-2026: USG and MTP are in-house; pharmacy and lab are in-house
 | 20 | Hospital brand name/logo/colours for prints and UI accent | `05` | Neutral |
 | 21 | Who at the hospital is the day-to-day decision maker for software questions? | process | Owner |
 | 22 | Our product's commercial name (replace "HMIS (working name)") | branding | — |
+
+## Decided by Hermes on Sumit's behalf (delegation 25 Oct – 1 Nov 2026)
+
+Treat these as answered unless Sumit overrides them. Each one is also exposed as a setting where possible.
+
+| # | Topic | Decision | Source |
+| --- | --- | --- | --- |
+| D-1 | Legal register numbering (Form F, MTP register, birth register) | Reset every **calendar year** (`FF/2026/0001`), configurable per key through `numberSeries.config`. Confirm with the Appropriate Authority before go-live. | PR #3 |
+| D-2 | MTP audit trail | MTP tables never use the general `audit_log`. MTP-01 adds `restricted.audit_log` with RLS (view requires `mtp.register.view` / `mtp.audit.view`), and the general trigger keeps refusing `restricted.*`. | PR #3 |
+| D-3 | Number series on rollback | No gap: a rolled-back allocation is reused. This is stricter than docs/02 §4 and is accepted. | PR #3 |
