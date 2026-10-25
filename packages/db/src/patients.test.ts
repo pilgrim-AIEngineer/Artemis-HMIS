@@ -402,6 +402,13 @@ describe('search (REG-02)', () => {
     expect(g[0]).toBe('Suneeta Devi'); // guardian Mohan Lal
   });
 
+  it('finds a patient by the Hindi name', async () => {
+    await t.owner.execute(
+      sql`update patient set name_hi = 'सुनीता वर्मा' where id = ${ids.sunita!}`,
+    );
+    expect((await names('सुनीता')).slice(0, 1)).toEqual(['Sunita Verma']);
+  });
+
   it('classifies mobile, UHID and name input', async () => {
     expect((await search(f, '9810000006')).rows.map((r) => r.fullName)).toEqual(['Vijay Kumar']);
     expect((await search(f, '+91 98100 00006')).kind).toBe('mobile');

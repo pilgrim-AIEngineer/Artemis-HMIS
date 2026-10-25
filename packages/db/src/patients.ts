@@ -174,17 +174,18 @@ export async function searchPatients(
       word_similarity(${first.norm}, p.search_name_norm))`;
   const prefixBonus = sql`case when p.search_name_norm like ${`${likeEscape(full.norm)}%`}
       or p.search_name_norm like ${`% ${likeEscape(full.norm)}%`} then 0.15 else 0 end`;
-  // One indexed branch per predicate, UNIONed: an OR across the three trigram indexes makes the
-  // planner fall back to a sequential scan at 2 lakh rows. The phonetic key is a folding of the
-  // normalised name, so a similar normalised name is also a similar phonetic one: no separate
-  // similarity branch on `search_name_norm` (it only doubled the candidates); the substring
-  // branch still finds partial input.
+  // One indexed branch per predicate, UNIONed: an OR across trigram indexes makes the planner fall
+  // back to a sequential scan at 2 lakh rows. The phonetic key is a folding of the normalised
+  // name, and word similarity already matches prefixes and most inner fragments (`sunit`, `nita`),
+  // so there is no extra substring or `search_name_norm` branch: it only re-read the same rows.
+  // The Hindi-name branch runs only for Devanagari input and uses the `name_hi` trigram index.
   const preds = [
     sql`${full.phonetic} <% p.search_name_phonetic`,
-    sql`p.search_name_norm like ${`%${likeEscape(full.norm)}%`}`,
     ...(hasExtras
       ? [sql`${first.phonetic} <% p.search_name_phonetic`]
-      : [sql`lower(coalesce(p.name_hi, '')) like ${nameHiLike}`]),
+      : /\p{Script=Devanagari}/u.test(q.text)
+        ? [sql`p.name_hi ilike ${nameHiLike}`] // matches the trigram index on name_hi
+        : []),
   ];
   const candidates = sql.join(
     preds.map(
@@ -193,16 +194,27 @@ export async function searchPatients(
     sql` union `,
   );
 
+  // Score narrow rows (id, name, score) and keep the best `cap`; only those get the wide columns
+  // and the locality join. Sorting thousands of full rows was the slow part for common names.
   const res = await tx.execute<MatchRow>(
-    sql`with cand as (${candidates})
-        select ${MATCH_COLUMNS},
-        (greatest(${fullScore}, ${hasExtras ? sql`0.85 * ${firstScore}` : sql`0`})
-          + ${prefixBonus}
-          + case when ${extraHit} then 0.25 else 0 end
-          - case when p.is_deceased then 0.05 else 0 end)::float8 as score
-        from cand join patient p on p.id = cand.id left join locality l on l.id = p.locality_id
-        where ${liveFilter(facilityId)}
-        order by score desc, p.full_name, p.id limit ${cap}`,
+    sql`with cand as (${candidates}),
+        top as (
+          select p.id, p.full_name as sort_name,
+            (greatest(${fullScore}, ${hasExtras ? sql`0.85 * ${firstScore}` : sql`0`})
+              + ${prefixBonus}
+              + case when ${extraHit} then 0.25 else 0 end
+              - case when p.is_deceased then 0.05 else 0 end)::float8 as score
+          from cand
+          -- LATERAL pins a primary-key lookup per candidate; left alone the planner chose a
+          -- sequential scan of the whole table for this join.
+          cross join lateral (select * from patient where id = cand.id) p
+          left join locality l on l.id = p.locality_id
+          where ${liveFilter(facilityId)}
+          order by score desc, sort_name, p.id limit ${cap}
+        )
+        select ${MATCH_COLUMNS}, top.score
+        from top join patient p on p.id = top.id left join locality l on l.id = p.locality_id
+        order by top.score desc, top.sort_name, top.id`,
   );
   return { kind: 'name', family: false, rows: res.rows.map(toMatch) };
 }
