@@ -120,11 +120,17 @@ export function toBp(bp: number | bigint): bigint {
   return BigInt(bp);
 }
 
-/** Parses a decimal percentage string to basis points: `"12.5" → 1250`. Max two decimals. */
-export function percentToBp(percent: string): number {
+/**
+ * Parses a decimal percentage string to basis points: `"12.5" → 1250`. Max two decimals.
+ * Throws RangeError above `maxBp` (default 10_000 = 100%) so a typo like `1000` cannot flow on.
+ */
+export function percentToBp(percent: string, maxBp = 10_000): number {
   const m = /^(\d+)(?:\.(\d{1,2}))?$/.exec(percent.trim());
   if (!m) throw new SyntaxError(`Invalid percentage: ${JSON.stringify(percent)}`);
-  return Number(m[1]) * 100 + Number((m[2] ?? '').padEnd(2, '0'));
+  const bp = Number(m[1]) * 100 + Number((m[2] ?? '').padEnd(2, '0'));
+  if (!Number.isSafeInteger(bp) || bp > maxBp)
+    throw new RangeError(`Percentage out of range (max ${bpToPercent(maxBp)}%): ${percent}`);
+  return bp;
 }
 
 /** `1250 → "12.5"`, `500 → "5"`, `250 → "2.5"`. */

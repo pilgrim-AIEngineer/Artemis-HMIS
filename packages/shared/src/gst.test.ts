@@ -185,6 +185,12 @@ describe('computeBill', () => {
     expect(percentDiscount(100_000n, 10_000)).toBe(100_000n);
   });
 
+  it('percentDiscount rejects basis points outside 0..10_000', () => {
+    expect(() => percentDiscount(10_000n, -500)).toThrow(RangeError);
+    expect(() => percentDiscount(10_000n, 10_001)).toThrow(RangeError);
+    expect(percentDiscount(10_000n, 0)).toBe(0n);
+  });
+
   describe('property: docs/04 §15.1 invariants', () => {
     const lineArb = fc.record({
       ratePaise: fc.bigInt({ min: 0n, max: 5_000_000n }),
