@@ -38,3 +38,4 @@ Treat these as answered unless Sumit overrides them. Each one is also exposed as
 | D-1 | Legal register numbering (Form F, MTP register, birth register) | Reset every **calendar year** (`FF/2026/0001`), configurable per key through `numberSeries.config`. Confirm with the Appropriate Authority before go-live. | PR #3 |
 | D-2 | MTP audit trail | MTP tables never use the general `audit_log`. MTP-01 adds `restricted.audit_log` with RLS (view requires `mtp.register.view` / `mtp.audit.view`), and the general trigger keeps refusing `restricted.*`. | PR #3 |
 | D-3 | Number series on rollback | No gap: a rolled-back allocation is reused. This is stricter than docs/02 §4 and is accepted. | PR #3 |
+| D-4 | Who may grant MTP-bearing roles / owner role, or reset/deactivate their holders | **Owner only**. A user manager may appoint the first owner only while the facility has no active owner. | PR #6 |
