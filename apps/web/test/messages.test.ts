@@ -1,3 +1,5 @@
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import en from '../messages/en.json';
 import hi from '../messages/hi.json';
@@ -25,9 +27,7 @@ describe('i18n messages', () => {
 
 describe('message keys used in code', () => {
   /** Every `errors.*` / `validation.*` key thrown by the server or zod schemas has a text. */
-  it('exist in en (and so in hi)', async () => {
-    const { readFileSync, readdirSync, statSync } = await import('node:fs');
-    const { join } = await import('node:path');
+  it('exist in en (and so in hi)', () => {
     const roots = [
       new URL('../src/server', import.meta.url).pathname,
       new URL('../src/lib', import.meta.url).pathname,
