@@ -79,6 +79,12 @@ export const SETTINGS = {
   /** Long random key in the `/display/queue` URL; generated on first use, never defaulted. */
   'queue.displayKey': def(z.string().min(32).nullable(), null),
 
+  // --- Registration (docs/10 §3)
+  /** Duplicate check: phonetic name similarity (percent) at or above which a patient on the same mobile is a possible duplicate. */
+  'registration.duplicateMinSimilarityPct': def(z.number().int().min(30).max(100), 60),
+  /** Duplicate check: age (years) tolerance between the new and the existing patient. */
+  'registration.duplicateAgeToleranceYears': def(z.number().int().min(0).max(10), 2),
+
   // --- Billing (docs/02 §2, docs/12, docs/03 §4)
   'billing.roundToRupee': def(z.boolean(), true),
   'billing.splitUsgBill': def(z.boolean(), false),

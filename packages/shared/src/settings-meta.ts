@@ -44,6 +44,7 @@ export const isGenericSetting = (k: string): boolean =>
 export const SETTING_GROUPS = [
   'opd',
   'queue',
+  'registration',
   'billing',
   'ipd',
   'newborn',

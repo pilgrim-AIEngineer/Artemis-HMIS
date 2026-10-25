@@ -413,7 +413,7 @@ describe('rates and tariffs (docs/12 §1)', () => {
 });
 
 describe('demo seed skeleton', () => {
-  it('creates demo doctors with consultation rules and synthetic rates, idempotently', async () => {
+  it('creates demo doctors, rates and patients, idempotently', async () => {
     const run = () => withTx(ctx(), (tx) => seedDemoData(tx, f.facilityId, m));
     const first = await run();
     expect(first[0]).toBe('doctors: 3 new demo doctor(s)');
@@ -421,6 +421,7 @@ describe('demo seed skeleton', () => {
     expect(second).toEqual([
       'doctors: 0 new demo doctor(s)',
       'rates: 0 synthetic demo rate(s) in the default tariff',
+      'patients: 500 already present',
     ]);
     const rules = (
       await t.owner.$client.query<{ n: number }>(

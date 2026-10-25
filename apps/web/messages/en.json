@@ -292,6 +292,7 @@
       "groups": {
         "opd": "OPD",
         "queue": "Queue and token display",
+        "registration": "Registration",
         "billing": "Billing",
         "ipd": "In-patients",
         "newborn": "Newborn",
@@ -505,6 +506,16 @@
           "bilingualLabels": {
             "label": "Roles that see Hindi and English together",
             "hint": "Screens for these roles show labels as “हिंदी / English”."
+          }
+        },
+        "registration": {
+          "duplicateMinSimilarityPct": {
+            "label": "Duplicate check: name similarity (%)",
+            "hint": "A new patient on the same mobile number whose name sounds at least this similar to an existing patient (and whose age is close) triggers the \"Possible existing patient\" prompt."
+          },
+          "duplicateAgeToleranceYears": {
+            "label": "Duplicate check: age difference (years)",
+            "hint": "Existing and new patient must be this many years apart at most for the duplicate prompt."
           }
         }
       }
@@ -912,7 +923,15 @@
     "tooLong": "This is too long.",
     "code": "Use capital letters and digits, 2 to 24 characters.",
     "dateOrder": "The last date cannot be before the first date.",
-    "exemptNoGst": "An exempt service has no GST. Set GST to 0 or untick exempt."
+    "exemptNoGst": "An exempt service has no GST. Set GST to 0 or untick exempt.",
+    "patient": {
+      "ageRequired": "Enter the age or the date of birth.",
+      "ageOrDob": "Enter either the age or the date of birth, not both.",
+      "ageInvalid": "Type the age like 25, 6m (months) or 15d (days). Up to 120 years.",
+      "mobileOrReason": "Enter the mobile number, or tick “No mobile number” and give the reason.",
+      "altMobileSame": "The other mobile number is the same as the first one.",
+      "overrideReasonRequired": "Please write why this is a different person."
+    }
   },
   "mobile": {
     "invalid": "Enter a 10-digit mobile number starting with 6, 7, 8 or 9."
@@ -964,6 +983,11 @@
       "defaultTariffProtected": "There must always be one active default tariff.",
       "drugTaken": "A drug with the same name, strength, form and maker already exists.",
       "notConsultation": "Choose a consultation service."
+    },
+    "patient": {
+      "notFound": "This patient was not found. It may have been changed; please search again.",
+      "ageInvalid": "The age or date of birth is not valid.",
+      "notEditable": "This patient record can no longer be edited."
     }
   },
   "nav": {
@@ -1023,5 +1047,182 @@
     "nextIsOriginal": "This will be the original copy.",
     "nextIsDuplicate": "Already printed before. This will be copy {n} and is marked DUPLICATE.",
     "showingCopy": "Showing copy {n}."
+  },
+  "reception": {
+    "title": "Reception",
+    "search": {
+      "label": "Find patient",
+      "placeholder": "Type name, mobile number or UHID",
+      "hint": "Names can be spelled any way (Sunita, Suneeta). A second word narrows by husband/father name or locality. Arrow keys to move, Enter to open.",
+      "start": "Type a name, a 10-digit mobile number or a UHID to find a patient. Press F2 to register a new one.",
+      "none": "No patient found. Check the spelling, or press F2 to register a new patient.",
+      "failed": "The search did not work. Check the connection and try again.",
+      "results": "{count, plural, one {# patient found} other {# patients found}}",
+      "family": "Family on mobile ending {last4}",
+      "familyHint": "Everyone registered on this number.",
+      "list": "Search results",
+      "deceased": "Deceased",
+      "open": "Open"
+    },
+    "newPatient": "New patient",
+    "addFamily": "Add family member",
+    "columns": {
+      "name": "Name",
+      "ageSex": "Age / sex",
+      "guardian": "Husband / father",
+      "locality": "Locality",
+      "uhid": "UHID",
+      "mobile": "Mobile"
+    },
+    "sex": {
+      "F": "Female",
+      "M": "Male",
+      "O": "Other"
+    },
+    "sexShort": {
+      "F": "F",
+      "M": "M",
+      "O": "O"
+    },
+    "enums": {
+      "guardianRelation": {
+        "husband": "Husband",
+        "father": "Father",
+        "mother": "Mother",
+        "other": "Other"
+      },
+      "relationToMobileOwner": {
+        "self": "Self (mobile is theirs)",
+        "husband": "Husband",
+        "wife": "Wife",
+        "father": "Father",
+        "mother": "Mother",
+        "son": "Son",
+        "daughter": "Daughter",
+        "brother": "Brother",
+        "sister": "Sister",
+        "other": "Other"
+      },
+      "maritalStatus": {
+        "single": "Single",
+        "married": "Married",
+        "widowed": "Widowed",
+        "divorced": "Divorced",
+        "separated": "Separated"
+      }
+    },
+    "form": {
+      "titleNew": "New patient",
+      "titleEdit": "Edit patient",
+      "helpNew": "Only name, sex, age and mobile are needed. Everything else can be filled in later.",
+      "helpFamily": "Adding a family member: mobile, address and locality are filled in from {name}. Check them.",
+      "helpEdit": "Changing the name, age or sex is recorded and shown as “changed”.",
+      "back": "Back",
+      "sections": {
+        "required": "Patient",
+        "contact": "Mobile",
+        "more": "More details (optional)"
+      },
+      "fields": {
+        "firstName": "First name",
+        "middleName": "Middle name",
+        "lastName": "Surname",
+        "nameHi": "Name in Hindi",
+        "sex": "Sex",
+        "age": "Age",
+        "dob": "Date of birth",
+        "mobile": "Mobile number",
+        "noMobile": "No mobile number",
+        "noMobileReason": "Why no mobile?",
+        "altMobile": "Another mobile number",
+        "relationToMobileOwner": "Whose mobile is this?",
+        "guardianName": "Husband / father name",
+        "guardianRelation": "Relation",
+        "addressLine": "Address",
+        "localityName": "Locality / village",
+        "district": "District",
+        "state": "State",
+        "pincode": "PIN code",
+        "bloodGroup": "Blood group",
+        "maritalStatus": "Marital status",
+        "occupation": "Occupation",
+        "referredBy": "Referred by"
+      },
+      "hints": {
+        "age": "25, 25y, 6m (months) or 15d (days)",
+        "ageEstimated": "Estimated birth date: {date}",
+        "dobAge": "Age: {age}",
+        "dobOr": "or enter the exact date of birth",
+        "nameHiSuggestion": "Suggested from the English name. Please correct it if it is wrong.",
+        "mobile": "10 digits, starting with 6, 7, 8 or 9",
+        "keepEstimated": "The date is an estimate. Changing it makes it exact."
+      },
+      "sameMobile": {
+        "title": "Already on this mobile number",
+        "hint": "These patients are registered on this number. If this is the same person, open them instead.",
+        "open": "Open"
+      },
+      "choose": "Choose",
+      "save": "Save patient",
+      "saving": "Saving…",
+      "saved": "Saved.",
+      "loadFailed": "Could not load this patient.",
+      "duplicate": {
+        "title": "Possible existing patient",
+        "intro": "A patient with the same mobile number, a similar name and a similar age is already registered. Please check before creating a new record.",
+        "use": "Use this patient",
+        "createAnyway": "Create new anyway",
+        "reason": "Why is this a different person?",
+        "reasonHint": "Required. This is recorded.",
+        "confirmCreate": "Create new patient",
+        "back": "Back to the form"
+      }
+    },
+    "summary": {
+      "registered": "Patient registered. UHID {uhid}",
+      "edit": "Edit",
+      "backToSearch": "Find another patient",
+      "details": "Details",
+      "family": "Family on this mobile",
+      "familyNone": "No one else is registered on this mobile number.",
+      "changed": "Changed after registration",
+      "estimated": "estimated",
+      "notFound": "This patient was not found.",
+      "fields": {
+        "uhid": "UHID",
+        "name": "Name",
+        "nameHi": "Name in Hindi",
+        "ageSex": "Age / sex",
+        "dob": "Date of birth",
+        "mobile": "Mobile",
+        "noMobile": "No mobile",
+        "altMobile": "Another mobile",
+        "relationToMobileOwner": "Mobile belongs to",
+        "guardian": "Husband / father",
+        "address": "Address",
+        "locality": "Locality",
+        "district": "District",
+        "pincode": "PIN code",
+        "bloodGroup": "Blood group",
+        "maritalStatus": "Marital status",
+        "occupation": "Occupation",
+        "referredBy": "Referred by",
+        "registered": "Registered on"
+      }
+    }
+  },
+  "age": {
+    "days": "{count, plural, one {# day} other {# days}}",
+    "months": "{count, plural, one {# month} other {# months}}",
+    "years": "{count, plural, one {# year} other {# years}}"
+  },
+  "pincode": {
+    "invalid": "Enter a 6-digit PIN code."
+  },
+  "date": {
+    "invalid": "Enter a valid date."
+  },
+  "uhid": {
+    "invalid": "Enter a UHID like UH-000123."
   }
 }
