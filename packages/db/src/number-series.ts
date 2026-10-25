@@ -3,6 +3,7 @@ import {
   istDateString,
   NUMBER_SERIES,
   NUMBER_SERIES_CONFIG_SETTING,
+  SERIES_KEYS,
   numberSeriesConfigSchema,
   resolveSeriesDefinition,
   seriesKeySchema,
@@ -152,4 +153,45 @@ export async function allocateDailyToken(tx: Tx, req: DailyTokenRequest): Promis
   );
   const max = await req.currentMax(tx, tokenDate);
   return { tokenDate, tokenNo: (max ?? 0) + 1 };
+}
+
+/**
+ * Creates the `number_series` row of every series for the period containing `at` (docs/33 §1
+ * "number series for the current FY"), with the configured or catalogue prefix and padding.
+ * Existing rows are left alone. Returns how many were created. `allocateNumber` still creates
+ * rows lazily, so calling this is an optimisation for a visible, complete series list.
+ */
+export async function ensureNumberSeriesRows(
+  tx: Tx,
+  facilityId: string,
+  at: Date,
+): Promise<number> {
+  facilityIdSchema.parse(facilityId);
+  const [cfgRow] = await tx
+    .select({ value: setting.value })
+    .from(setting)
+    .where(and(eq(setting.facilityId, facilityId), eq(setting.key, NUMBER_SERIES_CONFIG_SETTING)));
+  const config = numberSeriesConfigSchema.parse(cfgRow?.value);
+  let created = 0;
+  for (const key of SERIES_KEYS) {
+    const def = resolveSeriesDefinition(key, config);
+    const { period } = seriesPeriod(def.reset, at);
+    const rows = await tx
+      .insert(numberSeries)
+      .values({
+        id: uuidv7(),
+        facilityId,
+        key,
+        fy: period,
+        prefix: def.prefix,
+        padding: def.padding,
+        nextValue: 1,
+      })
+      .onConflictDoNothing({
+        target: [numberSeries.facilityId, numberSeries.key, numberSeries.fy],
+      })
+      .returning({ id: numberSeries.id });
+    created += rows.length;
+  }
+  return created;
 }

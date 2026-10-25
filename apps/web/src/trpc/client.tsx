@@ -8,7 +8,7 @@ import superjson from 'superjson';
 import { AUTH_ERRORS, CSRF_COOKIE, CSRF_HEADER } from '@/lib/auth-constants';
 import type { AppRouter } from '@/server/trpc/root';
 
-export const { TRPCProvider, useTRPC } = createTRPCContext<AppRouter>();
+export const { TRPCProvider, useTRPC, useTRPCClient } = createTRPCContext<AppRouter>();
 
 /** Broadcast when the server says the session is locked or gone (handled by SessionProvider). */
 export const AUTH_EVENT = 'hmis:auth';

@@ -13,7 +13,9 @@ export default async function AdminHomePage() {
   if (!canSeeGroup('admin', auth.permissions)) notFound();
   const t = await getTranslations('home');
   const tNav = await getTranslations('nav.groups');
-  const tiles = ADMIN_TILES.filter((x) => auth.permissions.has(x.permission)).map((x) => ({
+  const tiles = ADMIN_TILES.filter((x) =>
+    [x.permission].flat().some((p) => auth.permissions.has(p)),
+  ).map((x) => ({
     href: x.href,
     title: t(`tiles.${x.key}`),
     hint: t(`tiles.${x.key}Hint`),

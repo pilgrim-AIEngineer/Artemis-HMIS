@@ -1,7 +1,10 @@
 /**
  * `pnpm db:seed [--demo]`: first-run facility + default roles/permissions (docs/03) + initial
- * admin account. Master data arrives with FND-07 (docs/33-seed-masters.md); `--demo` adds
- * synthetic users (one per role) for training/demo machines (docs/02 §9). Never real patient data.
+ * admin account + platform and master seeds (docs/33: departments, Cash payer, Standard tariff,
+ * reason codes, services without rates, lab tests, USG procedures, starter drug list, number
+ * series). Idempotent: re-running adds only what is missing. `--demo` adds synthetic users (one
+ * per role) and demo doctors/rates for training/demo machines (docs/02 §9), through the
+ * extendable steps in `seed/demo`. Never real patient data.
  *
  * Env: HMIS_FACILITY_NAME (default "Hospital"), HMIS_ADMIN_USERNAME (default "admin"),
  * HMIS_ADMIN_PASSWORD (default: generated and printed once; must be changed at first login),
@@ -12,6 +15,8 @@ import { and, eq } from 'drizzle-orm';
 import { appUser } from '../schema';
 import { createDb, resolveDatabaseUrl, withTx } from '../src';
 import { bootstrapFacility, insertUser } from '../src/auth';
+import { seedDemoData } from './demo';
+import { seedMasters } from './masters';
 import { loadRootEnv } from '../src/load-root-env';
 
 const demo = process.argv.includes('--demo');
@@ -30,6 +35,13 @@ try {
   });
   console.log(
     `db:seed: facility ${res.createdFacility ? 'created' : 'present'}; roles and permissions up to date`,
+  );
+  const masters = await withTx({ db, userId: null }, (tx) => seedMasters(tx, res.facilityId));
+  const added = Object.entries(masters.inserted)
+    .filter(([, n]) => n > 0)
+    .map(([table, n]) => `${table} ${n}`);
+  console.log(
+    `db:seed: masters ${added.length ? `added: ${added.join(', ')}` : 'already present'}`,
   );
   if (res.admin) {
     console.log(
@@ -64,6 +76,10 @@ try {
       `db:seed: --demo users demo_<role> (${created} new), password "${password}", PIN ${pin}. ` +
         'Demo/training machines only.',
     );
+    const log = await withTx({ db, userId: null }, (tx) =>
+      seedDemoData(tx, res.facilityId, masters),
+    );
+    for (const line of log) console.log(`db:seed: --demo ${line}`);
   }
 } finally {
   await db.$client.end();

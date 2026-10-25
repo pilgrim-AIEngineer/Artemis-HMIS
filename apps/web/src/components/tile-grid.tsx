@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   Building2,
+  Database,
   ClipboardList,
   FlaskConical,
   HandCoins,
@@ -42,9 +43,10 @@ export const GROUP_ICONS: Record<RouteGroup, LucideIcon> = {
 
 export interface AdminTileDef {
   href: string;
-  key: 'users' | 'roles' | 'workstations' | 'facility' | 'settings' | 'print';
+  key: 'users' | 'roles' | 'workstations' | 'facility' | 'settings' | 'print' | 'masters';
   icon: LucideIcon;
-  permission: Permission;
+  /** Visible to a user holding any of these. */
+  permission: Permission | readonly Permission[];
 }
 
 /** Administration screens (docs/05 §1.1: big tiles, not menus). */
@@ -64,6 +66,12 @@ export const ADMIN_TILES: AdminTileDef[] = [
     permission: 'admin.settings.manage',
   },
   { href: '/admin/print', key: 'print', icon: Printer, permission: 'admin.settings.manage' },
+  {
+    href: '/admin/masters',
+    key: 'masters',
+    icon: Database,
+    permission: ['admin.masters.manage', 'admin.tariff.manage'],
+  },
   {
     href: '/admin/workstations',
     key: 'workstations',

@@ -2,6 +2,7 @@ export * from './app-role';
 export * from './client';
 export * from './env';
 export * from './health';
+export * from './masters';
 export * from './number-series';
 export * from './print';
 export * from './rbac';

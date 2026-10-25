@@ -11,6 +11,7 @@ import { cpSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { createDb, ensureAppLoginRole, ensureFacilityRbac, withTx } from '@hmis/db';
 import { insertUser } from '@hmis/db/auth';
+import { seedMasters } from '@hmis/db/seed';
 import { runMigrations } from '@hmis/db/migrate';
 import { facility } from '@hmis/db/schema';
 import { startPostgresContainer } from '@hmis/db/testing';
@@ -41,6 +42,7 @@ await withTx({ db: owner, userId: null }, async (tx) => {
   for (const u of Object.values(E2E_USERS)) {
     await insertUser(tx, { facilityId, ...u, password: E2E_PASSWORD, roles: [...u.roles] });
   }
+  await seedMasters(tx, facilityId); // docs/33 master seeds: names only, no rates
 });
 await owner.$client.end();
 

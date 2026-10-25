@@ -38,6 +38,8 @@ export function useErrorText() {
 
 /** Translates a validation message key from a form field error. */
 export function useFieldError() {
-  const text = useErrorText();
-  return (message: string | undefined) => (message ? text(message) : undefined);
+  const t = useTranslations() as unknown as Translate;
+  // Unknown messages (e.g. zod's own "expected number") become the generic "check this value".
+  return (message: string | undefined) =>
+    message ? (t.has(message) ? t(message) : t('validation.invalid')) : undefined;
 }

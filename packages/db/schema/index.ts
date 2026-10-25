@@ -5,3 +5,5 @@
  * New business tables: call `hmis_register_business_table()` in a custom migration (see README).
  */
 export * from './platform';
+export * from './masters';
+export { currentAppUserId } from './columns';

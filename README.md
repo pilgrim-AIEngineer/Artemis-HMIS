@@ -24,7 +24,9 @@ pnpm dev                  # Postgres (compose) + migrations + web + worker, with
 - Web: `http://localhost:$WEB_PORT` (default 3000). Health: `http://localhost:$WEB_PORT/api/health`.
 - Sign in as `admin` with the password printed by the first `pnpm dev` / `pnpm db:seed` (or set
   `HMIS_ADMIN_PASSWORD` in `.env` before the first run); a new password is asked for at once.
-  `pnpm db:seed --demo` adds one synthetic user per role (`demo_<role>`).
+  `pnpm db:seed --demo` adds one synthetic user per role (`demo_<role>`), demo doctors and
+  synthetic rates. `pnpm db:seed` alone loads the master data of `docs/33` (names, no rates) and is
+  safe to re-run: it only adds what is missing.
 - Set `HMIS_SECRET_KEY` (≥ 32 random characters) to allow TOTP phone codes for remote access.
 - Postgres for local tools: `127.0.0.1:$PG_PORT` (default 55432).
 - `pnpm dev:down` stops the dev Postgres (the data volume is kept).
@@ -36,18 +38,18 @@ Every host port comes from `.env`. Give each checkout its own `COMPOSE_PROJECT_N
 
 ## Commands
 
-| Command                 | What it does                                                             |
-| ----------------------- | ------------------------------------------------------------------------ |
-| `pnpm dev`              | Dev Postgres + migrations, then web and worker in watch mode             |
-| `pnpm build`            | Production builds (Next.js standalone, bundled worker)                   |
-| `pnpm db:generate`      | Generate an SQL migration from the Drizzle schema (`packages/db/schema`) |
-| `pnpm db:migrate`       | Apply committed migrations                                               |
-| `pnpm db:seed [--demo]` | Facility, roles/permissions, first admin (`--demo`: synthetic users)     |
-| `pnpm test`             | Vitest: unit + integration (starts its own Postgres with Testcontainers) |
-| `pnpm e2e`              | Builds, then runs the Playwright tests against the standalone server     |
-| `pnpm lint`             | ESLint + Prettier check                                                  |
-| `pnpm typecheck`        | `tsc` in every package                                                   |
-| `pnpm check:forbidden`  | PCPNDT forbidden-term scan (see below); runs in CI                       |
+| Command                 | What it does                                                                           |
+| ----------------------- | -------------------------------------------------------------------------------------- |
+| `pnpm dev`              | Dev Postgres + migrations, then web and worker in watch mode                           |
+| `pnpm build`            | Production builds (Next.js standalone, bundled worker)                                 |
+| `pnpm db:generate`      | Generate an SQL migration from the Drizzle schema (`packages/db/schema`)               |
+| `pnpm db:migrate`       | Apply committed migrations                                                             |
+| `pnpm db:seed [--demo]` | Facility, roles, first admin, master seeds (`--demo`: synthetic users, doctors, rates) |
+| `pnpm test`             | Vitest: unit + integration (starts its own Postgres with Testcontainers)               |
+| `pnpm e2e`              | Builds, then runs the Playwright tests against the standalone server                   |
+| `pnpm lint`             | ESLint + Prettier check                                                                |
+| `pnpm typecheck`        | `tsc` in every package                                                                 |
+| `pnpm check:forbidden`  | PCPNDT forbidden-term scan (see below); runs in CI                                     |
 
 Notes:
 

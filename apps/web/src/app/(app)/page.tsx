@@ -35,12 +35,14 @@ export default async function HomePage() {
       hint: tGroups(`${g}.hint`),
       icon: GROUP_ICONS[g],
     })),
-    ...ADMIN_TILES.filter((x) => auth.permissions.has(x.permission)).map((x) => ({
-      href: x.href,
-      title: t(`tiles.${x.key}`),
-      hint: t(`tiles.${x.key}Hint`),
-      icon: x.icon,
-    })),
+    ...ADMIN_TILES.filter((x) => [x.permission].flat().some((p) => auth.permissions.has(p))).map(
+      (x) => ({
+        href: x.href,
+        title: t(`tiles.${x.key}`),
+        hint: t(`tiles.${x.key}Hint`),
+        icon: x.icon,
+      }),
+    ),
     {
       href: '/account',
       title: t('tiles.account'),
