@@ -13,13 +13,20 @@ export interface CreateDbOptions {
 }
 
 export function createPool(opts: CreateDbOptions): pg.Pool {
-  return new pg.Pool({
+  const pool = new pg.Pool({
     connectionString: opts.connectionString,
     application_name: opts.applicationName ?? 'hmis',
     max: opts.max ?? 10,
     connectionTimeoutMillis: 5_000,
     idleTimeoutMillis: 30_000,
   });
+  // Idle clients emit 'error' when Postgres restarts/fails over/terminates a backend. Without a
+  // listener Node throws and the process dies. The pool discards the broken client and opens a
+  // new one on demand. Log only code/message (never query text or params: patient data).
+  pool.on('error', (err: Error & { code?: string }) => {
+    console.error(`[db] idle pool client error${err.code ? ` (${err.code})` : ''}: ${err.message}`);
+  });
+  return pool;
 }
 
 export function createDb(opts: CreateDbOptions): Db {
