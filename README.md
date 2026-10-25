@@ -22,6 +22,10 @@ pnpm dev                  # Postgres (compose) + migrations + web + worker, with
 ```
 
 - Web: `http://localhost:$WEB_PORT` (default 3000). Health: `http://localhost:$WEB_PORT/api/health`.
+- Sign in as `admin` with the password printed by the first `pnpm dev` / `pnpm db:seed` (or set
+  `HMIS_ADMIN_PASSWORD` in `.env` before the first run); a new password is asked for at once.
+  `pnpm db:seed --demo` adds one synthetic user per role (`demo_<role>`).
+- Set `HMIS_SECRET_KEY` (≥ 32 random characters) to allow TOTP phone codes for remote access.
 - Postgres for local tools: `127.0.0.1:$PG_PORT` (default 55432).
 - `pnpm dev:down` stops the dev Postgres (the data volume is kept).
 
@@ -38,7 +42,7 @@ Every host port comes from `.env`. Give each checkout its own `COMPOSE_PROJECT_N
 | `pnpm build`            | Production builds (Next.js standalone, bundled worker)                   |
 | `pnpm db:generate`      | Generate an SQL migration from the Drizzle schema (`packages/db/schema`) |
 | `pnpm db:migrate`       | Apply committed migrations                                               |
-| `pnpm db:seed [--demo]` | Seed master data (`--demo`: synthetic patients/OPD); filled in by FND-07 |
+| `pnpm db:seed [--demo]` | Facility, roles/permissions, first admin (`--demo`: synthetic users)     |
 | `pnpm test`             | Vitest: unit + integration (starts its own Postgres with Testcontainers) |
 | `pnpm e2e`              | Builds, then runs the Playwright tests against the standalone server     |
 | `pnpm lint`             | ESLint + Prettier check                                                  |
@@ -49,7 +53,9 @@ Notes:
 
 - `pnpm test` needs a working Docker daemon. To use an existing server instead, set
   `HMIS_TEST_DATABASE_URL` to a superuser URL; each test file creates its own database.
-- `pnpm e2e` needs Chromium: `pnpm --filter @hmis/web exec playwright install --with-deps chromium`.
+- `pnpm e2e` needs Chromium: `pnpm --filter @hmis/web exec playwright install --with-deps chromium`,
+  and Docker: the E2E server starts its own Postgres (or set `E2E_DATABASE_URL` to an empty
+  database's superuser URL).
 - Migrations are additive only and are reviewed by a human (`AGENTS.md` rule 14).
 
 ## Full stack (Docker Compose)
@@ -63,6 +69,16 @@ Services: `caddy` (HTTPS with an internal CA on `$CADDY_HTTPS_PORT`), `web`, `wo
 (extensions `pg_trgm`, `unaccent`, `pgcrypto` from `infra/docker/postgres/initdb`; not published
 outside the compose network) and `backup` (placeholder until OPS-01). The web container is also
 published on `127.0.0.1:$WEB_PORT` for local health checks.
+
+## Sign-in and permissions (FND-02/03)
+
+- Username + password (argon2id); 5 wrong attempts lock the account for 15 min. Sessions are
+  HttpOnly/Secure/SameSite=Lax cookies backed by the `session` table: 12 h absolute, screen lock
+  after 10 idle minutes, unlocked with the same user's PIN (own lockout) or "Switch user".
+- Owner/admin signing in from outside `auth.lanNetworks` (e.g. Tailscale) need a TOTP code.
+- Every tRPC procedure declares `.meta({ permission })`; `access.test.ts` walks the router and
+  fails for a procedure without one, or one that lets an unauthenticated/unauthorised caller in.
+- Defaults live in the `setting` table (`auth.*` keys in `packages/shared/src/settings.ts`).
 
 ## Forbidden-term check (PCPNDT)
 

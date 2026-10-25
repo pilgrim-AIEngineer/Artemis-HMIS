@@ -45,6 +45,14 @@ describe('settings registry', () => {
     expect(getSettingDefault('ipd.requireSummaryBeforeFinalBill')).toBe(true);
     expect(getSettingDefault('newborn.billing')).toBe('mother_bill');
     expect(getSettingDefault('auth.idleLockMinutes')).toBe(10);
+    // docs/01 §5: 12 h absolute session, lockout 15 min after 5 failures, TOTP for owner/admin.
+    expect(getSettingDefault('auth.sessionHours')).toBe(12);
+    expect(getSettingDefault('auth.maxLoginFailures')).toBe(5);
+    expect(getSettingDefault('auth.lockoutMinutes')).toBe(15);
+    expect(getSettingDefault('auth.maxPinFailures')).toBe(5);
+    expect(getSettingDefault('auth.pinLockoutMinutes')).toBe(15);
+    expect(getSettingDefault('auth.totpRequiredRoles')).toEqual(['owner', 'admin']);
+    expect(getSettingDefault('auth.lanNetworks')).not.toContain('100.64.0.0/10');
     expect(getSettingDefault('ui.bilingualLabels')).toEqual(['reception', 'cashier', 'nurse']);
     for (const f of ['features.pmjay', 'features.cardiology', 'features.trainingMode'] as const) {
       expect(getSettingDefault(f)).toBe(false);

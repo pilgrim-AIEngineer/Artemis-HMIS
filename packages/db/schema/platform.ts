@@ -88,13 +88,34 @@ export const appUser = pgTable(
     preferredLocale: text().notNull().default('en'),
     isActive: boolean().notNull().default(true),
     lastLoginAt: timestamp({ withTimezone: true }),
+    /** AES-256-GCM with `HMIS_SECRET_KEY`; enforced only once `totp_confirmed_at` is set. */
     totpSecretEnc: text(),
+    totpConfirmedAt: timestamp({ withTimezone: true }),
+    /** Last accepted TOTP time step: a code is never accepted twice (replay). */
+    totpLastStep: bigint({ mode: 'number' }),
+    /** Password lockout (docs/01 §5): count resets on success or when the lock is set. */
+    failedLoginCount: integer().notNull().default(0),
+    lockedUntil: timestamp({ withTimezone: true }),
+    /** PIN has its own lockout, separate from the password one. */
+    pinFailedCount: integer().notNull().default(0),
+    pinLockedUntil: timestamp({ withTimezone: true }),
+    /** Set by an admin password reset: the user must choose a new password after login. */
+    passwordMustChange: boolean().notNull().default(false),
+    passwordChangedAt: timestamp({ withTimezone: true }),
+    /** Users are deactivated, never deleted (AGENTS.md rule 4). */
+    deactivatedAt: timestamp({ withTimezone: true }),
+    deactivatedBy: uuid(),
+    deactivateReason: text(),
     ...auditColumns(),
   },
   (t) => [
     uniqueIndex('app_user_username_key').on(sql`lower(${t.username})`),
     check('app_user_preferred_locale', sqlIn(t.preferredLocale, USER_LOCALES)),
     check('app_user_username_format', sql`${t.username} ~ '^[A-Za-z0-9._-]{3,40}$'`),
+    check(
+      'app_user_failed_counts_nonnegative',
+      sql`${t.failedLoginCount} >= 0 and ${t.pinFailedCount} >= 0`,
+    ),
   ],
 );
 
@@ -191,6 +212,13 @@ export const workstation = pgTable(
     defaultPrinterA5: text(),
     qzEnabled: boolean().notNull().default(false),
     isActive: boolean().notNull().default(true),
+    /**
+     * SHA-256 of the secret in the paired browser's workstation cookie (admin pairing, docs/01 §5).
+     * Re-pairing replaces it, which unpairs the previous browser. Redacted in audit_log.
+     */
+    pairingTokenHash: text(),
+    pairedAt: timestamp({ withTimezone: true }),
+    pairedBy: uuid(),
     ...auditColumns(),
   },
   (t) => [unique('workstation_facility_name').on(t.facilityId, t.name)],
@@ -211,6 +239,14 @@ export const session = pgTable(
     expiresAt: timestamp({ withTimezone: true }).notNull(),
     revokedAt: timestamp({ withTimezone: true }),
     revokeReason: text(),
+    /** Explicit lock ("Lock" button or client idle timer); idle time past the limit also locks. */
+    lockedAt: timestamp({ withTimezone: true }),
+    /** Remote sign-in of a TOTP role: the session is usable only after `mfa_verified_at`. */
+    mfaRequired: boolean().notNull().default(false),
+    mfaVerifiedAt: timestamp({ withTimezone: true }),
+    /** Client address as seen behind Caddy; not patient data. */
+    clientIp: text(),
+    isRemote: boolean().notNull().default(false),
     ...auditColumns(),
   },
   (t) => [

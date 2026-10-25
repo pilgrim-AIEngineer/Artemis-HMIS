@@ -10,7 +10,8 @@
     "NODE_ENV",
     "CI",
     "NEXT_TELEMETRY_DISABLED",
-    "TURBO_TELEMETRY_DISABLED"
+    "TURBO_TELEMETRY_DISABLED",
+    "HMIS_SECRET_KEY"
   ],
   "tasks": {
     "build": {
@@ -29,7 +30,15 @@
     "e2e": {
       "dependsOn": ["build"],
       "cache": false,
-      "passThroughEnv": ["E2E_PORT", "PLAYWRIGHT_*"]
+      "passThroughEnv": [
+        "E2E_PORT",
+        "E2E_BASE_URL",
+        "E2E_DATABASE_URL",
+        "HMIS_TEST_PG_IMAGE",
+        "DOCKER_HOST",
+        "TESTCONTAINERS_*",
+        "PLAYWRIGHT_*"
+      ]
     }
   }
 }

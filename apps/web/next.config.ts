@@ -5,13 +5,16 @@ import createNextIntlPlugin from 'next-intl/plugin';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
-// docs/01 §9. A strict script/style CSP (nonces) is added with the auth work; these are safe now.
+// docs/01 §9. Pages get the full nonce CSP from src/proxy.ts; this baseline also covers API
+// routes and static files.
 const securityHeaders = [
   {
     key: 'Content-Security-Policy',
     value: "frame-ancestors 'none'; object-src 'none'; base-uri 'self'",
   },
   { key: 'X-Frame-Options', value: 'DENY' },
+  { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+  { key: 'Cross-Origin-Resource-Policy', value: 'same-origin' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'no-referrer' },
   { key: 'Permissions-Policy', value: 'geolocation=(), microphone=(), camera=(self)' },
@@ -23,7 +26,7 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   transpilePackages: ['@hmis/db', '@hmis/print', '@hmis/shared', '@hmis/ui'],
-  serverExternalPackages: ['pg', 'pino'],
+  serverExternalPackages: ['pg', 'pino', '@node-rs/argon2'],
   headers: () => Promise.resolve([{ source: '/:path*', headers: securityHeaders }]),
 };
 

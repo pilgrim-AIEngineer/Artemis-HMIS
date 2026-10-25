@@ -22,13 +22,14 @@ declare module 'vitest' {
   }
 }
 
-/** Vitest `globalSetup` entry: one container per test project run. */
-export async function setupTestPostgres(project: TestProject) {
-  const external = process.env.HMIS_TEST_DATABASE_URL;
-  if (external) {
-    project.provide('testPgAdminUrl', external);
-    return;
-  }
+/**
+ * Starts a throwaway Postgres (random host port, removed by Ryuk when the process exits) with
+ * the production init script. Returns the superuser URL. Used by Vitest and the E2E server.
+ */
+export async function startPostgresContainer(): Promise<{
+  url: string;
+  stop: () => Promise<void>;
+}> {
   const { PostgreSqlContainer } = await import('@testcontainers/postgresql');
   const container = await new PostgreSqlContainer(
     process.env.HMIS_TEST_PG_IMAGE ?? DEFAULT_PG_IMAGE,
@@ -40,10 +41,24 @@ export async function setupTestPostgres(project: TestProject) {
       { source: INIT_SQL, target: '/docker-entrypoint-initdb.d/01-extensions.sql' },
     ])
     .start();
-  project.provide('testPgAdminUrl', container.getConnectionUri());
-  return async () => {
-    await container.stop();
+  return {
+    url: container.getConnectionUri(),
+    stop: async () => {
+      await container.stop();
+    },
   };
+}
+
+/** Vitest `globalSetup` entry: one container per test project run. */
+export async function setupTestPostgres(project: TestProject) {
+  const external = process.env.HMIS_TEST_DATABASE_URL;
+  if (external) {
+    project.provide('testPgAdminUrl', external);
+    return;
+  }
+  const pg = await startPostgresContainer();
+  project.provide('testPgAdminUrl', pg.url);
+  return pg.stop;
 }
 
 /** Creates an isolated database (inherits extensions from template1) and returns its URL. */

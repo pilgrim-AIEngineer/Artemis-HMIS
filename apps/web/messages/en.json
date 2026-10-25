@@ -1,8 +1,18 @@
 {
   "app": {
     "name": "HMIS",
-    "title": "Hospital Management System",
-    "subtitle": "The system is installed. Sign-in and the role home screens arrive in the next release."
+    "title": "Hospital Management System"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "back": "Back",
+    "loading": "Loading…",
+    "working": "Please wait…",
+    "done": "Done.",
+    "never": "Never",
+    "yes": "Yes",
+    "no": "No"
   },
   "language": {
     "label": "Language",
@@ -20,7 +30,287 @@
     "checking": "Checking…",
     "refresh": "Check again"
   },
+  "auth": {
+    "login": {
+      "title": "Sign in",
+      "subtitle": "Use your own username. Never share your password or PIN.",
+      "username": "Username",
+      "password": "Password",
+      "submit": "Sign in",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password"
+    },
+    "notice": {
+      "pinLockedOut": "Too many wrong PINs. Please sign in again with your password.",
+      "signedOut": "You have been signed out. Please sign in again."
+    },
+    "totp": {
+      "title": "Enter the 6-digit code",
+      "help": "You are signing in from outside the hospital. Open the authenticator app on your phone and type the code shown for HMIS.",
+      "code": "Code from the app",
+      "submit": "Verify"
+    },
+    "changePassword": {
+      "title": "Choose a new password",
+      "help": "Your password was reset by the administrator. Choose a new one that only you know (at least 8 characters).",
+      "current": "Temporary password",
+      "new": "New password",
+      "confirm": "New password again",
+      "mismatch": "The two new passwords do not match.",
+      "submit": "Save password"
+    },
+    "lock": {
+      "title": "Screen locked",
+      "pinPrompt": "{name}, enter your PIN to continue.",
+      "passwordPrompt": "{name}, enter your password to continue.",
+      "keypad": "PIN keypad",
+      "backspace": "Delete last digit",
+      "unlock": "Unlock",
+      "entered": "{count, plural, =0 {No digits entered} one {# digit entered} other {# digits entered}}",
+      "switchUser": "Switch user",
+      "notYou": "Not {name}? Use Switch user to sign in as yourself."
+    },
+    "header": {
+      "lock": "Lock",
+      "switchUser": "Switch user",
+      "workstation": "Workstation: {name}",
+      "notPaired": "Workstation not paired",
+      "account": "My account",
+      "home": "Home",
+      "remote": "Remote access"
+    }
+  },
+  "home": {
+    "title": "Welcome, {name}",
+    "subtitle": "Choose what you want to do.",
+    "setPin": "Set a PIN so you can unlock the screen quickly after a break.",
+    "setPinAction": "Set PIN",
+    "noTiles": "The screens for your work arrive in the next releases.",
+    "tiles": {
+      "users": "Users",
+      "usersHint": "Create staff accounts, roles, password and PIN resets",
+      "roles": "Roles and permissions",
+      "rolesHint": "What each role is allowed to do",
+      "workstations": "Workstations",
+      "workstationsHint": "Name and pair shared PCs and tablets",
+      "account": "My account",
+      "accountHint": "Password, PIN, language, phone code"
+    }
+  },
+  "account": {
+    "title": "My account",
+    "password": {
+      "title": "Change password",
+      "current": "Current password",
+      "new": "New password",
+      "confirm": "New password again",
+      "submit": "Change password",
+      "done": "Password changed. Other devices have been signed out."
+    },
+    "pin": {
+      "title": "PIN for quick unlock",
+      "help": "4 to 6 digits. Avoid easy PINs like 1111 or 1234. The PIN is also used to approve discounts.",
+      "pin": "New PIN",
+      "password": "Your password (to confirm)",
+      "submit": "Save PIN",
+      "done": "PIN saved."
+    },
+    "language": {
+      "title": "Language"
+    },
+    "totp": {
+      "title": "Phone code for remote access",
+      "help": "Needed to sign in from outside the hospital (for example over Tailscale). Install an authenticator app on your phone first.",
+      "required": "Your role must use this to sign in remotely.",
+      "enabled": "Phone code is turned on.",
+      "disabled": "Phone code is not set up.",
+      "password": "Your password (to confirm)",
+      "start": "Set up phone code",
+      "restart": "Set up again (new phone)",
+      "scan": "Scan this QR code with the app, or type the key below.",
+      "manual": "Key",
+      "code": "6-digit code shown in the app",
+      "confirm": "Turn on",
+      "done": "Phone code turned on.",
+      "qr": "QR code for the authenticator app"
+    }
+  },
+  "admin": {
+    "users": {
+      "title": "Users",
+      "search": "Search by name or username",
+      "new": "New user",
+      "empty": "No users match. Press “New user” to add one.",
+      "name": "Name",
+      "username": "Username",
+      "roles": "Roles",
+      "status": "Status",
+      "lastLogin": "Last sign-in",
+      "active": "Active",
+      "inactive": "Deactivated",
+      "lockedOut": "Locked out",
+      "mustChange": "Must change password",
+      "back": "All users",
+      "noRoles": "No role"
+    },
+    "userForm": {
+      "titleNew": "New user",
+      "titleEdit": "Edit user",
+      "details": "Details",
+      "fullName": "Full name",
+      "username": "Username",
+      "usernameHelp": "Letters, digits, dot, dash or underscore. Cannot be changed later.",
+      "mobile": "Mobile (optional)",
+      "language": "Language",
+      "roles": "Roles",
+      "password": "Temporary password",
+      "passwordHelp": "Tell the user in person. They must change it at their first sign-in.",
+      "create": "Create user",
+      "saveDetails": "Save details",
+      "saveRoles": "Save roles",
+      "saved": "Saved.",
+      "firstSignIn": "First sign-in"
+    },
+    "userActions": {
+      "title": "Account actions",
+      "resetPassword": "Reset password",
+      "resetPasswordHelp": "Sets a temporary password, signs the user out everywhere and asks for a new password at the next sign-in.",
+      "newPassword": "New temporary password",
+      "resetPin": "Clear PIN",
+      "resetPinHelp": "The user sets a new PIN after the next sign-in.",
+      "clearLockout": "Unlock account",
+      "clearLockoutHelp": "Lifts a password or PIN lockout now instead of waiting.",
+      "resetTotp": "Turn off phone code",
+      "resetTotpHelp": "For a lost phone. Remote sessions end; the user sets it up again inside the hospital.",
+      "deactivate": "Deactivate user",
+      "deactivateHelp": "The user can no longer sign in. Their records stay. You can reactivate later.",
+      "reason": "Reason",
+      "reactivate": "Reactivate user",
+      "selfNote": "This is your own account."
+    },
+    "sessions": {
+      "title": "Signed-in devices",
+      "empty": "Not signed in anywhere.",
+      "started": "Signed in",
+      "lastSeen": "Last activity",
+      "workstation": "Workstation",
+      "where": "Network",
+      "remote": "Remote",
+      "lan": "Hospital network",
+      "revoke": "Sign out"
+    },
+    "roles": {
+      "title": "Roles and permissions",
+      "role": "Role",
+      "system": "Built-in",
+      "custom": "Custom",
+      "inactive": "Inactive",
+      "permissions": "Permissions",
+      "restricted": "Restricted",
+      "restrictedNote": "MTP permissions are restricted. Give them only by assigning the “MTP doctor” role to a user.",
+      "save": "Save permissions",
+      "saved": "Permissions saved.",
+      "newRole": "New role",
+      "key": "Key (a–z, 0–9, _)",
+      "name": "Name (English)",
+      "nameHi": "Name (Hindi, optional)",
+      "create": "Create role",
+      "active": "Role is active",
+      "saveRole": "Save role"
+    },
+    "workstations": {
+      "title": "Workstations",
+      "help": "Pair each shared PC or tablet once, on that device. Prints and the audit trail then show where work was done.",
+      "name": "Name (for example Reception 1)",
+      "location": "Location (optional)",
+      "add": "Add workstation",
+      "empty": "No workstations yet.",
+      "thisDevice": "This device",
+      "paired": "Paired",
+      "notPaired": "Not paired",
+      "pair": "Pair this device",
+      "unpairHere": "Unpair this device",
+      "unpairAll": "Unpair everywhere",
+      "deactivate": "Deactivate",
+      "activate": "Activate",
+      "inactive": "Inactive"
+    }
+  },
+  "modules": {
+    "admin": "Administration",
+    "patient": "Patients",
+    "visit": "Visits",
+    "queue": "Queue",
+    "vitals": "Vitals",
+    "rx": "Prescriptions",
+    "order": "Orders",
+    "clinical": "Clinical notes",
+    "billing": "Billing",
+    "usg": "Ultrasound",
+    "pcpndt": "PCPNDT (Form F)",
+    "mtp": "MTP register",
+    "pharmacy": "Pharmacy",
+    "inventory": "Inventory",
+    "lab": "Laboratory",
+    "ipd": "In-patients",
+    "nursing": "Nursing",
+    "ot": "Operation theatre",
+    "lr": "Labour room",
+    "newborn": "Newborn",
+    "registers": "Registers",
+    "discharge": "Discharge",
+    "reports": "Reports",
+    "payer": "Payers and insurance",
+    "cardiology": "Cardiology",
+    "icu": "ICU",
+    "cathlab": "Cath lab",
+    "implants": "Implants"
+  },
+  "validation": {
+    "required": "Please fill this in.",
+    "invalid": "Please check this value.",
+    "username": "Use 3–40 letters, digits, dot, dash or underscore.",
+    "passwordShort": "Use at least 8 characters.",
+    "passwordLong": "Use at most 128 characters.",
+    "pinFormat": "The PIN must be 4 to 6 digits.",
+    "pinWeak": "This PIN is too easy to guess. Avoid repeated or running digits.",
+    "totpFormat": "Type the 6 digits shown in the app.",
+    "reason": "Please write a short reason.",
+    "roleKey": "Use 3–40 small letters, digits or underscore, starting with a letter."
+  },
+  "mobile": {
+    "invalid": "Enter a 10-digit mobile number starting with 6, 7, 8 or 9."
+  },
   "errors": {
-    "internal": "Something went wrong. Please try again."
+    "internal": "Something went wrong. Please try again.",
+    "notFound": "Not found. It may have been changed by someone else; please reload.",
+    "auth": {
+      "required": "Please sign in.",
+      "locked": "The screen is locked.",
+      "mfaRequired": "Enter the code from your phone first.",
+      "passwordChangeRequired": "Choose a new password first.",
+      "forbidden": "You are not allowed to do this. Ask the administrator if you need it.",
+      "invalidCredentials": "Wrong username or password.",
+      "lockedOut": "Too many wrong attempts. Try again in {minutes, plural, one {# minute} other {# minutes}}, or ask the administrator to unlock your account.",
+      "totpNotEnrolled": "Signing in from outside the hospital needs the phone code. Set it up from a hospital computer first (My account).",
+      "totpInvalid": "That code is not right or has expired. Type the newest code from the app.",
+      "totpNotStarted": "Start the phone code setup again.",
+      "totpUnavailable": "Phone codes are not configured on this server. Ask the system administrator.",
+      "pinLockedOut": "Too many wrong PINs. Sign in with your password. The PIN works again in {minutes, plural, one {# minute} other {# minutes}}.",
+      "wrongPin": "Wrong PIN. {remaining, plural, one {# try} other {# tries}} left.",
+      "pinNotSet": "No PIN is set. Unlock with your password.",
+      "wrongPassword": "Wrong password.",
+      "passwordReused": "The new password must be different from the current one.",
+      "csrf": "The page is out of date. Please reload and try again."
+    },
+    "admin": {
+      "usernameTaken": "This username is already used. Choose another.",
+      "lastUserManager": "This would leave nobody who can manage users. Give another active user that permission first.",
+      "cannotDeactivateSelf": "You cannot deactivate your own account.",
+      "restrictedPermission": "MTP permissions cannot be changed here. Assign the “MTP doctor” role instead.",
+      "roleKeyTaken": "A role with this key already exists.",
+      "workstationNameTaken": "A workstation with this name already exists.",
+      "ownerOnly": "Only the owner can do this for owner or MTP accounts and roles."
+    }
   }
 }

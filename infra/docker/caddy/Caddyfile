@@ -12,5 +12,9 @@
 		X-Content-Type-Options "nosniff"
 		-Server
 	}
-	reverse_proxy web:3000
+	# Client IP for remote-access detection (owner/admin TOTP, docs/01 §5): overwrite whatever
+	# the client sent, so the web app can trust X-Forwarded-For.
+	reverse_proxy web:3000 {
+		header_up X-Forwarded-For {remote_host}
+	}
 }

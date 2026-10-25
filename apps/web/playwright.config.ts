@@ -44,14 +44,15 @@ export default defineConfig({
       },
     },
   ],
-  // Requires `pnpm build` first (`pnpm e2e` does it via Turborepo). No DB needed for the smoke.
+  // Requires `pnpm build` first (`pnpm e2e` does it via Turborepo). The server script starts its
+  // own Postgres (Testcontainers, random port) and seeds synthetic E2E users (e2e/fixtures.ts).
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : {
-        command: 'node e2e/start-standalone.mjs',
-        url: baseURL,
+        command: 'node --import tsx e2e/start-e2e-server.ts',
+        url: `${baseURL}/api/health`,
         reuseExistingServer: false,
-        timeout: 60_000,
+        timeout: 180_000,
         env: { PORT: String(port), HOSTNAME: '127.0.0.1', NEXT_TELEMETRY_DISABLED: '1' },
       },
 });

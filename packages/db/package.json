@@ -5,9 +5,11 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./auth": "./src/auth.ts",
     "./migrate": "./src/migrate.ts",
     "./schema": "./schema/index.ts",
-    "./testing": "./testing/postgres.ts"
+    "./testing": "./testing/postgres.ts",
+    "./testing/platform": "./testing/platform.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -17,6 +19,7 @@
   },
   "dependencies": {
     "@hmis/shared": "workspace:*",
+    "@node-rs/argon2": "2.2.2",
     "drizzle-orm": "0.45.4",
     "pg": "8.23.1",
     "uuidv7": "1.2.1",

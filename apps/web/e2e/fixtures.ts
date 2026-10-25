@@ -1,0 +1,12 @@
+/** Synthetic E2E accounts, created by `start-e2e-server.ts` in a throwaway database. */
+export const E2E_PASSWORD = 'e2e-pass-2026';
+
+export const E2E_USERS = {
+  reception: {
+    username: 'e2e_reception',
+    fullName: 'E2E Reception',
+    pin: '2580',
+    roles: ['reception'],
+  },
+  admin: { username: 'e2e_admin', fullName: 'E2E Admin', pin: '1357', roles: ['admin'] },
+} as const;
