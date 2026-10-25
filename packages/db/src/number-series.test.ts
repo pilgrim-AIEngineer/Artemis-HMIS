@@ -199,13 +199,13 @@ describe('allocateNumber (FND-05, docs/02 §4)', () => {
     const where = and(eq(numberSeries.facilityId, f.facilityId), eq(numberSeries.key, 'receipt'));
     await expect(
       withTx(ctx(f), (tx) => tx.update(numberSeries).set({ nextValue: 1 }).where(where)),
-    ).rejects.toThrow(/monotonic|next_value/);
+    ).rejects.toMatchObject({ cause: { message: /monotonic/ } });
     await expect(
       withTx(ctx(f), (tx) => tx.update(numberSeries).set({ key: 'deposit' }).where(where)),
-    ).rejects.toThrow(/immutable/);
+    ).rejects.toMatchObject({ cause: { message: /immutable/ } });
     await expect(
       withTx(ctx(f), (tx) => tx.update(numberSeries).set({ fy: '2025-26' }).where(where)),
-    ).rejects.toThrow(/immutable/);
+    ).rejects.toMatchObject({ cause: { message: /immutable/ } });
     // Raising the counter (skipping numbers) and the normal path stay allowed.
     await withTx(ctx(f), (tx) => tx.update(numberSeries).set({ nextValue: 10 }).where(where));
     const n = await withTx(ctx(f), (tx) => allocateNumber(tx, f.facilityId, 'receipt', OCT_2026));
