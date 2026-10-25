@@ -38,6 +38,14 @@ export interface OpdFixture {
 export async function setupOpdFixture(adminUrl: string, poolMax = 30): Promise<OpdFixture> {
   const t = await setupPlatformDb(adminUrl, poolMax);
   const f = await seedFacility(t.owner);
+  return { t, f, ...(await seedOpdData(t, f)) };
+}
+
+/** Masters, rates, doctors and patient/visit helpers for an existing facility of `t`. */
+export async function seedOpdData(
+  t: PlatformTestDb,
+  f: SeededFacility,
+): Promise<Omit<OpdFixture, 't' | 'f'>> {
   const run = <T>(fn: (tx: Tx) => Promise<T>) =>
     withTx({ db: t.app, userId: f.userId, facilityId: f.facilityId }, fn);
   const m = await run((tx) => seedMasters(tx, f.facilityId, IST('2026-10-26T09:00:00')));
@@ -112,8 +120,6 @@ export async function setupOpdFixture(adminUrl: string, poolMax = 30): Promise<O
   const actor = () => ({ facilityId: f.facilityId, userId: f.userId });
   const [first] = await newPatients(1);
   return {
-    t,
-    f,
     m,
     doctorA,
     doctorB,

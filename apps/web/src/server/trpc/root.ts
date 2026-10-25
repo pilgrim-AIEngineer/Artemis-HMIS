@@ -5,6 +5,8 @@ import { healthRouter } from './routers/health';
 import { mastersRouter } from './routers/masters';
 import { patientsRouter } from './routers/patients';
 import { printRouter } from './routers/print';
+import { queueRouter } from './routers/queue';
+import { visitsRouter } from './routers/visits';
 
 export const appRouter = router({
   health: healthRouter,
@@ -13,6 +15,8 @@ export const appRouter = router({
   masters: mastersRouter,
   patients: patientsRouter,
   print: printRouter,
+  visit: visitsRouter,
+  queue: queueRouter,
 });
 
 export type AppRouter = typeof appRouter;
