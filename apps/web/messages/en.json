@@ -292,6 +292,7 @@
       "groups": {
         "opd": "OPD",
         "queue": "Queue and token display",
+        "registration": "Registration",
         "billing": "Billing",
         "ipd": "In-patients",
         "newborn": "Newborn",
@@ -505,6 +506,16 @@
           "bilingualLabels": {
             "label": "Roles that see Hindi and English together",
             "hint": "Screens for these roles show labels as “हिंदी / English”."
+          }
+        },
+        "registration": {
+          "duplicateMinSimilarityPct": {
+            "label": "Duplicate check: name similarity (%)",
+            "hint": "A new patient on the same mobile number whose name sounds at least this similar to an existing patient (and whose age is close) triggers the \"Possible existing patient\" prompt."
+          },
+          "duplicateAgeToleranceYears": {
+            "label": "Duplicate check: age difference (years)",
+            "hint": "Existing and new patient must be this many years apart at most for the duplicate prompt."
           }
         }
       }
