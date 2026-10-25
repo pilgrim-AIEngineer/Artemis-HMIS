@@ -172,8 +172,10 @@ export function computeBill(
   };
 }
 
-/** Flat discount helper: `percentBp` of `amount`, never above the amount. */
+/** Flat discount helper: `percentBp` (0..10_000) of `amount`, never above the amount. */
 export function percentDiscount(amount: Paise, percentBp: number): Paise {
+  if (percentBp < 0 || percentBp > 10_000)
+    throw new RangeError('percentBp must be between 0 and 10000');
   const d = applyPercentBp(amount, percentBp);
   return d > amount ? amount : d;
 }

@@ -259,7 +259,7 @@ describe('percent ↔ bp', () => {
   it('property: round trip', () => {
     fc.assert(
       fc.property(fc.integer({ min: 0, max: 100_000 }), (bp) => {
-        expect(percentToBp(bpToPercent(bp))).toBe(bp);
+        expect(percentToBp(bpToPercent(bp), 100_000)).toBe(bp);
       }),
     );
   });
