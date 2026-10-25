@@ -110,6 +110,7 @@ docs/             this spec
 | `docs/32-testing-acceptance.md` | tests, acceptance per phase |
 | `docs/33-seed-masters.md` | initial master data |
 | `docs/40-open-questions.md` | unresolved decisions (never guess these) |
+| `docs/50-build-plan.md` | PR sequence and milestones for the current phase |
 
 ## 7. Definition of done (every feature)
 
