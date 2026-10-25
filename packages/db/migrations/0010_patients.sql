@@ -5,7 +5,7 @@ CREATE TABLE "patient" (
 	"first_name" text NOT NULL,
 	"middle_name" text,
 	"last_name" text,
-	"full_name" text GENERATED ALWAYS AS (btrim(regexp_replace(coalesce(first_name, '') || ' ' || coalesce(middle_name, '') || ' ' || coalesce(last_name, ''), '\s+', ' ', 'g'))) STORED,
+	"full_name" text GENERATED ALWAYS AS (btrim(regexp_replace(coalesce(first_name, '') || ' ' || coalesce(middle_name, '') || ' ' || coalesce(last_name, ''), '\s+', ' ', 'g'))) STORED NOT NULL,
 	"name_hi" text,
 	"sex" text NOT NULL,
 	"dob" date NOT NULL,

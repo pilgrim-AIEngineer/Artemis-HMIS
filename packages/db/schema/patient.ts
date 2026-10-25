@@ -39,9 +39,11 @@ export const patient = pgTable(
     firstName: text().notNull(),
     middleName: text(),
     lastName: text(),
-    fullName: text('full_name').generatedAlwaysAs(
-      sql`btrim(regexp_replace(coalesce(first_name, '') || ' ' || coalesce(middle_name, '') || ' ' || coalesce(last_name, ''), '\\s+', ' ', 'g'))`,
-    ),
+    fullName: text('full_name')
+      .notNull()
+      .generatedAlwaysAs(
+        sql`btrim(regexp_replace(coalesce(first_name, '') || ' ' || coalesce(middle_name, '') || ' ' || coalesce(last_name, ''), '\\s+', ' ', 'g'))`,
+      ),
     nameHi: text(),
     sex: text().notNull(),
     dob: date({ mode: 'string' }).notNull(),
