@@ -1,8 +1,11 @@
+import { withTx } from '@hmis/db';
+import { insertUser } from '@hmis/db/auth';
 import { auditLog, patient } from '@hmis/db/schema';
 import type { CreatePatientInput } from '@hmis/shared';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
 import {
+  PASSWORD,
   setupAuthFixture,
   trpcError,
   type AuthFixture,
@@ -13,7 +16,6 @@ let f: AuthFixture;
 let reception: TestBrowser;
 let nurse: TestBrowser;
 let admin: TestBrowser;
-let adminB: TestBrowser;
 let noRoles: TestBrowser;
 
 beforeAll(async () => {
@@ -26,7 +28,6 @@ beforeAll(async () => {
   reception = await login(f.users.reception.username);
   nurse = await login(f.users.nurse.username);
   admin = await login(f.users.admin.username);
-  adminB = await login(f.users.adminB.username);
   noRoles = await login(f.users.noRoles.username);
 });
 
@@ -95,7 +96,20 @@ describe('patients access (AGENTS.md rule 6)', () => {
 
   it('keeps hospitals apart', async () => {
     const [row] = await f.db.select().from(patient).limit(1);
-    const other = await trpcError(adminB.call((c) => c.patients.get({ id: row!.id })));
+    const receptionB = f.browser();
+    const username = `reception_b_${Date.now().toString(36)}`;
+    await withTx({ db: f.db, userId: null }, (tx) =>
+      insertUser(tx, {
+        facilityId: f.b.facilityId,
+        username,
+        fullName: 'Reception B',
+        password: PASSWORD,
+        roles: ['reception'],
+      }),
+    );
+    await receptionB.login(username);
+    const other = await trpcError(receptionB.call((c) => c.patients.get({ id: row!.id })));
+    expect((await receptionB.call((c) => c.patients.search({ q: 'anita' }))).rows).toEqual([]);
     expect(other.code).toBe('NOT_FOUND');
   });
 });

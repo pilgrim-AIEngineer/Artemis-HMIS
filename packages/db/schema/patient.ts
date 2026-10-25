@@ -3,7 +3,7 @@
  * the app with `nameSearchKeys` (@hmis/shared) and feed the GIN trigram indexes (REG-02);
  * `full_name` is generated. A patient is never deleted: `status = 'cancelled'` hides a row
  * registered by mistake, `merged_into_id` points at the survivor of a merge (AGENTS.md rule 4).
- * Fetal sex has no column anywhere (rule 7); `sex` is the patient's own.
+ * Nothing here describes a fetus (AGENTS.md rule 7); `sex` is the patient's own.
  */
 import {
   BLOOD_GROUPS,
