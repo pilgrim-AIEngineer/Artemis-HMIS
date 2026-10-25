@@ -191,6 +191,27 @@ describe('allocateNumber (FND-05, docs/02 §4)', () => {
     expect(next.formatted).toBe('PHX/27-28/000001');
   });
 
+  it('rejects lowering next_value or moving the identity of a series row (#11)', async () => {
+    const f = await seedFacility(t.owner);
+    for (let i = 0; i < 3; i++) {
+      await withTx(ctx(f), (tx) => allocateNumber(tx, f.facilityId, 'receipt', OCT_2026));
+    }
+    const where = and(eq(numberSeries.facilityId, f.facilityId), eq(numberSeries.key, 'receipt'));
+    await expect(
+      withTx(ctx(f), (tx) => tx.update(numberSeries).set({ nextValue: 1 }).where(where)),
+    ).rejects.toThrow(/monotonic|next_value/);
+    await expect(
+      withTx(ctx(f), (tx) => tx.update(numberSeries).set({ key: 'deposit' }).where(where)),
+    ).rejects.toThrow(/immutable/);
+    await expect(
+      withTx(ctx(f), (tx) => tx.update(numberSeries).set({ fy: '2025-26' }).where(where)),
+    ).rejects.toThrow(/immutable/);
+    // Raising the counter (skipping numbers) and the normal path stay allowed.
+    await withTx(ctx(f), (tx) => tx.update(numberSeries).set({ nextValue: 10 }).where(where));
+    const n = await withTx(ctx(f), (tx) => allocateNumber(tx, f.facilityId, 'receipt', OCT_2026));
+    expect(n.value).toBe(10);
+  });
+
   it('audits allocations with the acting user', async () => {
     const f = await seedFacility(t.owner);
     await withTx(ctx(f), (tx) => allocateNumber(tx, f.facilityId, 'credit_note', OCT_2026));
