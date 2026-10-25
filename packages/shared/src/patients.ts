@@ -150,19 +150,27 @@ function checkRegistration(
 ) {
   const hasAge = Boolean(v.dob) || Boolean(v.age);
   if (requireAge && !hasAge) {
-    ctx.addIssue({ code: 'custom', path: ['age'], message: 'patient.ageRequired' });
+    ctx.addIssue({ code: 'custom', path: ['age'], message: 'validation.patient.ageRequired' });
   }
   if (v.dob && v.age) {
-    ctx.addIssue({ code: 'custom', path: ['age'], message: 'patient.ageOrDob' });
+    ctx.addIssue({ code: 'custom', path: ['age'], message: 'validation.patient.ageOrDob' });
   }
   if (v.age && !parseAgeInput(v.age)) {
-    ctx.addIssue({ code: 'custom', path: ['age'], message: 'patient.ageInvalid' });
+    ctx.addIssue({ code: 'custom', path: ['age'], message: 'validation.patient.ageInvalid' });
   }
   if (!v.mobile && !v.noMobileReason) {
-    ctx.addIssue({ code: 'custom', path: ['mobile'], message: 'patient.mobileOrReason' });
+    ctx.addIssue({
+      code: 'custom',
+      path: ['mobile'],
+      message: 'validation.patient.mobileOrReason',
+    });
   }
   if (v.mobile && v.altMobile === v.mobile) {
-    ctx.addIssue({ code: 'custom', path: ['altMobile'], message: 'patient.altMobileSame' });
+    ctx.addIssue({
+      code: 'custom',
+      path: ['altMobile'],
+      message: 'validation.patient.altMobileSame',
+    });
   }
 }
 
@@ -173,7 +181,7 @@ export type PatientRegistrationInput = z.input<typeof patientRegistrationSchema>
 export type PatientRegistration = z.output<typeof patientRegistrationSchema>;
 
 export const duplicateOverrideSchema = z.object({
-  reason: text(200).pipe(z.string().min(3, 'patient.overrideReasonRequired')),
+  reason: text(200).pipe(z.string().min(3, 'validation.patient.overrideReasonRequired')),
 });
 
 export const createPatientSchema = baseRegistration
@@ -201,7 +209,7 @@ export const duplicateCheckSchema = z
     dob: dobSchema.optional(),
     age: text(8).optional(),
   })
-  .refine((v) => Boolean(v.dob) !== Boolean(v.age), 'patient.ageOrDob');
+  .refine((v) => Boolean(v.dob) !== Boolean(v.age), 'validation.patient.ageOrDob');
 
 // ---------------------------------------------------------------- search box
 

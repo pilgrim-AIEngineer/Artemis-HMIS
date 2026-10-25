@@ -176,8 +176,8 @@ export function transliterateToDevanagari(name: string): string {
   return name
     .normalize('NFC')
     .toLowerCase()
-    .split(/[^a-zऀ-ॿ]+/)
+    .split(/[^a-z\p{Script=Devanagari}]+/u)
     .filter(Boolean)
-    .map((w) => (/[ऀ-ॿ]/.test(w) ? w : (KNOWN[w] ?? wordToDevanagari(w))))
+    .map((w) => (/\p{Script=Devanagari}/u.test(w) ? w : (KNOWN[w] ?? wordToDevanagari(w))))
     .join(' ');
 }

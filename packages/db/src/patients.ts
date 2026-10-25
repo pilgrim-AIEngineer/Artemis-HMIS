@@ -400,14 +400,15 @@ export async function updatePatient(
     throw new PatientInputError('patient.notEditable');
 
   let dob = { dob: cur.dob, estimated: cur.dobIsEstimated };
-  if (input.dob || input.age) {
+  // An unchanged DOB keeps its "estimated" flag (the edit form always sends the stored date).
+  if ((input.dob && input.dob !== cur.dob) || input.age) {
     const next = resolveDob(input, istToday(now));
     if (!next) throw new PatientInputError('patient.ageInvalid');
     dob = next;
   }
   const localityId = await resolveLocality(tx, facilityId, input);
   const defaults = await facilityDefaults(tx, facilityId);
-  const fields = rowFields(input as CreatePatient, dob, localityId, defaults);
+  const fields = rowFields(input, dob, localityId, defaults);
   const identityChanged =
     cur.firstName !== fields.firstName ||
     (cur.middleName ?? null) !== fields.middleName ||
