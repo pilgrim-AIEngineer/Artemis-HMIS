@@ -10,6 +10,7 @@ import {
 } from '../testing/platform';
 import { ensureAppLoginRole } from './app-role';
 import { createDb, type Db } from './client';
+import { IdempotencyConflictError, runIdempotent } from './idempotency';
 import { withTx } from './tx';
 
 let t: PlatformTestDb;
@@ -390,5 +391,54 @@ describe('restricted schema RLS pattern (packages/db/README.md)', () => {
     } finally {
       await t.owner.$client.query('drop table restricted.reg_probe');
     }
+  });
+});
+
+describe('idempotency (AGENTS.md rule 9, docs/02 §7)', () => {
+  const run = (
+    facilityId: string,
+    procedure: string,
+    key: string,
+    payload: unknown,
+    fn: () => Promise<unknown>,
+  ) =>
+    withTx({ ...actor(t.app), facilityId }, (tx) =>
+      runIdempotent(tx, { facilityId, userId: f.userId, procedure, key, payload }, fn),
+    );
+
+  it('replays the stored result for the same payload and rejects a different payload', async () => {
+    const key = uuidv7();
+    let calls = 0;
+    const exec = async () => ({ receipt: ++calls });
+    const first = await run(f.facilityId, 'payment.create', key, { amount: 500, a: 1 }, exec);
+    const replay = await run(f.facilityId, 'payment.create', key, { a: 1, amount: 500 }, exec);
+    expect(replay).toEqual(first);
+    expect(calls).toBe(1);
+    await expect(
+      run(f.facilityId, 'payment.create', key, { amount: 5000, a: 1 }, exec),
+    ).rejects.toBeInstanceOf(IdempotencyConflictError);
+    expect(calls).toBe(1);
+  });
+
+  it('does not treat the same key under another procedure or facility as a replay', async () => {
+    const key = uuidv7();
+    const other = await seedFacility(t.owner, 'Other Hospital');
+    let calls = 0;
+    const exec = async () => ({ n: ++calls });
+    await run(f.facilityId, 'payment.create', key, { amount: 500 }, exec);
+    await run(f.facilityId, 'payment.refund', key, { amount: 5000 }, exec);
+    await run(other.facilityId, 'payment.create', key, { amount: 5000 }, exec);
+    expect(calls).toBe(3);
+  });
+
+  it('runs a concurrent duplicate submit once', async () => {
+    const key = uuidv7();
+    let calls = 0;
+    const exec = async () => ({ n: ++calls });
+    const rs = await Promise.all(
+      Array.from({ length: 5 }, () => run(f.facilityId, 'payment.create', key, { amount: 1 }, exec)),
+    );
+    expect(calls).toBe(1);
+    expect(new Set(rs.map((r) => JSON.stringify(r))).size).toBe(1);
   });
 });
