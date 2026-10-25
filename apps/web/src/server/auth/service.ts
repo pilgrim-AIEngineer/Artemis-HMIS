@@ -239,24 +239,30 @@ export async function unlockWithPin(ctx: Context, auth: AuthSession, pin: string
     workstationId: auth.workstationId,
   };
   if (!(await verifySecret(user.pinHash, pin))) {
-    const failures = user.pinFailedCount + 1;
     const max = settings['auth.maxPinFailures'];
-    if (failures >= max) {
-      const until = new Date(now.getTime() + settings['auth.pinLockoutMinutes'] * 60_000);
-      await withTx(actor, (tx) =>
-        tx
+    // Atomic increment (row lock held until commit) so concurrent guesses cannot share a stale count.
+    const until = new Date(now.getTime() + settings['auth.pinLockoutMinutes'] * 60_000);
+    const failures = await withTx(actor, async (tx) => {
+      const [row] = await tx
+        .update(appUser)
+        .set({ pinFailedCount: sql`${appUser.pinFailedCount} + 1` })
+        .where(eq(appUser.id, user.id))
+        .returning({ count: appUser.pinFailedCount });
+      const count = row?.count ?? 1;
+      if (count >= max) {
+        await tx
           .update(appUser)
           .set({ pinFailedCount: 0, pinLockedUntil: until })
-          .where(eq(appUser.id, user.id)),
-      );
+          .where(eq(appUser.id, user.id));
+      }
+      return count;
+    });
+    if (failures >= max) {
       await endSession(ctx, auth, 'pin_lockout');
       throw appError('TOO_MANY_REQUESTS', 'errors.auth.pinLockedOut', {
         minutes: minutesLeft(until, now),
       });
     }
-    await withTx(actor, (tx) =>
-      tx.update(appUser).set({ pinFailedCount: failures }).where(eq(appUser.id, user.id)),
-    );
     throw appError('UNAUTHORIZED', 'errors.auth.wrongPin', { remaining: max - failures });
   }
   await withTx(actor, async (tx) => {
