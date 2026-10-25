@@ -409,7 +409,7 @@ describe('idempotency (AGENTS.md rule 9, docs/02 §7)', () => {
   it('replays the stored result for the same payload and rejects a different payload', async () => {
     const key = uuidv7();
     let calls = 0;
-    const exec = async () => ({ receipt: ++calls });
+    const exec = () => Promise.resolve({ receipt: ++calls });
     const first = await run(f.facilityId, 'payment.create', key, { amount: 500, a: 1 }, exec);
     const replay = await run(f.facilityId, 'payment.create', key, { a: 1, amount: 500 }, exec);
     expect(replay).toEqual(first);
@@ -424,7 +424,7 @@ describe('idempotency (AGENTS.md rule 9, docs/02 §7)', () => {
     const key = uuidv7();
     const other = await seedFacility(t.owner, 'Other Hospital');
     let calls = 0;
-    const exec = async () => ({ n: ++calls });
+    const exec = () => Promise.resolve({ n: ++calls });
     await run(f.facilityId, 'payment.create', key, { amount: 500 }, exec);
     await run(f.facilityId, 'payment.refund', key, { amount: 5000 }, exec);
     await run(other.facilityId, 'payment.create', key, { amount: 5000 }, exec);
@@ -434,7 +434,7 @@ describe('idempotency (AGENTS.md rule 9, docs/02 §7)', () => {
   it('runs a concurrent duplicate submit once', async () => {
     const key = uuidv7();
     let calls = 0;
-    const exec = async () => ({ n: ++calls });
+    const exec = () => Promise.resolve({ n: ++calls });
     const rs = await Promise.all(
       Array.from({ length: 5 }, () => run(f.facilityId, 'payment.create', key, { amount: 1 }, exec)),
     );

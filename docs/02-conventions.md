@@ -61,7 +61,7 @@
 - Mutations run inside `withTx`. Long operations go to the worker.
 - Errors: throw `TRPCError` with i18n message keys; never leak SQL errors to the UI.
 - Pagination: cursor-based (`id` + `created_at`).
-- Idempotency: mutations that create money rows accept `idempotencyKey` (UUID from client); table `idempotency(key, procedure, result jsonb, created_at)`.
+- Idempotency: mutations that create money rows accept `idempotencyKey` (UUID from client); table `idempotency` unique on (facility_id, procedure, key) with `request_hash`; use `runIdempotent` (`packages/db`): same hash replays the stored result, a different hash is CONFLICT.
 
 ## 8. Frontend
 

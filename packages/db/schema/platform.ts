@@ -349,10 +349,14 @@ export const idempotency = pgTable(
     facilityId: facilityRef(),
     key: uuid().notNull(),
     procedure: text().notNull(),
+    /** Acting user (NULL for system work). */
+    userId: uuid().references(() => appUser.id),
+    /** sha256 hex of the canonical request payload: tells a replay from a conflicting reuse. */
+    requestHash: text().notNull(),
     result: jsonb().notNull(),
     ...auditColumns(),
   },
-  (t) => [unique('idempotency_key_key').on(t.key)],
+  (t) => [unique('idempotency_facility_procedure_key_key').on(t.facilityId, t.procedure, t.key)],
 );
 
 export const document = pgTable(
