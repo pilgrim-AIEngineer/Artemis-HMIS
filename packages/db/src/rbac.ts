@@ -37,6 +37,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleKey, readonly Permission[]> = 
   ],
   doctor: [
     'patient.view',
+    'queue.call',
     'rx.verify',
     'rx.view',
     'order.create',
@@ -50,6 +51,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleKey, readonly Permission[]> = 
   ],
   doctor_assistant: [
     'patient.view',
+    'queue.call',
     'vitals.record',
     'rx.transcribe',
     'rx.view',
@@ -65,6 +67,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleKey, readonly Permission[]> = 
     'patient.view',
     'visit.create',
     'queue.manage',
+    'queue.call',
     ...RECEPTION_BILLING,
     'vitals.record',
   ],
@@ -78,6 +81,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<RoleKey, readonly Permission[]> = 
   ],
   nurse: [
     'patient.view',
+    'queue.call',
     'vitals.record',
     ...byPrefix('nursing.'),
     'ipd.transfer',

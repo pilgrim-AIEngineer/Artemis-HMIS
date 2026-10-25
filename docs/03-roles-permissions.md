@@ -31,7 +31,7 @@ admin.masters.manage        admin.tariff.manage         admin.audit.view
 patient.create              patient.update              patient.merge
 patient.view                patient.view.restricted     (never granted by default; see MTP)
 visit.create                visit.cancel                queue.manage
-queue.display.manage        vitals.record
+queue.call                   queue.display.manage        vitals.record
 rx.transcribe               rx.verify                   rx.view
 order.create                order.cancel
 clinical.anc.edit           clinical.paeds.edit         clinical.note.edit
@@ -61,11 +61,11 @@ cathlab.report.edit         implants.manage
 
 - `owner`: all except `patient.view.restricted` and `mtp.*` unless the owner is also an MTP doctor (then add role `mtp_doctor`).
 - `admin`: `admin.*`, all reports, `billing.dayclose.facility`, `billing.discount.approve`, `patient.merge`. No clinical edit.
-- `doctor`: `patient.view`, `rx.verify`, `rx.view`, `order.create`, `clinical.*`, `ipd.order.write`, `ipd.note.write`, `discharge.*`, `ot.note.write`, `lr.note.write`, own `reports.clinical`.
-- `doctor_assistant`: `patient.view`, `vitals.record`, `rx.transcribe`, `rx.view`, `order.create`, `clinical.anc.edit`, `clinical.paeds.edit`, `clinical.note.edit` (drafts), `ipd.order.write` (drafts requiring doctor verification when setting `ipd.ordersRequireVerify` = true).
-- `reception`: `patient.create/update/view`, `visit.create`, `queue.manage`, `billing.bill.create`, `billing.bill.finalize` (OPD), `billing.payment.collect`, `billing.discount.apply` (within limit), `billing.dayclose.own`, `vitals.record` (optional).
+- `doctor`: `patient.view`, `queue.call`, `rx.verify`, `rx.view`, `order.create`, `clinical.*`, `ipd.order.write`, `ipd.note.write`, `discharge.*`, `ot.note.write`, `lr.note.write`, own `reports.clinical`.
+- `doctor_assistant`: `patient.view`, `queue.call`, `vitals.record`, `rx.transcribe`, `rx.view`, `order.create`, `clinical.anc.edit`, `clinical.paeds.edit`, `clinical.note.edit` (drafts), `ipd.order.write` (drafts requiring doctor verification when setting `ipd.ordersRequireVerify` = true).
+- `reception`: `patient.create/update/view`, `visit.create`, `queue.manage`, `queue.call`, `billing.bill.create`, `billing.bill.finalize` (OPD), `billing.payment.collect`, `billing.discount.apply` (within limit), `billing.dayclose.own`, `vitals.record` (optional).
 - `cashier`: reception billing permissions + `billing.deposit.collect`, `billing.package.apply`, `billing.ipd.final`, `billing.refund.create`, `billing.bill.cancel` (requires approval above limit).
-- `nurse`: `patient.view`, `vitals.record`, `nursing.*`, `ipd.transfer`, `inventory.indent`, `lr.note.write` (assist), `newborn.register`.
+- `nurse`: `patient.view`, `queue.call`, `vitals.record`, `nursing.*`, `ipd.transfer`, `inventory.indent`, `lr.note.write` (assist), `newborn.register`.
 - `pharmacist`: `pharmacy.*` (except `stock.adjust` needs `admin` approval), `inventory.transfer`, `rx.view`.
 - `lab_tech`: `lab.sample.collect`, `lab.result.enter`. `pathologist`: + `lab.result.verify`.
 - `usg_doctor`: `usg.*`, `pcpndt.*`. `usg_assistant`: `usg.report.edit` (draft), `pcpndt.formf.edit` (draft).

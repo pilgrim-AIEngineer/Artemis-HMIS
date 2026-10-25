@@ -20,3 +20,4 @@ export * from './search';
 export * from './settings';
 export * from './settings-meta';
 export * from './transliterate';
+export * from './visits';

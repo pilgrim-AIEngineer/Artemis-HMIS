@@ -19,6 +19,7 @@ export const PERMISSIONS = [
   'visit.create',
   'visit.cancel',
   'queue.manage',
+  'queue.call',
   'queue.display.manage',
   'vitals.record',
   'rx.transcribe',
