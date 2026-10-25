@@ -2,7 +2,7 @@ import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
 import { createTestDatabase } from '../testing/postgres';
 import { createDb, type Db } from './client';
-import { resolveDatabaseUrl } from './env';
+import { resolveAppDatabaseUrl, resolveAppLogin, resolveDatabaseUrl } from './env';
 import { checkDbHealth } from './health';
 import { runMigrations } from './migrate';
 
@@ -80,5 +80,32 @@ describe('resolveDatabaseUrl', () => {
 
   it('fails clearly when nothing is configured', () => {
     expect(() => resolveDatabaseUrl({})).toThrow(/Database not configured/);
+  });
+});
+
+describe('resolveAppDatabaseUrl', () => {
+  const owner = { POSTGRES_USER: 'hmis', POSTGRES_PASSWORD: 'owner', PG_PORT: '55432' };
+
+  it('swaps in the app login on the owner server', () => {
+    expect(resolveAppDatabaseUrl({ ...owner, APP_DB_PASSWORD: 'p@ss/w' })).toBe(
+      'postgres://hmis_app_login:p%40ss%2Fw@127.0.0.1:55432/hmis',
+    );
+    expect(
+      resolveAppDatabaseUrl({
+        DATABASE_URL: 'postgres://a:b@h:1/d',
+        APP_DB_USER: 'web',
+        APP_DB_PASSWORD: 'x',
+      }),
+    ).toBe('postgres://web:x@h:1/d');
+  });
+
+  it('prefers APP_DATABASE_URL and falls back to the owner when no login is set', () => {
+    expect(resolveAppDatabaseUrl({ ...owner, APP_DATABASE_URL: 'postgres://w:x@h:2/d' })).toBe(
+      'postgres://w:x@h:2/d',
+    );
+    expect(resolveAppDatabaseUrl({ ...owner, APP_DB_PASSWORD: '' })).toBe(
+      resolveDatabaseUrl(owner),
+    );
+    expect(resolveAppLogin({ APP_DB_PASSWORD: '' })).toBeNull();
   });
 });

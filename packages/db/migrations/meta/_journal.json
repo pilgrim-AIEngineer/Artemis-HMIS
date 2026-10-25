@@ -8,6 +8,13 @@
       "when": 1792916261360,
       "tag": "0000_platform_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792916268824,
+      "tag": "0001_platform_roles_audit",
+      "breakpoints": true
     }
   ]
 }
