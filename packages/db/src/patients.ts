@@ -175,13 +175,15 @@ export async function searchPatients(
   const prefixBonus = sql`case when p.search_name_norm like ${`${likeEscape(full.norm)}%`}
       or p.search_name_norm like ${`% ${likeEscape(full.norm)}%`} then 0.15 else 0 end`;
   // One indexed branch per predicate, UNIONed: an OR across the three trigram indexes makes the
-  // planner fall back to a sequential scan at 2 lakh rows.
+  // planner fall back to a sequential scan at 2 lakh rows. The phonetic key is a folding of the
+  // normalised name, so a similar normalised name is also a similar phonetic one: no separate
+  // similarity branch on `search_name_norm` (it only doubled the candidates); the substring
+  // branch still finds partial input.
   const preds = [
     sql`${full.phonetic} <% p.search_name_phonetic`,
-    sql`${full.norm} <% p.search_name_norm`,
     sql`p.search_name_norm like ${`%${likeEscape(full.norm)}%`}`,
     ...(hasExtras
-      ? [sql`${first.phonetic} <% p.search_name_phonetic`, sql`${first.norm} <% p.search_name_norm`]
+      ? [sql`${first.phonetic} <% p.search_name_phonetic`]
       : [sql`lower(coalesce(p.name_hi, '')) like ${nameHiLike}`]),
   ];
   const candidates = sql.join(
