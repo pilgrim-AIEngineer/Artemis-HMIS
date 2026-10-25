@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { financialYearOf, financialYearOfStart, istCalendarDate, istDateString } from './fy';
+import {
+  financialYearBounds,
+  financialYearOf,
+  financialYearOfDate,
+  financialYearOfStart,
+  istCalendarDate,
+  istDateString,
+  nextFinancialYear,
+  parseFinancialYearLabel,
+} from './fy';
 
 describe('istCalendarDate / istDateString', () => {
   it('uses the Asia/Kolkata day (UTC+05:30)', () => {
@@ -38,5 +47,36 @@ describe('financialYearOf', () => {
       short: '99-00',
     });
     expect(() => financialYearOfStart(26.5)).toThrow(RangeError);
+  });
+});
+
+describe('financial year helpers', () => {
+  it('maps calendar dates to a FY', () => {
+    expect(financialYearOfDate({ year: 2027, month: 3, day: 31 }).label).toBe('2026-27');
+    expect(financialYearOfDate({ year: 2027, month: 4, day: 1 }).label).toBe('2027-28');
+    expect(financialYearOfDate({ year: 2026, month: 12, day: 25 }).short).toBe('26-27');
+  });
+
+  it('parses stored labels and rejects inconsistent ones', () => {
+    expect(parseFinancialYearLabel('2026-27').startYear).toBe(2026);
+    expect(parseFinancialYearLabel('2099-00').startYear).toBe(2099);
+    for (const bad of ['2026-28', '26-27', '2026', '2026-2027', '']) {
+      expect(() => parseFinancialYearLabel(bad)).toThrow(RangeError);
+    }
+  });
+
+  it('gives inclusive date bounds and exclusive IST instants', () => {
+    const b = financialYearBounds(financialYearOfStart(2026));
+    expect(b.startDate).toBe('2026-04-01');
+    expect(b.endDate).toBe('2027-03-31');
+    expect(b.startsAt.toISOString()).toBe('2026-03-31T18:30:00.000Z');
+    expect(b.endsBefore.toISOString()).toBe('2027-03-31T18:30:00.000Z');
+    expect(financialYearOf(b.startsAt).label).toBe('2026-27');
+    expect(financialYearOf(new Date(b.endsBefore.getTime() - 1)).label).toBe('2026-27');
+    expect(financialYearOf(b.endsBefore).label).toBe('2027-28');
+  });
+
+  it('computes the next FY', () => {
+    expect(nextFinancialYear(financialYearOfStart(2026)).label).toBe('2027-28');
   });
 });

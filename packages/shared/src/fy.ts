@@ -61,3 +61,49 @@ export function financialYearOf(at: Date): FinancialYear {
   const { year, month } = istCalendarDate(at);
   return financialYearOfStart(month >= 4 ? year : year - 1);
 }
+
+/** FY containing a calendar date (no time component). */
+export function financialYearOfDate(d: CalendarDate): FinancialYear {
+  return financialYearOfStart(d.month >= 4 ? d.year : d.year - 1);
+}
+
+/** Parses a stored FY label (`2026-27`); rejects labels whose end year is not start + 1. */
+export function parseFinancialYearLabel(label: string): FinancialYear {
+  const m = /^(\d{4})-(\d{2})$/.exec(label);
+  const startYear = m ? Number(m[1]) : NaN;
+  const fy = Number.isFinite(startYear) ? financialYearOfStart(startYear) : null;
+  if (!fy || fy.label !== label) throw new RangeError(`Invalid financial year: ${label}`);
+  return fy;
+}
+
+export interface FinancialYearBounds {
+  fy: FinancialYear;
+  /** `2026-04-01` */
+  startDate: string;
+  /** `2027-03-31` (inclusive) */
+  endDate: string;
+  /** 1 April 00:00 IST as an instant. */
+  startsAt: Date;
+  /** 1 April 00:00 IST of the next FY (exclusive upper bound for `timestamptz` ranges). */
+  endsBefore: Date;
+}
+
+const IST_OFFSET_MINUTES = 330;
+const istMidnightUtc = (year: number, month: number, day: number) =>
+  new Date(Date.UTC(year, month - 1, day) - IST_OFFSET_MINUTES * 60_000);
+
+export function financialYearBounds(fy: FinancialYear): FinancialYearBounds {
+  const y = fy.startYear;
+  return {
+    fy,
+    startDate: `${String(y).padStart(4, '0')}-04-01`,
+    endDate: `${String(y + 1).padStart(4, '0')}-03-31`,
+    startsAt: istMidnightUtc(y, 4, 1),
+    endsBefore: istMidnightUtc(y + 1, 4, 1),
+  };
+}
+
+/** The FY following `fy` (for rollover previews and series pre-creation). */
+export function nextFinancialYear(fy: FinancialYear): FinancialYear {
+  return financialYearOfStart(fy.startYear + 1);
+}
