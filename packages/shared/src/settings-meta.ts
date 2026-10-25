@@ -41,6 +41,7 @@ export const GENERIC_SETTING_KEYS: readonly SettingKey[] = EDITABLE_SETTING_KEYS
 export const SETTING_GROUPS = [
   'opd',
   'queue',
+  'registration',
   'billing',
   'ipd',
   'newborn',
