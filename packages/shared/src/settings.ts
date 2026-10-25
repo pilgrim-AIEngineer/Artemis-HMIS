@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { cidrSchema, DEFAULT_LAN_CIDRS } from './network';
 import { NUMBER_SERIES_CONFIG_SETTING, numberSeriesConfigSchema } from './number-series';
 import { ROLE_KEYS, type RoleKey } from './permissions';
 
@@ -100,8 +101,20 @@ export const SETTINGS = {
   'mtp.whatsapp': def(z.enum(['none', 'generic']), 'none'),
   'pmjay.blockPatientCharges': def(z.boolean(), true),
 
-  // --- Platform
+  // --- Platform / auth (docs/01 §5, docs/03 §6)
   'auth.idleLockMinutes': def(z.number().int().min(1).max(240), 10),
+  /** Absolute session lifetime. */
+  'auth.sessionHours': def(z.number().int().min(1).max(24), 12),
+  /** Wrong passwords (or TOTP codes) before the account locks. */
+  'auth.maxLoginFailures': def(z.number().int().min(3).max(20), 5),
+  'auth.lockoutMinutes': def(z.number().int().min(1).max(1440), 15),
+  /** Wrong PINs before PIN unlock is disabled and the locked session is ended. */
+  'auth.maxPinFailures': def(z.number().int().min(3).max(20), 5),
+  'auth.pinLockoutMinutes': def(z.number().int().min(1).max(1440), 15),
+  /** Roles that need TOTP when signing in from outside `auth.lanNetworks`. */
+  'auth.totpRequiredRoles': def(z.array(roleKey).min(1), ['owner', 'admin'] as RoleKey[]),
+  /** Client networks treated as the hospital LAN; anything else (incl. Tailscale) is remote. */
+  'auth.lanNetworks': def(z.array(cidrSchema).max(50), [...DEFAULT_LAN_CIDRS] as string[]),
   'whatsapp.enabled': def(z.boolean(), false),
   'features.pmjay': def(z.boolean(), false),
   'features.cardiology': def(z.boolean(), false),
