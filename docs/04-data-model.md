@@ -15,7 +15,7 @@ Relational core in PostgreSQL. Every table below implicitly has: `id uuid pk (UU
 | `number_series` | key, fy, prefix, next_value, padding (unique facility_id+key+fy) |
 | `audit_log` | table_name, row_id, action, changed_by, workstation_id, changed_at, before jsonb, after jsonb (no updated_* columns) |
 | `access_log` | user_id, entity, entity_id, purpose, at |
-| `idempotency` | key unique, procedure, result jsonb |
+| `idempotency` | unique (facility_id, procedure, key), user_id, request_hash (sha256 of canonical payload), result jsonb |
 | `document` | kind (rx_scan, form_f_signed, consent, report_pdf, photo, ecg, other), entity, entity_id, file_path, mime, size_bytes, sha256, pages |
 | `print_log` | template, entity, entity_id, copy_no, user_id, workstation_id |
 
