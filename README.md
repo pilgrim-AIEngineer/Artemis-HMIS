@@ -53,7 +53,8 @@ Notes:
 
 - `pnpm test` needs a working Docker daemon. To use an existing server instead, set
   `HMIS_TEST_DATABASE_URL` to a superuser URL; each test file creates its own database.
-- `pnpm test` (worker `pdf.render`) and `pnpm e2e` need Chromium:
+- `pnpm test` (worker `pdf.render`) and `pnpm e2e` need Chromium (the worker tests fetch missing
+  Chromium system libraries into `~/.cache/hmis-chromium-libs` without root on Ubuntu/Debian):
   `pnpm --filter @hmis/web exec playwright install --with-deps chromium`. `pnpm e2e` also needs Docker: the E2E server starts its own Postgres (or set `E2E_DATABASE_URL` to an empty
   database's superuser URL).
 - Migrations are additive only and are reviewed by a human (`AGENTS.md` rule 14).

@@ -4,5 +4,5 @@
     "lib": ["ES2023", "DOM"],
     "jsx": "react-jsx"
   },
-  "include": ["src", "vitest.config.ts", "build.mjs"]
+  "include": ["src", "testing", "vitest.config.ts", "build.mjs"]
 }
