@@ -84,3 +84,15 @@ to `admin.audit.view`). MTP-01 adds a restricted audit sink before the first res
   setting, else the previous period's row, else the default.
 - `allocateDailyToken(tx, { facilityId, doctorId, at, currentMax })`: per doctor per IST day,
   under `pg_advisory_xact_lock`; READ COMMITTED only.
+
+## Auth helpers (FND-02/03)
+
+- `@hmis/db/auth`: `hashSecret`/`verifySecret` (argon2id, passwords and PINs), `insertUser`,
+  `bootstrapFacility` (used by `pnpm db:seed`). Separate subpath so the worker bundle never loads
+  the native argon2 binding.
+- `rbac.ts`: `DEFAULT_ROLE_PERMISSIONS` (docs/03 §3), `ensureFacilityRbac(tx, facilityId)`
+  (idempotent; never re-adds a grant an admin revoked), `loadUserAccess` (scoped to the user's
+  facility). New permission keys go into `@hmis/shared` `PERMISSIONS`; re-running `db:seed`
+  adds them to every facility.
+- Secrets in `audit_log` are redacted: `app_user.password_hash/pin_hash/totp_secret_enc`,
+  `session.token_hash`, `workstation.pairing_token_hash`.

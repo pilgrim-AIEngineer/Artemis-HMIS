@@ -18,6 +18,8 @@ x-app-env: &app-env
   APP_DB_USER: ${APP_DB_USER:-hmis_app_login}
   APP_DB_PASSWORD: ${APP_DB_PASSWORD:-}
   HMIS_VERSION: ${HMIS_VERSION:-dev}
+  # TOTP seed encryption (FND-02); never commit a real value.
+  HMIS_SECRET_KEY: ${HMIS_SECRET_KEY:-}
   LOG_LEVEL: ${LOG_LEVEL:-info}
   TZ: Asia/Kolkata
 

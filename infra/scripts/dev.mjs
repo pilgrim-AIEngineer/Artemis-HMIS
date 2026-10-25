@@ -54,6 +54,10 @@ run('docker', [...compose, 'up', '-d', '--wait', 'postgres']);
 console.log('dev: applying migrations');
 run('pnpm', ['db:migrate'], { DATABASE_URL: databaseUrl });
 
+// Facility, roles/permissions and (first run only) the admin account; prints its password once.
+console.log('dev: seeding roles and the first admin');
+run('pnpm', ['db:seed'], { DATABASE_URL: databaseUrl });
+
 console.log(`dev: web on http://localhost:${webPort}  (stop Postgres later with: pnpm dev:down)`);
 // Own process group, so stopping `pnpm dev` (Ctrl+C or SIGTERM) also stops web and worker.
 const child = spawn(
