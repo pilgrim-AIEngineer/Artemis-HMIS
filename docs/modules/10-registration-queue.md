@@ -1,0 +1,116 @@
+# 10 — Registration, visits, token queue, OPD sheet [Phase 1]
+
+Feature IDs: REG-01 … REG-07, MIG-01.
+
+## 1. The real OPD flow at the pilot hospital
+
+```
+Patient arrives
+  -> Reception: search / register -> create visit -> collect consultation fee -> print token (+ OPD sheet)
+  -> Vitals desk (nurse/assistant): vitals entered -> OPD sheet printed (if setting = vitals)
+  -> Doctor: sees patient, WRITES Rx and orders on the printed OPD sheet
+  -> Assistant: scans sheet QR, photographs sheet, transcribes Rx + orders + follow-up
+  -> Billing counter: bills orders (USG, lab, procedures) -> payment
+  -> USG / Lab / Pharmacy
+```
+
+Doctors keep writing on paper. The system's job is to make the paper smarter (pre-filled, with history and a QR) and make transcription fast.
+
+## 2. Patient search (REG-02)
+
+- Single search box, autofocus. Input classification:
+  - 10 digits → mobile exact (also matches `alt_mobile`).
+  - Starts with UHID prefix or digits ≤ 7 → UHID (with/without prefix).
+  - Otherwise → name fuzzy (trigram on normalised + phonetic name), optional second token as guardian/locality filter.
+- Results (max 20): name, age/sex, guardian name, locality, UHID, last visit date + doctor, flags (pregnant GA, PM-JAY, deceased greyed out).
+- Family view: searching a mobile lists all patients on that number grouped as a family; "Add family member" pre-fills mobile, address and locality.
+- Keyboard: ↑/↓ to move, Enter to select, `F2` new patient.
+- Target: results < 300 ms with 2 lakh patients.
+
+## 3. Registration (REG-01)
+
+### Fields
+
+Required: first name, sex, age or DOB, mobile (unless "No mobile" checkbox with reason).
+Optional: middle/last name, Hindi name (auto-transliterated suggestion, editable), guardian name and relation (husband/father/mother), address line, locality (type-ahead), district (default facility district), pincode, blood group, marital status, referred by, photo, ID type + last 4 digits, allergies, alerts.
+
+### Rules
+
+- Name title-cased; extra spaces removed.
+- Age input `25`, `25y`, `6m`, `15d` → estimated DOB (`dob_is_estimated = true`).
+- Duplicate check before save: same mobile AND (phonetic name similarity ≥ 0.6) AND age within ±2 years → modal "Possible existing patient" listing matches with "Use this patient" (default focus) or "Create new anyway" (reason required, logged).
+- UHID generated on save. Print sticker/UHID card optional (REG-07).
+- Newborns are created from the delivery record (Phase 2A), not here, but reception may register a baby brought for OPD: name allowed as "Baby of <mother name>", link to mother optional.
+- Edits after registration: allowed for `patient.update`; name/DOB/sex changes are audited and show a "changed" badge.
+- Merge (admin): choose survivor, move encounters/bills/records, mark other `merged_into_id`. Irreversible except by admin restore from audit.
+
+## 4. Visit creation (REG-03)
+
+- Select doctor (large buttons with photo/name; default = last used at this workstation). Department derived.
+- Visit type auto-suggested:
+  - `follow_up` if the patient saw the same doctor within `follow_up_validity_days` (per doctor setting, default 7) and free follow-ups not exhausted → fee ₹0 or follow-up rate.
+  - `anc` if patient has an active pregnancy and doctor is gynae.
+  - `paeds_vaccination` if child and vaccine due (reception can switch).
+  - else `new` (or `emergency` if chosen).
+- Fee auto-filled from `consultation_rule` + `service_rate` (tariff of payer). Reception can change visit type; fee updates.
+- Payer defaults to Cash/Self. (Phase 2B: PM-JAY toggle when patient has coverage.)
+- On save: `encounter` (type `opd`), `opd_token`, draft `bill` with consultation line.
+- Step 3: payment (see `12-billing-payments`). Token is issued when payment is collected OR immediately if fee is ₹0. Setting `queue.issueTokenBeforePayment` (default false).
+
+## 5. Token and queue (REG-04)
+
+- Token number per doctor per day, starting at 1. Allocation uses a Postgres advisory lock on (doctor_id, date) to avoid duplicates.
+- Priority: `emergency`, `labour` (jump to top, red), `elderly`, `staff`, `vip` (configurable order); normal tokens ordered by number.
+- Queue states: `waiting → vitals_done → with_doctor → seen → rx_entered → billed_orders → done`; also `no_show`, `cancelled`.
+  - `with_doctor`: set when doctor's assistant/nurse presses "Call next" or "Send in" on the doctor-room tablet.
+  - `seen`: set when the assistant receives the sheet back (scan QR) or presses "Seen".
+  - `rx_entered`: transcription saved.
+  - `billed_orders`: all orders billed or none needed.
+  - `done`: automatic when rx_entered + billed_orders, or manual.
+- Queue screen (reception, vitals desk, doctor room): columns per doctor, cards with token no, name, age/sex, visit type badge, waiting minutes, state chip. Actions: Call next, Recall, Skip (moves after next 3), Transfer to doctor, Mark no-show (end of day auto no-show for `waiting` tokens with reason).
+- Live updates via SSE.
+- Wait-time analytics from `queue_event`.
+
+## 6. Waiting-hall TV display (REG-05)
+
+- URL `/display/queue?key=...` in full-screen Chrome on a TV mini PC.
+- Shows per doctor: "Now: 23" big, "Next: 24, 25, 26, 27, 28". Name display off by default (privacy); setting can show first name + last initial.
+- Chime on token change; optional Hindi TTS announcement (browser `speechSynthesis` with `hi-IN` voice if available; otherwise chime only).
+- Auto-recovers after network blips; shows "Reconnecting…" discreetly.
+
+## 7. Pre-filled OPD sheet (REG-06) — the key design
+
+Printed A5 (portrait) per visit. Setting `opd.sheetPrintAt`: `reception` (after token) or `vitals` (after vitals saved; default when vitals desk has a printer). Reprint allowed (marked "DUPLICATE").
+
+Layout (top to bottom):
+
+1. Hospital header (logo, name, phone), doctor name + qualification + reg no.
+2. Patient strip: Name, Age/Sex, UHID, Token no, Date/time, Guardian, Locality, mobile last 4, Payer (Cash / PM-JAY).
+3. QR code (encodes `E:<encounter short id>`) + barcode of visit number.
+4. Vitals box: printed values if entered, else blank boxes for BP / Pulse / Wt / Temp / SpO2.
+5. Context box (auto):
+   - Pregnant: GA today (`24w 3d`), EDD, G P A L, risk flags (bold), last 3 visits BP/weight, ANC tests due/overdue, Td status.
+   - Child: age, weight (with growth percentile), vaccines due/overdue.
+   - Everyone: allergies (bold), last visit date + diagnosis + up to 5 last drugs.
+6. Large blank area: "Complaints / Findings" (left) and "Rx" (right) for handwriting.
+7. Quick-tick orders area (configurable list per doctor, max ~20): e.g., CBC, Hb, Blood group, Urine R/M, HIV/HBsAg/VDRL, TSH, RBS, GTT, Obstetric USG, NT scan, Anomaly scan, Follicular study, TVS; each with a checkbox. Free lines for other tests.
+8. Follow-up: "Next visit after ____ days / date ____", "Admit: Yes / No".
+9. Footer: "Doctor's signature", print time, user initials.
+
+Template stored in `packages/print/opd-sheet.tsx`, with the quick-tick list from settings `opd.quickOrders[doctorId]`.
+
+## 8. Vitals desk entry
+
+Covered in `11-opd-clinical` (OPD-01). The vitals desk list shows tokens in `waiting`; after save, state → `vitals_done` and sheet prints (if configured).
+
+## 9. Data migration (MIG-01)
+
+- Import patients from CSV/Excel (columns mapped in a wizard): name, age/DOB, sex, mobile, address, old reg number (stored in `patient_identifier` type `other`, label "Old reg no"). Dry-run report shows duplicates and errors before commit.
+- Import service/rate list and doctor list from Excel templates provided in `docs/33-seed-masters.md`.
+
+## 10. Acceptance
+
+- Returning patient search → visit → cash payment → token + sheet printed in ≤ 60 s (E2E timed with scripted user).
+- Duplicate modal appears for same mobile + similar name; does not appear for different family members with distinct names.
+- Two receptionists issuing tokens for the same doctor simultaneously never get the same number (concurrency test, 100 parallel requests).
+- Queue updates appear on other screens within 2 s.

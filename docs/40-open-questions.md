@@ -1,0 +1,30 @@
+# 40 — Open questions (do not guess; ask the human)
+
+Answered on 23-Oct-2026: USG and MTP are in-house; pharmacy and lab are in-house; staff can operate computers but slowly; doctors write Rx on paper and an assistant enters it; packages exist; deposits are cash and UPI via static QR; Jio Fiber (upgradeable), hardware can be purchased; PM-JAY applied; cardiologist with cath lab, ICU and CCU next year.
+
+## Still open
+
+| # | Question | Affects | Default until answered |
+| --- | --- | --- | --- |
+| 1 | Is the pharmacy the same legal entity/GSTIN as the hospital, or a separate firm? | Pharmacy invoices, GST reports, `store` legal entity | Same entity; keep `store.legal_entity_id` column ready |
+| 2 | Does the hospital have a GSTIN (for taxable lines like room rent > ₹5,000 and pharmacy)? | Invoice format | Assume yes |
+| 3 | Is Form F currently filed on the UP online portal or on paper? Exact format the district uses? | `13` | Build official form; add export once format known |
+| 4 | How many MTP-certified doctors; which MTP services (medical/surgical) and gestation range? | `14` | Configurable |
+| 5 | Who verifies lab reports (in-house pathologist or visiting/remote)? | `16` | Remote verification supported |
+| 6 | Exact consultation fees, follow-up validity days and free follow-up counts per doctor | `10`, `12` | Setting defaults 7 days, 1 free follow-up |
+| 7 | Package list with inclusions/exclusions and rates by room category | `12` | Seeds without rates |
+| 8 | Bed-day rule (midnight vs 24 h) and checkout time | `12`, `17` | Midnight |
+| 9 | Staff list with roles (names for user accounts) and number of counters | `03`, hardware | — |
+| 10 | Existing software/data to migrate (patients, pharmacy stock, rates)? | MIG-01 | Excel import |
+| 11 | Should the OPD sheet print at reception or after vitals? Is there a vitals desk with a printer? | `10 §7` | After vitals |
+| 12 | Card POS machine in use? | `12` | Supported, optional |
+| 13 | WhatsApp: hospital's business number to use; provider preference | `21` | Meta Cloud API adapter |
+| 14 | Does the paediatrician follow IAP or UIP schedule by default? | `11` | IAP |
+| 15 | Rx verification mode the owner wants (off / sample / all) | `11 §2.7` | Sample |
+| 16 | Does the hospital want typed Rx printed for patients in addition to the paper sheet? | `11` | No |
+| 17 | NICU/baby warmer present now? Phototherapy? | `17`, `18` | Baby warmer + phototherapy, no NICU ventilation |
+| 18 | PM-JAY empanelment status and the specialties/packages applied for; any obstetric packages reserved for public hospitals in UP | `22` | Configurable HBP import |
+| 19 | Cardiologist's joining month; cath lab vendor; ICU/CCU bed counts | `23` planning | — |
+| 20 | Hospital brand name/logo/colours for prints and UI accent | `05` | Neutral |
+| 21 | Who at the hospital is the day-to-day decision maker for software questions? | process | Owner |
+| 22 | Our product's commercial name (replace "HMIS (working name)") | branding | — |
