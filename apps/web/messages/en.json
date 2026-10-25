@@ -94,7 +94,13 @@
       "workstations": "Workstations",
       "workstationsHint": "Name and pair shared PCs and tablets",
       "account": "My account",
-      "accountHint": "Password, PIN, language, phone code"
+      "accountHint": "Password, PIN, language, phone code",
+      "facility": "Facility profile",
+      "facilityHint": "Hospital name, address and registration numbers",
+      "settings": "Settings",
+      "settingsHint": "Rules and switches for the whole hospital",
+      "print": "Print header",
+      "printHint": "Hindi lines, footer, colour and test prints"
     }
   },
   "account": {
@@ -234,6 +240,309 @@
       "deactivate": "Deactivate",
       "activate": "Activate",
       "inactive": "Inactive"
+    },
+    "facility": {
+      "title": "Facility profile",
+      "back": "Administration",
+      "help": "These details appear in the header of every printed document. Only the name is required.",
+      "sections": {
+        "identity": "Hospital",
+        "address": "Address and contact",
+        "registrations": "Registration numbers"
+      },
+      "registrationsHelp": "Shown on prints when “show registration numbers” is on in Print header.",
+      "fields": {
+        "name": "Hospital name",
+        "shortName": "Short name",
+        "address": "Address",
+        "district": "District",
+        "state": "State",
+        "pincode": "PIN code",
+        "phone": "Phone",
+        "email": "Email",
+        "gstin": "GSTIN",
+        "clinicalEstablishmentRegNo": "Clinical establishment registration no.",
+        "pcpndtRegNo": "PCPNDT registration no.",
+        "mtpApprovalNo": "MTP approval no.",
+        "hfrId": "Health Facility Registry (HFR) ID",
+        "drugLicenceNos": "Drug licence numbers"
+      },
+      "drugLicenceHelp": "One number per line.",
+      "save": "Save",
+      "saved": "Saved."
+    },
+    "settings": {
+      "title": "Settings",
+      "back": "Administration",
+      "help": "Rules and switches for the whole hospital. Each change is saved on its own and recorded with your name. “Recommended” means the value suggested for hospitals like yours.",
+      "search": "Find a setting",
+      "noMatch": "No setting matches. Try another word.",
+      "save": "Save",
+      "saved": "Saved.",
+      "reset": "Use recommended",
+      "resetDone": "Back to the recommended value.",
+      "recommended": "Recommended",
+      "changed": "Changed",
+      "on": "On",
+      "off": "Off",
+      "range": "{min} to {max}",
+      "jsonInvalid": "This is not valid JSON. Check the brackets and quotes.",
+      "groups": {
+        "opd": "OPD",
+        "queue": "Queue and token display",
+        "billing": "Billing",
+        "ipd": "In-patients",
+        "newborn": "Newborn",
+        "rx": "Prescriptions",
+        "print": "Printing",
+        "usg": "Ultrasound",
+        "pcpndt": "PCPNDT",
+        "pmjay": "PM-JAY",
+        "auth": "Sign-in and security",
+        "whatsapp": "WhatsApp",
+        "features": "Optional modules",
+        "ui": "Screens"
+      },
+      "options": {
+        "reception": "Reception",
+        "vitals": "After vitals",
+        "reprice_to_new_category": "Price as the new category",
+        "charge_difference_per_day": "Charge the difference per day",
+        "midnight": "Every midnight",
+        "24h_from_admission": "24 hours from admission",
+        "mother_bill": "On the mother’s bill",
+        "separate": "Separate bill",
+        "off": "Off",
+        "sample": "Sample",
+        "all": "All"
+      },
+      "items": {
+        "opd": {
+          "followUpValidityDays": {
+            "label": "Follow-up valid for (days)",
+            "hint": "A repeat visit within this many days of the last paid visit counts as a follow-up."
+          },
+          "freeFollowUps": {
+            "label": "Free follow-ups",
+            "hint": "How many follow-up visits are free inside the validity period."
+          },
+          "followUpRulesByDoctor": {
+            "label": "Follow-up rules per doctor",
+            "hint": "Advanced. Different validity days and free visits for a particular doctor, as JSON keyed by doctor id. Empty {} = same rule for everyone."
+          },
+          "sheetPrintAt": {
+            "label": "Print the OPD sheet at",
+            "hint": "Where the OPD sheet is printed: at the reception desk, or after vitals are taken."
+          },
+          "quickOrders": {
+            "label": "Quick orders per doctor",
+            "hint": "Advanced. Short lists of frequently used orders per doctor, as JSON keyed by doctor id."
+          },
+          "notesRequired": {
+            "label": "Doctor notes required",
+            "hint": "Do not let a visit be closed until a note is entered."
+          }
+        },
+        "queue": {
+          "showNameOnDisplay": {
+            "label": "Show names on the waiting-room TV",
+            "hint": "Off: the TV shows token numbers only. On: it also shows first name and initial."
+          },
+          "issueTokenBeforePayment": {
+            "label": "Give the token before payment",
+            "hint": "Off: the token is given after the bill is paid."
+          }
+        },
+        "billing": {
+          "roundToRupee": {
+            "label": "Round bills to the nearest rupee",
+            "hint": "The difference is shown on the bill as a round-off line."
+          },
+          "splitUsgBill": {
+            "label": "Separate bill for ultrasound",
+            "hint": "Make a separate bill for ultrasound scans."
+          },
+          "allowOpdCredit": {
+            "label": "Allow OPD bills on credit",
+            "hint": "Off: OPD bills must be paid in full."
+          },
+          "upiRefRequired": {
+            "label": "UPI reference number",
+            "hint": "Advanced. Whether staff must type the UPI reference. mode: off, optional or required_above_amount; abovePaise is in paise."
+          },
+          "discountLimits": {
+            "label": "Discount limits by role",
+            "hint": "Advanced. The most each role can give without approval, as a percentage in basis points (1000 = 10%) and an amount in paise. null = no limit."
+          },
+          "refundApprovalAbovePaise": {
+            "label": "Refund needs approval above",
+            "hint": "Refunds above this amount need an approver PIN."
+          },
+          "depositLowBalancePaise": {
+            "label": "Warn when deposit balance falls below",
+            "hint": "In-patient deposit balance below this amount shows a top-up alert."
+          },
+          "packageRoomChange": {
+            "label": "Package when the room category changes",
+            "hint": "How a package is priced if the patient moves to another room category."
+          }
+        },
+        "ipd": {
+          "bedDayRule": {
+            "label": "How bed days are counted",
+            "hint": "Count a bed day at every midnight, or in blocks of 24 hours from admission."
+          },
+          "ordersRequireVerify": {
+            "label": "Doctor must verify assistant-entered orders",
+            "hint": "In-patient orders typed by an assistant wait for the doctor to verify them."
+          },
+          "requireSummaryBeforeFinalBill": {
+            "label": "Discharge summary before final bill",
+            "hint": "The final in-patient bill cannot be made until the discharge summary is written."
+          }
+        },
+        "newborn": {
+          "billing": {
+            "label": "Newborn billing",
+            "hint": "Charge the newborn on the mother’s bill, or on a separate bill."
+          }
+        },
+        "rx": {
+          "verifyMode": {
+            "label": "Doctor checks of typed prescriptions",
+            "hint": "Off: none. Sample: a share of prescriptions. All: every prescription."
+          },
+          "verifySamplePercent": {
+            "label": "Share checked in sample mode (%)",
+            "hint": "Used only when checks are set to Sample."
+          },
+          "requirePhoto": {
+            "label": "Photo of the paper prescription required",
+            "hint": "The assistant must attach a photo of the paper prescription."
+          }
+        },
+        "print": {
+          "rxCopy": {
+            "label": "Print typed prescription for the patient",
+            "hint": "Off: only the paper prescription goes home with the patient."
+          }
+        },
+        "usg": {
+          "reportFooter": {
+            "label": "Ultrasound report footer",
+            "hint": "Text printed at the bottom of every ultrasound report."
+          }
+        },
+        "pcpndt": {
+          "patientDeclarationBeforeScan": {
+            "label": "Patient declaration before scan",
+            "hint": "The patient declaration must be recorded before a prenatal scan can start."
+          }
+        },
+        "pmjay": {
+          "blockPatientCharges": {
+            "label": "Block charges to PM-JAY patients",
+            "hint": "Stop staff from collecting money from patients admitted under PM-JAY."
+          }
+        },
+        "auth": {
+          "idleLockMinutes": {
+            "label": "Lock the screen after (minutes)",
+            "hint": "A screen with no activity locks and asks for the PIN."
+          },
+          "sessionHours": {
+            "label": "Sign out after (hours)",
+            "hint": "Longest time one sign-in lasts."
+          },
+          "maxLoginFailures": {
+            "label": "Wrong passwords before lock",
+            "hint": "After this many wrong passwords the account is locked for a while."
+          },
+          "lockoutMinutes": {
+            "label": "Account lock time (minutes)",
+            "hint": "How long a locked account waits before trying again."
+          },
+          "maxPinFailures": {
+            "label": "Wrong PINs before PIN is blocked",
+            "hint": "After this many wrong PINs the user must sign in with the password."
+          },
+          "pinLockoutMinutes": {
+            "label": "PIN block time (minutes)",
+            "hint": "How long PIN unlock stays blocked."
+          },
+          "totpRequiredRoles": {
+            "label": "Roles that need a phone code from outside",
+            "hint": "These roles must type a code from the authenticator app when signing in from outside the hospital network."
+          },
+          "lanNetworks": {
+            "label": "Hospital network addresses",
+            "hint": "One per line, e.g. 192.168.1.0/24. Computers in these networks count as inside the hospital."
+          }
+        },
+        "whatsapp": {
+          "enabled": {
+            "label": "WhatsApp messages",
+            "hint": "Send reminders and reports through WhatsApp (needs internet and an approved account)."
+          }
+        },
+        "features": {
+          "pmjay": {
+            "label": "PM-JAY (Ayushman Bharat)",
+            "hint": "Switch on the PM-JAY screens."
+          },
+          "cardiology": {
+            "label": "Cardiology and critical care",
+            "hint": "Switch on the cardiology, ICU and cath lab screens."
+          },
+          "trainingMode": {
+            "label": "Training mode",
+            "hint": "Shows an orange TRAINING banner for practice sessions."
+          }
+        },
+        "ui": {
+          "bilingualLabels": {
+            "label": "Roles that see Hindi and English together",
+            "hint": "Screens for these roles show labels as “हिंदी / English”."
+          }
+        }
+      }
+    },
+    "print": {
+      "title": "Print header",
+      "back": "Administration",
+      "help": "The hospital header and footer on every printed document and PDF. English name, address and phone come from the Facility profile.",
+      "headerHelp": "Hindi lines print above the English ones (patient prints are bilingual).",
+      "sections": {
+        "header": "Header and footer",
+        "colour": "Colour",
+        "preview": "Preview",
+        "testPrints": "Test prints"
+      },
+      "fields": {
+        "nameHi": "Hospital name in Hindi",
+        "addressHi": "Address in Hindi",
+        "taglineHi": "Tagline in Hindi",
+        "taglineEn": "Tagline in English",
+        "footerNoteHi": "Footer note in Hindi",
+        "footerNoteEn": "Footer note in English",
+        "showRegistrationNos": "Show registration numbers (registration no., GSTIN) in the header",
+        "accent": "Hospital colour"
+      },
+      "profileNote": "Change the English name, address, phone and numbers in",
+      "profileLink": "Facility profile",
+      "colourHelp": "Used for the header line on prints and for buttons. Leave neutral if the hospital has no brand colour.",
+      "neutral": "Use neutral colour",
+      "buttonSample": "Sample button",
+      "paper": "Paper size",
+      "papers": {
+        "thermal80": "Receipt roll 80 mm",
+        "a5": "A5",
+        "a4": "A4",
+        "label50x25": "Label 50×25 mm"
+      },
+      "testPrintsHelp": "Opens a sample document at each paper size so you can check the layout on the real printer. It contains no patient data.",
+      "save": "Save",
+      "saved": "Saved."
     }
   },
   "modules": {
@@ -276,7 +585,12 @@
     "pinWeak": "This PIN is too easy to guess. Avoid repeated or running digits.",
     "totpFormat": "Type the 6 digits shown in the app.",
     "reason": "Please write a short reason.",
-    "roleKey": "Use 3–40 small letters, digits or underscore, starting with a letter."
+    "roleKey": "Use 3–40 small letters, digits or underscore, starting with a letter.",
+    "pincode": "Enter a 6-digit PIN code.",
+    "phone": "Enter a valid phone number.",
+    "email": "Enter a valid email address.",
+    "gstin": "GSTIN has 15 letters and digits.",
+    "color": "Choose a colour like #1a5fb4."
   },
   "mobile": {
     "invalid": "Enter a 10-digit mobile number starting with 6, 7, 8 or 9."
@@ -310,7 +624,66 @@
       "restrictedPermission": "MTP permissions cannot be changed here. Assign the “MTP doctor” role instead.",
       "roleKeyTaken": "A role with this key already exists.",
       "workstationNameTaken": "A workstation with this name already exists.",
-      "ownerOnly": "Only the owner can do this for owner or MTP accounts and roles."
+      "ownerOnly": "Only the owner can do this for owner or MTP accounts and roles.",
+      "settingNotEditable": "This setting cannot be changed here."
     }
+  },
+  "nav": {
+    "label": "Main menu",
+    "skipToContent": "Skip to main content",
+    "groups": {
+      "reception": "Reception",
+      "assistant": "Assistant",
+      "billing": "Billing",
+      "doctor": "Doctor",
+      "nursing": "Nursing",
+      "pharmacy": "Pharmacy",
+      "lab": "Lab",
+      "usg": "Ultrasound",
+      "reports": "Reports",
+      "admin": "Administration"
+    }
+  },
+  "groups": {
+    "comingSoon": "The screens for this work area arrive in the next releases.",
+    "reception": {
+      "hint": "Register patients, give tokens, manage the queue"
+    },
+    "assistant": {
+      "hint": "Enter prescriptions and notes from the doctor’s paper"
+    },
+    "billing": {
+      "hint": "Bills, payments, deposits and day close"
+    },
+    "doctor": {
+      "hint": "Patients waiting, prescriptions to verify, discharge"
+    },
+    "nursing": {
+      "hint": "Bed board, charts and medicine rounds"
+    },
+    "pharmacy": {
+      "hint": "Medicine sales, purchase and stock"
+    },
+    "lab": {
+      "hint": "Samples, results and reports"
+    },
+    "usg": {
+      "hint": "Scan worklist and reports"
+    },
+    "reports": {
+      "hint": "Collections, clinical and financial reports"
+    },
+    "admin": {
+      "hint": "Users, settings and facility profile"
+    }
+  },
+  "print": {
+    "title": "Print: {name}",
+    "frameTitle": "Print",
+    "print": "Print",
+    "back": "Back",
+    "nextIsOriginal": "This will be the original copy.",
+    "nextIsDuplicate": "Already printed before. This will be copy {n} and is marked DUPLICATE.",
+    "showingCopy": "Showing copy {n}."
   }
 }

@@ -25,6 +25,8 @@ const isCI = !!process.env.CI;
 // docs/32 §1: Chrome at 1366×768 and tablet 1280×800 (touch).
 export default defineConfig({
   testDir: './e2e',
+  // One worker: the specs share one database (settings, print counters, users' language).
+  workers: 1,
   forbidOnly: isCI,
   retries: isCI ? 1 : 0,
   reporter: isCI ? [['list'], ['html', { open: 'never' }]] : 'list',

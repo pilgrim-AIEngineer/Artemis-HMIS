@@ -4,13 +4,7 @@
  */
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { E2E_PASSWORD, E2E_USERS } from './fixtures';
-
-async function signIn(page: Page, user: { username: string }, password = E2E_PASSWORD) {
-  await page.goto('/login');
-  await page.getByLabel('Username').fill(user.username);
-  await page.getByLabel('Password', { exact: true }).fill(password);
-  await page.getByRole('button', { name: 'Sign in' }).click();
-}
+import { signIn } from './helpers';
 
 async function enterPin(page: Page, pin: string, info: TestInfo) {
   if (info.project.name === 'tablet') {

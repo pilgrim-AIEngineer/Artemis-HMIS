@@ -12,6 +12,8 @@ import { CSRF_COOKIE } from '@/lib/auth-constants';
 export function proxy(request: NextRequest) {
   const nonce = btoa(crypto.randomUUID());
   const isDev = process.env.NODE_ENV === 'development';
+  // Print pages are loaded by our own hidden print frame (docs/01 §4); nothing else may frame us.
+  const frameAncestors = request.nextUrl.pathname.startsWith('/print/') ? "'self'" : "'none'";
   const csp = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ''}`,
@@ -23,7 +25,7 @@ export function proxy(request: NextRequest) {
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
-    "frame-ancestors 'none'",
+    `frame-ancestors ${frameAncestors}`,
   ].join('; ');
 
   const requestHeaders = new Headers(request.headers);
