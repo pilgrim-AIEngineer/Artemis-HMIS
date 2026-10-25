@@ -40,28 +40,68 @@ const term = (
   examples,
 });
 
+// Building blocks shared by the patterns below. `s3x` covers the common leetspeak spelling.
+const FETUS = String.raw`(?:fo?etus|fo?etal|fo?etuses|unborn(?:\s+(?:child|baby))?)`;
+const SEX = String.raw`(?:s[e3]x|gender)`;
+const BABY = String.raw`(?:baby|babies)`;
+const GENDERED = String.raw`(?:male|female|boy|girl|m\s*/\s*f)`;
+
 export const FORBIDDEN_TERMS: readonly ForbiddenTerm[] = [
-  term('pn01', 'always', String.raw`fetal\s+sex`, ['fetal sex', 'Fetal  Sex']),
-  term('pn02', 'always', String.raw`foetal\s+sex`, ['foetal sex']),
-  term('pn03', 'always', String.raw`sex\s+of\s+(the\s+)?fo?etus`, [
+  term('pn01', 'always', String.raw`fetal\s*sex`, ['fetal sex', 'Fetal  Sex']),
+  term('pn02', 'always', String.raw`foetal\s*sex`, ['foetal sex']),
+  term('pn03', 'always', String.raw`\bs[e3]x\s+of\s+(the\s+)?fo?etus`, [
     'sex of fetus',
     'sex of the foetus',
   ]),
-  term('pn04', 'always', String.raw`gender\s+of\s+(the\s+)?fo?etus`, [
+  term('pn04', 'always', String.raw`\bgender\s+of\s+(the\s+)?fo?etus`, [
     'gender of the fetus',
     'gender of foetus',
   ]),
-  term('pn05', 'always', String.raw`fo?etal\s+gender`, ['fetal gender', 'foetal gender']),
+  term('pn05', 'always', String.raw`fo?etal\s*gender`, ['fetal gender', 'foetal gender']),
   term('pn06', 'always', String.raw`male\s+fo?etus`, ['male fetus', 'male foetus']),
   term('pn07', 'always', String.raw`female\s+fo?etus`, ['female fetus']),
   term('pn08', 'always', String.raw`भ्रूण.*लिंग`, ['भ्रूण का लिंग']),
-  term('pn09', 'strict', String.raw`baby\s+gender`, ['baby gender']),
+  term('pn09', 'always', String.raw`\b${BABY}\s*${SEX}\b`, ['baby gender', 'baby sex']),
   term('pn10', 'strict', String.raw`boy\s+or\s+girl`, ['boy or girl', 'Boy Or Girl']),
-  term('pn11', 'strict', String.raw`\bladka\b`, ['ladka', 'LADKA hai']),
-  term('pn12', 'strict', String.raw`\bladki\b`, ['ladki']),
+  term('pn11', 'strict', String.raw`\bl(?:ar|ad|add)ka\b`, [
+    'ladka',
+    'LADKA hai',
+    'laddka',
+    'larka',
+  ]),
+  term('pn12', 'strict', String.raw`\bl(?:ar|ad|add)ki\b`, ['ladki', 'laddki', 'larki']),
   term('pn13', 'strict', 'लड़का', ['लड़का', '\u0932\u095C\u0915\u093E']),
   term('pn14', 'strict', 'लड़की', ['लड़की', '\u0932\u095C\u0915\u0940']),
   term('pn15', 'strict', 'लिंग', ['लिंग']),
+  // Variants added for issue #13.
+  term('pn16', 'always', String.raw`\b${FETUS}\s*[:=\-]?\s*${SEX}\b`, [
+    'fetus sex',
+    'fetus gender',
+    'unborn child sex',
+  ]),
+  term('pn17', 'always', String.raw`\b${SEX}\s+of\s+(the\s+)?(${FETUS}|${BABY})`, [
+    'sex of baby',
+    'gender of the baby',
+    'sex of the unborn child',
+  ]),
+  term('pn18', 'always', String.raw`\b${FETUS}\s*[:=\-]?\s*(is\s+)?${GENDERED}\b`, [
+    'fetus: male',
+    'fetus is girl',
+  ]),
+  term('pn19', 'always', String.raw`\b${GENDERED}\s+(${FETUS}|${BABY}\s+in\s+utero)`, [
+    'M/F fetus',
+    'girl unborn child',
+  ]),
+  term('pn20', 'always', String.raw`\bs[e3]x\s*determination\b`, ['sex determination']),
+  term('pn21', 'always', 'बेटा|बेटी', ['बेटा', 'बेटी', 'पेट में बेटा']),
+  term('pn22', 'always', 'लिंग\\s*(निर्धारण|परीक्षण|जांच|जाँच|पता)', [
+    'लिंग निर्धारण',
+    'लिंग परीक्षण',
+  ]),
+  term('pn23', 'always', String.raw`\b(?:garbh|bhrun|bhroon)\s+(?:ka|ki|ke)?\s*ling\b`, [
+    'garbh ka ling',
+    'bhrun ka ling',
+  ]),
 ];
 
 /**
@@ -85,12 +125,72 @@ export interface ForbiddenHit {
  * words, so `fetalSex`, `fetal_sex`, `FETAL-SEX` are caught like `fetal sex`.
  */
 export function matchVariants(text: string): string[] {
-  const nfc = text.normalize('NFC');
+  const nfc = foldText(text);
   const split = nfc
     .replace(/([\p{Ll}\d])(\p{Lu})/gu, '$1 $2')
     .replace(/(\p{Lu})(\p{Lu}\p{Ll})/gu, '$1 $2')
     .replace(/[_\-./]+/g, ' ');
   return split === nfc ? [nfc] : [nfc, split];
+}
+
+// Cyrillic / Greek letters that render like Latin ones (lowercase and uppercase).
+const CONFUSABLES: Readonly<Record<string, string>> = {
+  а: 'a',
+  е: 'e',
+  о: 'o',
+  р: 'p',
+  с: 'c',
+  х: 'x',
+  у: 'y',
+  і: 'i',
+  ѕ: 's',
+  ј: 'j',
+  һ: 'h',
+  ԁ: 'd',
+  ɡ: 'g',
+  А: 'A',
+  В: 'B',
+  Е: 'E',
+  К: 'K',
+  М: 'M',
+  Н: 'H',
+  О: 'O',
+  Р: 'P',
+  С: 'C',
+  Т: 'T',
+  Х: 'X',
+  І: 'I',
+  Ѕ: 'S',
+  ο: 'o',
+  α: 'a',
+  ε: 'e',
+  ι: 'i',
+  ν: 'v',
+  τ: 't',
+  ρ: 'p',
+  Ο: 'O',
+  Α: 'A',
+  Ε: 'E',
+  Ι: 'I',
+  Τ: 'T',
+  Μ: 'M',
+};
+const LIGATURES: Readonly<Record<string, string>> = { œ: 'oe', Œ: 'OE', æ: 'ae', Æ: 'AE' };
+
+/**
+ * Defeats trivial evasions: compatibility forms (full-width, ligature glyphs), invisible format
+ * characters (zero-width space/joiner, soft hyphen, bidi marks), Latin diacritics and
+ * Cyrillic/Greek look-alikes. Devanagari combining marks are preserved.
+ */
+function foldText(text: string): string {
+  return text
+    .normalize('NFKC')
+    .replace(/\p{Cf}/gu, '')
+    .replace(/[œŒæÆ]/gu, (c) => LIGATURES[c] ?? c)
+    .replace(/[\u0370-\u03ff\u0400-\u04ff\u0500-\u052f\u0250-\u02af]/gu, (c) => CONFUSABLES[c] ?? c)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .normalize('NFC');
 }
 
 /**

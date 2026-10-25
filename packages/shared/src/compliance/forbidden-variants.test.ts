@@ -15,7 +15,7 @@ const positives: readonly string[] = [
   `${FE}${TUS} ${SX}`,
   `${FE}${TUS} ${SX}`.toUpperCase(),
   `${FE}${TUS} ${GN}`,
-  `fo${FE}${TUS} ${GN}`,
+  `foe${TUS} ${GN}`,
   `${SX} of ${BB}`,
   `${GN} of ${BB}`,
   `${BB} ${SX}`,
@@ -25,13 +25,13 @@ const positives: readonly string[] = [
   `${SX} determination`,
   `fetal${ZW}${SX}`,
   `f${CYR_E}tal ${SX}`,
-  `fetal s3x`,
+  `fetal s${'3'}x`,
   `fœtal ${SX}`,
   `fetal­ ${SX}`,
-  'बेटा',
-  'बेटी',
-  'पेट में बेटा',
-  'लिंग निर्धारण',
+  '\u092c\u0947\u091f\u093e',
+  '\u092c\u0947\u091f\u0940',
+  '\u092a\u0947\u091f \u092e\u0947\u0902 \u092c\u0947\u091f\u093e',
+  '\u0932\u093f\u0902\u0917 \u0928\u093f\u0930\u094d\u0927\u093e\u0930\u0923',
   `garbh ka ${['li', 'ng'].join('')}`,
   `bhrun ka ${['li', 'ng'].join('')}`,
 ];
@@ -41,14 +41,12 @@ describe('forbidden-term variants (issue #13)', () => {
     expect(findForbiddenTerms(s, { tier: 'always' }).length).toBeGreaterThan(0);
   });
 
-  it.each([
-    `l${'add'}ka`,
-    `larka`,
-    `larki`,
-    `L${'add'}ki hai`,
-  ])('flags %j in the strict tier', (s) => {
-    expect(findForbiddenTerms(s, { tier: 'strict' }).length).toBeGreaterThan(0);
-  });
+  it.each([`l${'add'}ka`, `larka`, `larki`, `L${'add'}ki hai`])(
+    'flags %j in the strict tier',
+    (s) => {
+      expect(findForbiddenTerms(s, { tier: 'strict' }).length).toBeGreaterThan(0);
+    },
+  );
 
   it.each([
     'patient sex',
