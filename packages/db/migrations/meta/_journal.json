@@ -64,6 +64,13 @@
       "when": 1792956484982,
       "tag": "0008_idempotency_request_hash",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792956485982,
+      "tag": "0009_number_series_monotonic",
+      "breakpoints": true
     }
   ]
 }
