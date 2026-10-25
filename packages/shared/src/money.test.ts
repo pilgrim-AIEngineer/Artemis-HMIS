@@ -248,6 +248,10 @@ describe('percent ↔ bp', () => {
   it('rejects bad input', () => {
     expect(() => percentToBp('1.234')).toThrow(SyntaxError);
     expect(() => percentToBp('-1')).toThrow(SyntaxError);
+    expect(() => percentToBp('1000')).toThrow(RangeError);
+    expect(() => percentToBp('100.01')).toThrow(RangeError);
+    expect(percentToBp('100')).toBe(10_000);
+    expect(percentToBp('1000', 100_000)).toBe(100_000);
     expect(() => bpToPercent(-1)).toThrow(RangeError);
     expect(() => bpToPercent(1.5)).toThrow(RangeError);
   });
