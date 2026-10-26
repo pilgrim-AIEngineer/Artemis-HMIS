@@ -76,11 +76,12 @@ test.describe.serial('ANC card (OPD-05)', () => {
     await field(desk, 'Find a woman').press('Enter');
     await expect(desk).toHaveURL(/\/assistant\/anc\/[0-9a-f-]{36}$/);
 
-    // LMP 98 days ago = 14w 0d today. A future date is refused with a plain message.
+    // LMP 98 days ago = 14w 0d today. A future date is refused (the date box caps at today; the server checks again).
     const create = desk.getByTestId('anc-create');
     await field(desk, 'LMP').fill(istDay(1));
     await create.getByRole('button', { name: 'Open pregnancy record' }).click();
-    await expect(create).toContainText('The LMP cannot be in the future.');
+    await expect(field(desk, 'LMP')).toHaveJSProperty('validity.rangeOverflow', true);
+    await expect(desk.getByTestId('anc-ga')).toHaveCount(0);
     await field(desk, 'LMP').fill(istDay(-98));
     await create.getByLabel('Blood group').selectOption('O-');
     await create.getByRole('button', { name: 'Open pregnancy record' }).click();
@@ -195,32 +196,6 @@ test.describe.serial('ANC card (OPD-05)', () => {
     await ctx.close();
   });
 
-  test('a delivery closes the record and the next pregnancy carries the history', async ({
-    page,
-    browser,
-  }) => {
-    test.setTimeout(90_000);
-    const { ctx, page: desk } = await assistantPage(browser, page);
-    await desk.goto(`/assistant/anc/${ids.patientId}`);
-    // Close it as a delivery; the form wants the mode.
-    await desk.getByRole('button', { name: 'Close this pregnancy…' }).click();
-    await desk.getByLabel('Outcome').selectOption('delivered');
-    await desk.getByLabel('Mode of delivery').selectOption('lscs');
-    await desk.getByRole('button', { name: 'Close pregnancy' }).click();
-    await expect(desk.getByTestId('anc-past-list')).toContainText('Delivered');
-    // The next pregnancy starts with a previous caesarean on its history.
-    await field(desk, 'LMP').fill(istDay(-30));
-    await desk
-      .getByTestId('anc-create')
-      .getByRole('button', { name: 'Open pregnancy record' })
-      .click();
-    await expect(desk.getByTestId('anc-gpal')).toContainText('G2 P1 A0 L1');
-    await expect(desk.getByTestId('anc-summary').getByTestId('anc-risks')).toContainText(
-      'Previous caesarean',
-    );
-    await ctx.close();
-  });
-
   test.describe('print layout (screenshot, paper size)', () => {
     test.beforeEach(({ browserName: _b }, info) => {
       test.skip(info.project.name !== 'desktop', 'pixel checks run once, on desktop');
@@ -251,5 +226,31 @@ test.describe.serial('ANC card (OPD-05)', () => {
       expect((pdf.toString('latin1').match(/\/Type\s*\/Page[^s]/g) ?? []).length).toBe(1);
       await ctx.close();
     });
+  });
+
+  test('closing the record keeps it on the card and the next pregnancy carries the history', async ({
+    page,
+    browser,
+  }) => {
+    test.setTimeout(90_000);
+    const { ctx, page: desk } = await assistantPage(browser, page);
+    await desk.goto(`/assistant/anc/${ids.patientId}`);
+    // A delivery names its mode; this one is only 13 weeks along, so the engine files it as an
+    // abortion in G P A L (28-week rule, setting `anc.viabilityWeeks`).
+    await desk.getByRole('button', { name: 'Close this pregnancy…' }).click();
+    await expect(desk.getByLabel('Mode of delivery')).toHaveCount(1);
+    await desk.getByLabel('Outcome').selectOption('aborted');
+    await expect(desk.getByLabel('Mode of delivery')).toHaveCount(0);
+    await desk.getByRole('button', { name: 'Close pregnancy' }).click();
+    await expect(desk.getByTestId('anc-past-list')).toContainText('Abortion');
+    // The next pregnancy starts with the earlier one in its history.
+    await field(desk, 'LMP').fill(istDay(-30));
+    await desk
+      .getByTestId('anc-create')
+      .getByRole('button', { name: 'Open pregnancy record' })
+      .click();
+    await expect(desk.getByTestId('anc-gpal')).toContainText('G2 P0 A1 L0');
+    await expect(desk.getByTestId('anc-history-editor')).toContainText('Abortion');
+    await ctx.close();
   });
 });

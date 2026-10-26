@@ -626,17 +626,20 @@ async function buildView(
     weightSeries: visits
       .filter((v) => v.weightKg !== null)
       .map((v) => ({ date: v.visitDate, gaDays: v.gaDays, weightKg: v.weightKg as number })),
-    schedule: states.map((s) => ({
-      code: s.def.code,
-      label: s.def.label,
-      labelHi: s.def.labelHi,
-      kind: s.def.kind,
-      state: s.state,
-      windowFrom: s.windowFrom,
-      windowTo: s.windowTo,
-      doneDate: s.doneDate,
-      source: sources.get(s.def.code) ?? null,
-    })),
+    // A closed pregnancy keeps what was done or skipped; nothing is "due" any more.
+    schedule: states
+      .filter((s) => active || s.state === 'done' || s.state === 'skipped')
+      .map((s) => ({
+        code: s.def.code,
+        label: s.def.label,
+        labelHi: s.def.labelHi,
+        kind: s.def.kind,
+        state: s.state,
+        windowFrom: s.windowFrom,
+        windowTo: s.windowTo,
+        doneDate: s.doneDate,
+        source: sources.get(s.def.code) ?? null,
+      })),
     nextVisit: next,
     outcome:
       row.outcomeDate && !masked

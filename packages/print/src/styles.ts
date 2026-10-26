@@ -87,9 +87,11 @@ const TEMPLATE_CSS = `
 .receipt-a5-sign > div { flex: 1; }
 .receipt-a5-sign-box { margin-top: 9mm; border-top: 0.75pt solid #000; text-align: center; padding-top: 0.5mm; font-size: 0.8em; }
 .receipt-a5-sign .receipt-a5-sign-box { margin-top: 0; }
-.anc-card { display: flex; flex-direction: column; gap: 1.4mm; font-size: 0.92em; }
+.anc-card { display: flex; flex-direction: column; gap: 1.2mm; font-size: 0.88em; }
 .anc-title { text-align: center; font-weight: 700; font-size: 1.15em; }
-.anc-patient, .anc-box, .anc-visits { border: 0.75pt solid #000; padding: 1mm 1.5mm; }
+.anc-patient, .anc-box, .anc-visits { border: 0.75pt solid #000; padding: 0.8mm 1.5mm; break-inside: avoid; }
+.anc-table thead { display: table-header-group; }
+.anc-table tr { break-inside: avoid; }
 .anc-name { font-size: 1.1em; margin-bottom: 0.8mm; }
 .anc-h { display: block; font-size: 0.75em; font-weight: 700; margin-bottom: 0.6mm; }
 .anc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6mm 1.5mm; }
@@ -102,7 +104,7 @@ const TEMPLATE_CSS = `
 .anc-table th, .anc-table td { border: 0.5pt solid #555; padding: 0.4mm 0.6mm; text-align: center; vertical-align: top; }
 .anc-table th { font-size: 0.85em; line-height: 1.1; }
 .anc-table td:last-child { text-align: left; }
-.anc-schedule { display: grid; grid-template-columns: 1fr 1fr; gap: 0.4mm 3mm; font-size: 0.8em; }
+.anc-schedule { display: grid; grid-template-columns: 1fr 1fr; gap: 0.3mm 3mm; font-size: 0.74em; line-height: 1.15; }
 .anc-schedule li { display: flex; justify-content: space-between; gap: 1.5mm; border-bottom: 0.4pt dotted #777; }
 .anc-schedule li[data-state='overdue'] .anc-state { font-weight: 700; }
 .anc-state { white-space: nowrap; text-align: right; }
