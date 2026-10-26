@@ -9,6 +9,7 @@ import { patientsRouter } from './routers/patients';
 import { printRouter } from './routers/print';
 import { queueRouter } from './routers/queue';
 import { visitsRouter } from './routers/visits';
+import { vitalsRouter } from './routers/vitals';
 
 export const appRouter = router({
   health: healthRouter,
@@ -19,6 +20,7 @@ export const appRouter = router({
   print: printRouter,
   visit: visitsRouter,
   queue: queueRouter,
+  vitals: vitalsRouter,
   billing: billingRouter,
   dayClose: dayCloseRouter,
 });

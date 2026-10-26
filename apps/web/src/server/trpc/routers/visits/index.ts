@@ -34,6 +34,7 @@ const CONFLICT = new Set<string>([
   'queue.invalidTransition',
   'queue.nothingWaiting',
   'queue.notPending',
+  'vitals.notAllowed',
 ]);
 
 /** Domain errors from the db layer become i18n message keys (docs/02 §7). */

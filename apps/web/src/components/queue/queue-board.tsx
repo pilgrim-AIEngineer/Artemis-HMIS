@@ -17,6 +17,7 @@ import {
   Ticket,
   HeartPulse,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useSession } from '@/components/auth/session-provider';
@@ -181,6 +182,14 @@ export function QueueBoard({ mode }: { mode: 'desk' | 'room' }) {
           >
             <HeartPulse aria-hidden />
             {t('vitalsDone')}
+          </Button>
+        )}
+        {canVitals && PENDING.includes(c.queueState) && (
+          <Button asChild size="sm" variant={c.queueState === 'waiting' ? 'default' : 'outline'}>
+            <Link href={`/nursing/vitals/${c.tokenId}`}>
+              <HeartPulse aria-hidden />
+              {c.queueState === 'waiting' ? t('enterVitals') : t('editVitals')}
+            </Link>
           </Button>
         )}
         {canPrint && (pending || calling) && (
