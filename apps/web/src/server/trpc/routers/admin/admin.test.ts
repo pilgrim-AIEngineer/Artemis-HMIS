@@ -376,6 +376,7 @@ describe('owner-only zone: MTP roles and owner accounts', () => {
       () => admin.call((c) => c.admin.resetPassword({ userId: target, password: 'takeover-pass' })),
       () => admin.call((c) => c.admin.resetPin({ userId: target })),
       () => admin.call((c) => c.admin.resetTotp({ userId: target })),
+      () => admin.call((c) => c.admin.clearLockout({ userId: target })),
       () => admin.call((c) => c.admin.deactivateUser({ userId: target, reason: 'take over' })),
       () => admin.call((c) => c.admin.setUserRoles({ userId: target, roleIds: [] })),
     ]) {
@@ -407,8 +408,12 @@ describe('owner-only zone: MTP roles and owner accounts', () => {
         )
       ).message,
     ).toBe(ownerOnly);
-    // Harmless actions stay open to the admin.
-    await admin.call((c) => c.admin.clearLockout({ userId: f.users.nurse.id }));
+    // Lifting the MTP account's lockout is owner-only too (it re-opens password guessing).
+    expect(
+      (await trpcError(admin.call((c) => c.admin.clearLockout({ userId: f.users.nurse.id }))))
+        .message,
+    ).toBe(ownerOnly);
+    await owner.call((c) => c.admin.clearLockout({ userId: f.users.nurse.id }));
     await owner.call((c) => c.admin.setUserRoles({ userId: f.users.nurse.id, roleIds: [nurse] }));
     await admin.call((c) => c.admin.resetPin({ userId: f.users.nurse.id }));
   });

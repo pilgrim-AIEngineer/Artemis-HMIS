@@ -366,7 +366,7 @@ describe('token numbers under concurrency (docs/10 §10)', () => {
       )
     ).rows;
     expect(dups?.n).toBe('0');
-  });
+  }, 120_000); // ~6 s alone; slows past the 30 s default when other db suites load the server
 
   it('40 parallel visits that need no payment get distinct tokens and visit numbers', async () => {
     const ids = await newPatients(40);
