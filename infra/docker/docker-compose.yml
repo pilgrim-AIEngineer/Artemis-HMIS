@@ -67,6 +67,9 @@ services:
     init: true
     environment:
       <<: *app-env
+      # MSG-01: Meta Cloud API login; empty keeps WhatsApp messages queued.
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
+      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}
     volumes:
       # Rendered PDFs and Rx photos (docs/01 §2), shared with web. Backed up with the database (OPS-01).
       - files:/data/files
