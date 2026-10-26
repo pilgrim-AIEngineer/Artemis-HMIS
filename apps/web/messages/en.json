@@ -958,6 +958,7 @@
     "tooLong": "This is too long.",
     "code": "Use capital letters and digits, 2 to 24 characters.",
     "dateOrder": "The last date cannot be before the first date.",
+    "forbiddenTerm": "This text is not allowed. Remove wording about the unborn baby and try again.",
     "exemptNoGst": "An exempt service has no GST. Set GST to 0 or untick exempt.",
     "patient": {
       "ageRequired": "Enter the age or the date of birth.",

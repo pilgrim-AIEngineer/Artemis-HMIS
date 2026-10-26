@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { noForbiddenTerms } from './compliance/forbidden-terms';
 import { USER_LOCALES } from './enums';
 import { mobileSchema } from './primitives';
 
@@ -50,12 +51,22 @@ export const totpCodeSchema = z
   .transform((s) => s.replace(/\s/g, ''))
   .pipe(z.string().regex(/^\d{6}$/, 'validation.totpFormat'));
 
-export const fullNameSchema = z.string().trim().min(2, 'validation.required').max(120);
+export const fullNameSchema = z
+  .string()
+  .trim()
+  .min(2, 'validation.required')
+  .max(120)
+  .refine(...noForbiddenTerms('always'));
 
 export const userLocaleSchema = z.enum(USER_LOCALES);
 
 /** Admin-entered reason for deactivations and revocations (AGENTS.md rule 4). */
-export const reasonSchema = z.string().trim().min(3, 'validation.reason').max(500);
+export const reasonSchema = z
+  .string()
+  .trim()
+  .min(3, 'validation.reason')
+  .max(500)
+  .refine(...noForbiddenTerms('always'));
 
 export const optionalMobileSchema = z
   .union([z.literal(''), mobileSchema])

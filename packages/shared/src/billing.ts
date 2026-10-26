@@ -5,6 +5,7 @@
  * Money is bigint paise throughout (AGENTS.md rule 1).
  */
 import { z } from 'zod';
+import { noForbiddenTerms } from './compliance/forbidden-terms';
 import { computeBill, type BillTotals, type GstLineInput } from './gst';
 import { quantityToMilli, sumPaise, type Paise } from './money';
 import {
@@ -89,7 +90,13 @@ export const tenderSchema = z.discriminatedUnion('mode', [
     mode: z.literal('upi'),
     amountPaise: amountSchema,
     upiRef: optional(upiRefSchema),
-    upiPayerName: optional(z.string().trim().max(80)),
+    upiPayerName: optional(
+      z
+        .string()
+        .trim()
+        .max(80)
+        .refine(...noForbiddenTerms('always')),
+    ),
   }),
   z.object({
     mode: z.literal('card'),
@@ -132,7 +139,14 @@ export type AddBillLineInput = z.input<typeof addBillLineSchema>;
 export const removeBillLineSchema = z.object({
   billId: uuidSchema,
   lineId: uuidSchema,
-  reason: optional(z.string().trim().min(3, 'validation.reason').max(200)),
+  reason: optional(
+    z
+      .string()
+      .trim()
+      .min(3, 'validation.reason')
+      .max(200)
+      .refine(...noForbiddenTerms('always')),
+  ),
   idempotencyKey: idempotencyKeySchema,
 });
 export type RemoveBillLineInput = z.input<typeof removeBillLineSchema>;

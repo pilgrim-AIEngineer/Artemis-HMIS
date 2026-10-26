@@ -5,6 +5,7 @@
  * `restore` reverses it (AGENTS.md rule 4).
  */
 import { z } from 'zod';
+import { noForbiddenTerms } from './compliance/forbidden-terms';
 import { RECORD_STATUSES } from './enums';
 import {
   gstRateBpSchema,
@@ -127,8 +128,13 @@ export const MASTER_KIND_PERMISSION = {
 
 // --- field primitives -------------------------------------------------------------------------
 
-const text = (max: number, min = 2) =>
-  z.string().trim().min(min, 'validation.required').max(max, 'validation.tooLong');
+const text = (max: number, min = 2, tier: 'always' | 'strict' = 'always') =>
+  z
+    .string()
+    .trim()
+    .min(min, 'validation.required')
+    .max(max, 'validation.tooLong')
+    .refine(...noForbiddenTerms(tier));
 
 /** Optional free text: blank becomes `null`. */
 const optText = (max: number) =>
@@ -136,6 +142,7 @@ const optText = (max: number) =>
     .string()
     .trim()
     .max(max, 'validation.tooLong')
+    .refine(...noForbiddenTerms('always'))
     .nullish()
     .transform((v) => v || null);
 
@@ -151,12 +158,13 @@ const optDate = z
 
 const sortOrder = z.number().int().min(0).max(9999).default(100);
 
-const codeSchema = (max = 24) =>
+const codeSchema = (max = 24, tier: 'always' | 'strict' = 'always') =>
   z
     .string()
     .trim()
     .toUpperCase()
-    .regex(new RegExp(`^[A-Z0-9][A-Z0-9._-]{1,${max - 1}}$`), 'validation.code');
+    .regex(new RegExp(`^[A-Z0-9][A-Z0-9._-]{1,${max - 1}}$`), 'validation.code')
+    .refine(...noForbiddenTerms(tier));
 
 /** Short code staff type to find an item fast (`PCM`, `NT`). Optional. */
 const shortCodeSchema = z
@@ -164,6 +172,7 @@ const shortCodeSchema = z
   .trim()
   .toUpperCase()
   .max(16, 'validation.tooLong')
+  .refine(...noForbiddenTerms('always'))
   .nullish()
   .transform((v) => v || null);
 
@@ -329,8 +338,8 @@ export const labTestInputSchema = z.object(labTestFields);
 export const labTestUpdateSchema = z.object({ ...labTestFields, id: uuidSchema });
 
 const usgFields = {
-  code: codeSchema(24),
-  name: text(120),
+  code: codeSchema(24, 'strict'),
+  name: text(120, 2, 'strict'),
   category: z.enum(USG_CATEGORIES),
   /** Legal gating default: Form F whenever the woman is pregnant (docs/33 §3, docs/13). */
   requiresFormFIfPregnant: z.boolean().default(true),

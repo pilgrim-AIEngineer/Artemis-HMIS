@@ -1,5 +1,6 @@
 import { withTx } from '@hmis/db';
-import { auditLog, labTest, serviceRate } from '@hmis/db/schema';
+import { accessLog, auditLog, labTest, serviceRate } from '@hmis/db/schema';
+import { FORBIDDEN_TERMS } from '@hmis/shared';
 import { seedMasters } from '@hmis/db/seed';
 import { and, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
@@ -571,5 +572,25 @@ describe('doctors and consultation rules', () => {
     ).toBe('errors.masters.inUse');
     await admin.call((c) => c.masters.cancelConsultationRule({ id, reason: 'Fee changed' }));
     expect(await admin.call((c) => c.masters.listConsultationRules({ doctorId }))).toHaveLength(0);
+  });
+});
+
+describe('runtime forbidden-term guard (issue #37, D-10)', () => {
+  it('rejects a forbidden USG procedure name and logs the rejection without the text', async () => {
+    const name = FORBIDDEN_TERMS.find((x) => x.id === 'pn01')!.examples[0]!;
+    const err = await trpcError(
+      admin.call((c) => c.masters.createUsgProcedure({ code: 'XS1', name, category: 'obstetric' })),
+    );
+    expect(err.code).toBe('BAD_REQUEST');
+    const { rows } = await admin.call((c) => c.masters.listUsgProcedures({ search: 'XS1' }));
+    expect(rows.find((r) => r.code === 'XS1')).toBeUndefined();
+
+    const logs = await f.t.owner
+      .select()
+      .from(accessLog)
+      .where(eq(accessLog.entity, 'forbidden_term_rejection'));
+    expect(logs.length).toBeGreaterThan(0);
+    expect(logs[0]!.purpose).toBe('input_rejected:masters.createUsgProcedure');
+    expect(JSON.stringify(logs)).not.toContain(name);
   });
 });

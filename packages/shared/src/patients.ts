@@ -5,6 +5,7 @@
  * Nothing here describes a fetus (AGENTS.md rule 7); `sex` is the patient's own.
  */
 import { z } from 'zod';
+import { noForbiddenTerms } from './compliance/forbidden-terms';
 import {
   estimateDob,
   MAX_AGE_YEARS,
@@ -60,6 +61,7 @@ const text = (max: number) =>
     .string()
     .trim()
     .max(max, 'validation.invalid')
+    .refine(...noForbiddenTerms('always'))
     .transform((s) => s.replace(/\s+/g, ' '));
 const optText = (max: number) =>
   text(max)

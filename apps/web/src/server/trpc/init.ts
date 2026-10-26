@@ -1,7 +1,9 @@
 import { withTx, type Db, type Tx } from '@hmis/db';
-import { isPermission, type Permission } from '@hmis/shared';
+import { accessLog } from '@hmis/db/schema';
+import { FORBIDDEN_TERM_MESSAGE, isPermission, type Permission } from '@hmis/shared';
 import { initTRPC, TRPCError, type TRPCDefaultErrorShape } from '@trpc/server';
 import superjson from 'superjson';
+import { uuidv7 } from 'uuidv7';
 import { ZodError } from 'zod';
 import { AUTH_ERRORS } from '@/lib/auth-constants';
 import { clientIpFromHeaders } from '../auth/request';
@@ -143,7 +145,48 @@ const access = t.middleware(async ({ ctx, meta, type, next }) => {
   return next({ ctx: { ...ctx, auth } });
 });
 
-const base = t.procedure.use(access);
+/**
+ * Runtime forbidden-term guard, logging half (AGENTS.md rules 7 and 15, D-10): the zod schemas
+ * reject the text; this records that a rejection happened (who, which procedure) in `access_log`
+ * without the text. Never blocks or alters the response.
+ */
+const forbiddenTermAudit = t.middleware(async ({ ctx, path, next }) => {
+  const result = await next();
+  const cause = result.ok ? null : result.error.cause;
+  const auth = (ctx as { auth?: AuthSession | null }).auth;
+  if (
+    auth &&
+    cause instanceof ZodError &&
+    cause.issues.some((i) => i.message === FORBIDDEN_TERM_MESSAGE)
+  ) {
+    try {
+      await withTx(
+        {
+          db: ctx.db(),
+          userId: auth.userId,
+          facilityId: auth.facilityId,
+          workstationId: auth.workstationId,
+          permissions: [...auth.permissions],
+        },
+        (tx) =>
+          tx.insert(accessLog).values({
+            id: uuidv7(),
+            facilityId: auth.facilityId,
+            userId: auth.userId,
+            workstationId: auth.workstationId,
+            entity: 'forbidden_term_rejection',
+            entityId: uuidv7(),
+            purpose: `input_rejected:${path}`,
+          }),
+      );
+    } catch {
+      // Logging must not turn a validation error into a 500.
+    }
+  }
+  return result;
+});
+
+const base = t.procedure.use(access).use(forbiddenTermAudit);
 
 /** `.meta({ permission: 'public' })` only, for endpoints without patient data. */
 export const publicProcedure = base;
