@@ -295,6 +295,7 @@ export const userProcedures = {
   clearLockout: manage.input(userIdInput).mutation(async ({ ctx, input }) => {
     await ctx.tx(async (tx) => {
       const u = await userInFacility(tx, ctx.auth.facilityId, input.userId);
+      await assertMayManageUser(tx, ctx.auth, u.id);
       await tx
         .update(appUser)
         .set({ failedLoginCount: 0, lockedUntil: null, pinFailedCount: 0, pinLockedUntil: null })
