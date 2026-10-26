@@ -1,3 +1,13 @@
+import {
+  closePregnancySchema,
+  confirmDatingSchema,
+  createPregnancySchema,
+  markScheduleSchema,
+  saveAncVisitSchema,
+  saveHistorySchema,
+  setGpalSchema,
+  updatePregnancySchema,
+} from '@hmis/shared';
 import { and, eq, sql } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
@@ -19,21 +29,41 @@ import {
   AncInputError,
   assessScan,
   cancelAncVisit,
-  closePregnancy,
-  confirmDating,
-  createPregnancy,
+  closePregnancy as closeRaw,
+  confirmDating as confirmRaw,
+  createPregnancy as createRaw,
   getPregnancyView,
-  markScheduleItem,
+  markScheduleItem as markRaw,
   patientAnc,
-  saveAncVisit,
-  saveHistory,
-  setGpal,
-  updatePregnancy,
+  saveAncVisit as saveVisitRaw,
+  saveHistory as saveHistoryRaw,
+  setGpal as setGpalRaw,
+  updatePregnancy as updateRaw,
   ancSummary,
   type AncActor,
 } from './anc';
 import { issueToken } from './visits';
 import { recordVitals } from './vitals';
+
+type Tx0 = Parameters<typeof closeRaw>[0];
+type A0 = Parameters<typeof closeRaw>[1];
+// The router parses with the zod schema; so do these wrappers, with the same inputs the screens send.
+const createPregnancy = (tx: Tx0, a: A0, i: unknown, now: Date) =>
+  createRaw(tx, a, createPregnancySchema.parse(i), now);
+const confirmDating = (tx: Tx0, a: A0, i: unknown, now: Date) =>
+  confirmRaw(tx, a, confirmDatingSchema.parse(i), now);
+const updatePregnancy = (tx: Tx0, a: A0, i: unknown, now: Date) =>
+  updateRaw(tx, a, updatePregnancySchema.parse(i), now);
+const saveHistory = (tx: Tx0, a: A0, i: unknown, now: Date) =>
+  saveHistoryRaw(tx, a, saveHistorySchema.parse(i), now);
+const setGpal = (tx: Tx0, a: A0, i: unknown, now: Date) =>
+  setGpalRaw(tx, a, setGpalSchema.parse(i), now);
+const saveAncVisit = (tx: Tx0, a: A0, i: unknown, now: Date) =>
+  saveVisitRaw(tx, a, saveAncVisitSchema.parse(i), now);
+const markScheduleItem = (tx: Tx0, a: A0, i: unknown, now: Date) =>
+  markRaw(tx, a, markScheduleSchema.parse(i), now);
+const closePregnancy = (tx: Tx0, a: A0, i: unknown, now: Date) =>
+  closeRaw(tx, a, closePregnancySchema.parse(i), now);
 
 let fx: OpdFixture;
 const NOW = IST('2026-10-26T10:00:00'); // today = 2026-10-26

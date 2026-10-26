@@ -895,7 +895,7 @@ export const createPregnancySchema = z
     notes: optionalText(500),
   })
   .refine((v) => v.lmp !== null || v.scan !== null, 'anc.datingNeeded');
-export type CreatePregnancyInput = z.input<typeof createPregnancySchema>;
+export type CreatePregnancyInput = z.output<typeof createPregnancySchema>;
 
 /** Scan dating entered later (or replaced): the assessment is shown first, then confirmed. */
 export const scanDatingSchema = z.object({
@@ -935,7 +935,7 @@ export const saveAncVisitSchema = z
   })
   .refine((v) => (v.bpSys === null) === (v.bpDia === null), 'vitals.bpPair')
   .refine((v) => v.bpSys === null || v.bpDia === null || v.bpDia < v.bpSys, 'vitals.bpPair');
-export type SaveAncVisitInput = z.input<typeof saveAncVisitSchema>;
+export type SaveAncVisitInput = z.output<typeof saveAncVisitSchema>;
 
 export const updatePregnancySchema = z.object({
   pregnancyId: uuidSchema,
@@ -950,6 +950,7 @@ export const saveHistorySchema = z.object({
   pregnancyId: uuidSchema,
   history: z.array(obHistoryEntrySchema).max(20),
 });
+export type SaveHistoryInput = z.output<typeof saveHistorySchema>;
 
 /** A hand-edited score (docs/11 §3.1 "editable"); the computed one is restored with `manual: false`. */
 export const setGpalSchema = z.discriminatedUnion('manual', [
@@ -984,6 +985,12 @@ export const markScheduleSchema = z.object({
   status: z.enum(ANC_SCHEDULE_STATUSES),
   doneDate: isoDateSchema.nullable().default(null),
 });
+
+export type ConfirmDatingInput = z.output<typeof confirmDatingSchema>;
+export type UpdatePregnancyInput = z.output<typeof updatePregnancySchema>;
+export type SetGpalInput = z.output<typeof setGpalSchema>;
+export type ClosePregnancyInput = z.output<typeof closePregnancySchema>;
+export type MarkScheduleInput = z.output<typeof markScheduleSchema>;
 
 export const pregnancyIdSchema = z.object({ pregnancyId: uuidSchema });
 export const patientPregnanciesSchema = z.object({ patientId: uuidSchema });

@@ -49,18 +49,15 @@ import {
   addDays,
   parseIsoDate,
   toIsoDate,
-  createPregnancySchema,
-  saveAncVisitSchema,
-  closePregnancySchema,
-  confirmDatingSchema,
-  markScheduleSchema,
-  saveHistorySchema,
-  setGpalSchema,
-  updatePregnancySchema,
+  type ClosePregnancyInput,
+  type ConfirmDatingInput,
+  type MarkScheduleInput,
+  type SaveHistoryInput,
+  type SetGpalInput,
+  type UpdatePregnancyInput,
 } from '@hmis/shared';
 import { and, asc, desc, eq, isNotNull, sql } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
-import type { z } from 'zod';
 import {
   accessLog,
   ancScheduleItem,
@@ -823,7 +820,7 @@ async function replaceHistory(
   tx: Tx,
   actor: AncActor,
   patientId: string,
-  entries: z.output<typeof saveHistorySchema>['history'],
+  entries: SaveHistoryInput['history'],
   now: Date,
 ) {
   await tx
@@ -875,10 +872,9 @@ async function recomputeVisitGa(tx: Tx, pregnancyId: string, edd: string) {
 export async function createPregnancy(
   tx: Tx,
   actor: AncActor,
-  raw: CreatePregnancyInput,
+  input: CreatePregnancyInput,
   now: Date,
 ): Promise<{ pregnancyId: string }> {
-  const input = createPregnancySchema.parse(raw);
   return runIdempotent(
     tx,
     {
@@ -991,10 +987,9 @@ export async function assessScan(
 export async function confirmDating(
   tx: Tx,
   actor: AncActor,
-  raw: z.input<typeof confirmDatingSchema>,
+  input: ConfirmDatingInput,
   now: Date,
 ): Promise<void> {
-  const input = confirmDatingSchema.parse(raw);
   const row = await loadActiveRow(tx, actor.facilityId, input.pregnancyId);
   const today = istDateString(now);
   if (input.scanDate > today) throw new AncInputError('anc.scanInFuture');
@@ -1024,10 +1019,9 @@ export async function confirmDating(
 export async function updatePregnancy(
   tx: Tx,
   actor: AncActor,
-  raw: z.input<typeof updatePregnancySchema>,
+  input: UpdatePregnancyInput,
   now: Date,
 ): Promise<void> {
-  const input = updatePregnancySchema.parse(raw);
   const row = await loadActiveRow(tx, actor.facilityId, input.pregnancyId);
   await tx
     .update(pregnancy)
@@ -1044,10 +1038,9 @@ export async function updatePregnancy(
 export async function saveHistory(
   tx: Tx,
   actor: AncActor,
-  raw: z.input<typeof saveHistorySchema>,
+  input: SaveHistoryInput,
   now: Date,
 ): Promise<void> {
-  const input = saveHistorySchema.parse(raw);
   const row = await loadActiveRow(tx, actor.facilityId, input.pregnancyId);
   await replaceHistory(tx, actor, row.patientId, input.history, now);
   await refreshDerived(tx, actor, row.id, now);
@@ -1056,10 +1049,9 @@ export async function saveHistory(
 export async function setGpal(
   tx: Tx,
   actor: AncActor,
-  raw: z.input<typeof setGpalSchema>,
+  input: SetGpalInput,
   now: Date,
 ): Promise<void> {
-  const input = setGpalSchema.parse(raw);
   const row = await loadActiveRow(tx, actor.facilityId, input.pregnancyId);
   if (!input.manual) {
     await tx.update(pregnancy).set({ gpalManual: false }).where(eq(pregnancy.id, row.id));
@@ -1096,10 +1088,9 @@ async function assertEncounter(
 export async function saveAncVisit(
   tx: Tx,
   actor: AncActor,
-  raw: SaveAncVisitInput,
+  input: SaveAncVisitInput,
   now: Date,
 ): Promise<{ visitId: string }> {
-  const input = saveAncVisitSchema.parse(raw);
   const row = await loadActiveRow(tx, actor.facilityId, input.pregnancyId);
   const today = istDateString(now);
   const conception = plusDays(row.eddFinal, -280);
@@ -1254,10 +1245,9 @@ export async function syncAncVisitFromVitals(
 export async function markScheduleItem(
   tx: Tx,
   actor: AncActor,
-  raw: z.input<typeof markScheduleSchema>,
+  input: MarkScheduleInput,
   now: Date,
 ): Promise<void> {
-  const input = markScheduleSchema.parse(raw);
   const row = await loadActiveRow(tx, actor.facilityId, input.pregnancyId);
   const item = (await scheduleItems(tx, actor.facilityId)).find((i) => i.def.code === input.code);
   if (!item) throw new AncInputError('anc.scheduleItemNotFound');
@@ -1304,10 +1294,9 @@ export async function markScheduleItem(
 export async function closePregnancy(
   tx: Tx,
   actor: AncActor,
-  raw: z.input<typeof closePregnancySchema>,
+  input: ClosePregnancyInput,
   now: Date,
 ): Promise<void> {
-  const input = closePregnancySchema.parse(raw);
   const row = await loadActiveRow(tx, actor.facilityId, input.pregnancyId);
   if (input.outcome === 'mtp' && !actor.mtp.edit) throw new AncInputError('anc.mtpForbidden');
   const today = istDateString(now);

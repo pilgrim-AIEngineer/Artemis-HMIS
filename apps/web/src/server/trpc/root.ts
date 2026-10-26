@@ -1,5 +1,6 @@
 import { createCallerFactory, router } from './init';
 import { adminRouter } from './routers/admin';
+import { ancRouter } from './routers/anc';
 import { authRouter } from './routers/auth';
 import { billingRouter } from './routers/billing';
 import { dayCloseRouter } from './routers/billing/day-close';
@@ -22,6 +23,7 @@ export const appRouter = router({
   visit: visitsRouter,
   queue: queueRouter,
   vitals: vitalsRouter,
+  anc: ancRouter,
   rx: rxRouter,
   billing: billingRouter,
   dayClose: dayCloseRouter,
