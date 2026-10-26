@@ -359,7 +359,9 @@ describe('risk flags (docs/11 §3.2 defaults)', () => {
         { sys: 162, dia: 100 },
       ],
     });
-    expect(f).toEqual([{ code: 'severe_raised_bp', level: 'alert', source: 'auto', value: '162/100' }]);
+    expect(f).toEqual([
+      { code: 'severe_raised_bp', level: 'alert', source: 'auto', value: '162/100' },
+    ]);
     // A blank diastolic is not read as a normal one.
     expect(codes({ bps: [{ sys: 150, dia: null }] })).toEqual(['raised_bp']);
   });
@@ -374,7 +376,9 @@ describe('risk flags (docs/11 §3.2 defaults)', () => {
   });
 
   it('history: previous LSCS, stillbirth or neonatal death, two abortions, para 4', () => {
-    expect(codes({ history: [{ outcome: 'lscs', neonatalDeath: false }] })).toEqual(['previous_lscs']);
+    expect(codes({ history: [{ outcome: 'lscs', neonatalDeath: false }] })).toEqual([
+      'previous_lscs',
+    ]);
     expect(codes({ history: [{ outcome: 'stillbirth', neonatalDeath: false }] })).toEqual([
       'previous_stillbirth_or_neonatal_death',
     ]);
@@ -403,12 +407,18 @@ describe('risk flags (docs/11 §3.2 defaults)', () => {
       ageYears: 40,
       manual: [{ code: 'gdm' }, { code: 'other', text: 'Epilepsy on treatment' }],
     });
-    expect(f.map((x) => `${x.source}:${x.code}`)).toEqual(['auto:age_elderly', 'manual:gdm', 'manual:other']);
+    expect(f.map((x) => `${x.source}:${x.code}`)).toEqual([
+      'auto:age_elderly',
+      'manual:gdm',
+      'manual:other',
+    ]);
     expect(f[2]!.text).toBe('Epilepsy on treatment');
   });
 
   it('follows configured thresholds', () => {
-    expect(codes({ ageYears: 30 }, { ...DEFAULT_RISK_RULES, ageAbove: 29 })).toEqual(['age_elderly']);
+    expect(codes({ ageYears: 30 }, { ...DEFAULT_RISK_RULES, ageAbove: 29 })).toEqual([
+      'age_elderly',
+    ]);
     expect(codes({ hbs: [11.5] }, { ...DEFAULT_RISK_RULES, hbBelow: 12 })).toEqual(['anaemia']);
   });
 
@@ -438,7 +448,9 @@ describe('ANC schedule', () => {
   it('has the items of docs/33 §4 in order with unique codes', () => {
     const codes = DEFAULT_ANC_SCHEDULE.map((d) => d.code);
     expect(new Set(codes).size).toBe(codes.length);
-    expect(codes).toEqual(expect.arrayContaining(['dating_scan', 'nt_scan', 'anomaly_scan', 'td_1', 'td_2']));
+    expect(codes).toEqual(
+      expect.arrayContaining(['dating_scan', 'nt_scan', 'anomaly_scan', 'td_1', 'td_2']),
+    );
     const orders = DEFAULT_ANC_SCHEDULE.map((d) => d.sortOrder);
     expect([...orders].sort((a, b) => a - b)).toEqual(orders);
   });
@@ -452,7 +464,9 @@ describe('ANC schedule', () => {
   });
 
   it('done and skipped marks win over the window', () => {
-    const done: [string, ScheduleMark][] = [['anomaly_scan', { status: 'done', doneDate: '2026-05-20' }]];
+    const done: [string, ScheduleMark][] = [
+      ['anomaly_scan', { status: 'done', doneDate: '2026-05-20' }],
+    ];
     expect(state('anomaly_scan', '2026-08-01', done)).toBe('done');
     const skipped: [string, ScheduleMark][] = [['nt_scan', { status: 'skipped', doneDate: null }]];
     expect(state('nt_scan', '2026-08-01', skipped)).toBe('skipped');
@@ -533,7 +547,10 @@ describe('next visit suggestion (docs/11 §3.4)', () => {
 });
 
 describe('create pregnancy input', () => {
-  const base = { patientId: '0199d5c4-0000-7000-8000-000000000001', idempotencyKey: '0199d5c4-0000-7000-8000-000000000002' };
+  const base = {
+    patientId: '0199d5c4-0000-7000-8000-000000000001',
+    idempotencyKey: '0199d5c4-0000-7000-8000-000000000002',
+  };
 
   it('needs the LMP or a scan', () => {
     expect(createPregnancySchema.safeParse({ ...base, lmp: null }).success).toBe(false);

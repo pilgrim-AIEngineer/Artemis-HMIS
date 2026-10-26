@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { noForbiddenTerms } from './compliance/forbidden-terms';
 import { addDays, daysBetween, formatDate, parseIsoDate, toIsoDate } from './dates';
 import { isoDateSchema, uuidSchema } from './primitives';
 
@@ -39,7 +40,14 @@ export const PREGNANCY_CLOSE_OUTCOMES = [
 export const MASKED_PREGNANCY_STATUS = 'closed' as const;
 
 /** Outcome of an earlier pregnancy. MTP is deliberately absent: it lives in the restricted register (docs/14). */
-export const OB_OUTCOMES = ['nvd', 'lscs', 'assisted', 'abortion', 'ectopic', 'stillbirth'] as const;
+export const OB_OUTCOMES = [
+  'nvd',
+  'lscs',
+  'assisted',
+  'abortion',
+  'ectopic',
+  'stillbirth',
+] as const;
 export type ObOutcome = (typeof OB_OUTCOMES)[number];
 
 export const DATING_BASES = ['lmp', 'scan'] as const;
@@ -48,7 +56,13 @@ export type DatingBasis = (typeof DATING_BASES)[number];
 export const PLURALITIES = ['single', 'twins', 'higher'] as const;
 export type Plurality = (typeof PLURALITIES)[number];
 
-export const PRESENTATIONS = ['cephalic', 'breech', 'transverse', 'oblique', 'not_assessed'] as const;
+export const PRESENTATIONS = [
+  'cephalic',
+  'breech',
+  'transverse',
+  'oblique',
+  'not_assessed',
+] as const;
 export type Presentation = (typeof PRESENTATIONS)[number];
 
 export const ANC_SCHEDULE_KINDS = ['visit', 'test', 'scan', 'vaccine', 'supplement'] as const;
@@ -154,7 +168,10 @@ export const redatingTableSchema = z
   .min(1)
   .max(12)
   .refine(
-    (rows) => rows.length > 0 && rows[0]!.fromDays === 0 && rows.every((r, i) => i === 0 || r.fromDays > rows[i - 1]!.fromDays),
+    (rows) =>
+      rows.length > 0 &&
+      rows[0]!.fromDays === 0 &&
+      rows.every((r, i) => i === 0 || r.fromDays > rows[i - 1]!.fromDays),
     'validation.invalid',
   );
 export type RedatingTable = z.infer<typeof redatingTableSchema>;
@@ -388,10 +405,7 @@ export function isRhNegative(bloodGroupRh: string | null): boolean {
  * Auto flags are recomputed from the record every time, so they clear when the data is corrected;
  * manual ones are kept until a person removes them. An `alert` flag is the more serious band.
  */
-export function evaluateRisks(
-  input: RiskInput,
-  rules: RiskRules = DEFAULT_RISK_RULES,
-): RiskFlag[] {
+export function evaluateRisks(input: RiskInput, rules: RiskRules = DEFAULT_RISK_RULES): RiskFlag[] {
   const out: RiskFlag[] = [];
   const auto = (code: AutoRiskCode, level: RiskLevel, value?: string) =>
     out.push({ code, level, source: 'auto', ...(value ? { value } : {}) });
@@ -436,9 +450,11 @@ export function evaluateRisks(
   if (input.history.some((h) => h.outcome === 'stillbirth' || h.neonatalDeath)) {
     auto('previous_stillbirth_or_neonatal_death', 'warn');
   }
-  if (input.gpal.a >= rules.abortionsAtLeast) auto('recurrent_abortions', 'warn', String(input.gpal.a));
+  if (input.gpal.a >= rules.abortionsAtLeast)
+    auto('recurrent_abortions', 'warn', String(input.gpal.a));
   if (input.gpal.p >= rules.paraAtLeast) auto('grand_multipara', 'warn', String(input.gpal.p));
-  if (isRhNegative(input.bloodGroupRh)) auto('rh_negative', 'warn', input.bloodGroupRh ?? undefined);
+  if (isRhNegative(input.bloodGroupRh))
+    auto('rh_negative', 'warn', input.bloodGroupRh ?? undefined);
   if (input.plurality !== 'single') auto('multiple_pregnancy', 'warn');
   if (input.gaDays !== null && input.gaDays > rules.postDatesAfterDays) auto('post_dates', 'alert');
 
@@ -499,27 +515,199 @@ const def = (
  * the seed service codes so a completed order ticks the item by itself.
  */
 export const DEFAULT_ANC_SCHEDULE: readonly AncScheduleDef[] = [
-  def({ code: 'booking_visit', label: 'Booking visit', labelHi: 'बुकिंग विज़िट', kind: 'visit', atBooking: true, sortOrder: 10 }),
-  def({ code: 'blood_group_rh', label: 'Blood group & Rh', labelHi: 'ब्लड ग्रुप और आरएच', kind: 'test', atBooking: true, sortOrder: 20 }),
-  def({ code: 'cbc_hb', label: 'CBC / Hb', labelHi: 'सीबीसी / हीमोग्लोबिन', kind: 'test', atBooking: true, sortOrder: 30 }),
-  def({ code: 'hiv', label: 'HIV', labelHi: 'एचआईवी', kind: 'test', atBooking: true, sortOrder: 40 }),
-  def({ code: 'hbsag', label: 'HBsAg', labelHi: 'एचबीएसएजी', kind: 'test', atBooking: true, sortOrder: 50 }),
-  def({ code: 'vdrl', label: 'VDRL / RPR', labelHi: 'वीडीआरएल / आरपीआर', kind: 'test', atBooking: true, sortOrder: 60 }),
-  def({ code: 'urine_rm', label: 'Urine R/M', labelHi: 'यूरिन आर/एम', kind: 'test', atBooking: true, sortOrder: 70 }),
-  def({ code: 'rbs_ogtt', label: 'RBS or OGTT (as per doctor)', labelHi: 'आरबीएस या ओजीटीटी (डॉक्टर के अनुसार)', kind: 'test', atBooking: true, sortOrder: 80 }),
-  def({ code: 'tsh', label: 'TSH', labelHi: 'टीएसएच', kind: 'test', atBooking: true, sortOrder: 90 }),
-  def({ code: 'dating_scan', label: 'Dating scan', labelHi: 'डेटिंग स्कैन', kind: 'scan', gaFromDays: 0, gaToDays: w(13, 6), sortOrder: 100 }),
-  def({ code: 'nt_scan', label: 'NT/NB scan', labelHi: 'एनटी/एनबी स्कैन', kind: 'scan', gaFromDays: w(11, 0), gaToDays: w(13, 6), sortOrder: 110 }),
-  def({ code: 'anomaly_scan', label: 'Anomaly scan (level II)', labelHi: 'एनोमली स्कैन (लेवल II)', kind: 'scan', gaFromDays: w(18, 0), gaToDays: w(22, 0), sortOrder: 120 }),
-  def({ code: 'ogtt_repeat', label: 'OGTT (repeat)', labelHi: 'ओजीटीटी (दोबारा)', kind: 'test', gaFromDays: w(24, 0), gaToDays: w(28, 0), sortOrder: 130 }),
-  def({ code: 'hb_repeat_1', label: 'Hb repeat (26–30 weeks)', labelHi: 'हीमोग्लोबिन दोबारा (26–30 सप्ताह)', kind: 'test', gaFromDays: w(26, 0), gaToDays: w(30, 0), sortOrder: 140 }),
-  def({ code: 'hb_repeat_2', label: 'Hb repeat (34–36 weeks)', labelHi: 'हीमोग्लोबिन दोबारा (34–36 सप्ताह)', kind: 'test', gaFromDays: w(34, 0), gaToDays: w(36, 0), sortOrder: 150 }),
-  def({ code: 'coombs_anti_d', label: 'Indirect Coombs / anti-D (Rh-negative)', labelHi: 'इंडायरेक्ट कूम्ब्स / एंटी-डी (आरएच नेगेटिव)', kind: 'test', gaFromDays: w(28, 0), gaToDays: w(31, 6), rhNegativeOnly: true, sortOrder: 160 }),
-  def({ code: 'growth_scan', label: 'Growth scan', labelHi: 'ग्रोथ स्कैन', kind: 'scan', gaFromDays: w(32, 0), gaToDays: w(36, 0), sortOrder: 170 }),
-  def({ code: 'td_1', label: 'Td-1 (or booster, per history)', labelHi: 'टीडी-1 (या बूस्टर, इतिहास के अनुसार)', kind: 'vaccine', atBooking: true, sortOrder: 180 }),
-  def({ code: 'td_2', label: 'Td-2 (4 weeks after Td-1)', labelHi: 'टीडी-2 (टीडी-1 के 4 सप्ताह बाद)', kind: 'vaccine', afterCode: 'td_1', afterDays: 28, sortOrder: 190 }),
-  def({ code: 'iron_folic', label: 'Iron-folic acid (per doctor)', labelHi: 'आयरन-फोलिक एसिड (डॉक्टर के अनुसार)', kind: 'supplement', gaFromDays: w(14, 0), sortOrder: 200 }),
-  def({ code: 'calcium', label: 'Calcium (per doctor)', labelHi: 'कैल्शियम (डॉक्टर के अनुसार)', kind: 'supplement', gaFromDays: w(14, 0), sortOrder: 210 }),
+  def({
+    code: 'booking_visit',
+    label: 'Booking visit',
+    labelHi: 'बुकिंग विज़िट',
+    kind: 'visit',
+    atBooking: true,
+    sortOrder: 10,
+  }),
+  def({
+    code: 'blood_group_rh',
+    label: 'Blood group & Rh',
+    labelHi: 'ब्लड ग्रुप और आरएच',
+    kind: 'test',
+    atBooking: true,
+    serviceCodes: ['LAB-ABO-RH'],
+    sortOrder: 20,
+  }),
+  def({
+    code: 'cbc_hb',
+    label: 'CBC / Hb',
+    labelHi: 'सीबीसी / हीमोग्लोबिन',
+    kind: 'test',
+    atBooking: true,
+    serviceCodes: ['LAB-CBC', 'LAB-HB'],
+    sortOrder: 30,
+  }),
+  def({
+    code: 'hiv',
+    label: 'HIV',
+    labelHi: 'एचआईवी',
+    kind: 'test',
+    atBooking: true,
+    serviceCodes: ['LAB-HIV'],
+    sortOrder: 40,
+  }),
+  def({
+    code: 'hbsag',
+    label: 'HBsAg',
+    labelHi: 'एचबीएसएजी',
+    kind: 'test',
+    atBooking: true,
+    serviceCodes: ['LAB-HBSAG'],
+    sortOrder: 50,
+  }),
+  def({
+    code: 'vdrl',
+    label: 'VDRL / RPR',
+    labelHi: 'वीडीआरएल / आरपीआर',
+    kind: 'test',
+    atBooking: true,
+    serviceCodes: ['LAB-VDRL'],
+    sortOrder: 60,
+  }),
+  def({
+    code: 'urine_rm',
+    label: 'Urine R/M',
+    labelHi: 'यूरिन आर/एम',
+    kind: 'test',
+    atBooking: true,
+    serviceCodes: ['LAB-URINE-RM'],
+    sortOrder: 70,
+  }),
+  def({
+    code: 'rbs_ogtt',
+    label: 'RBS or OGTT (as per doctor)',
+    labelHi: 'आरबीएस या ओजीटीटी (डॉक्टर के अनुसार)',
+    kind: 'test',
+    atBooking: true,
+    serviceCodes: ['LAB-RBS', 'LAB-OGTT'],
+    sortOrder: 80,
+  }),
+  def({
+    code: 'tsh',
+    label: 'TSH',
+    labelHi: 'टीएसएच',
+    kind: 'test',
+    atBooking: true,
+    serviceCodes: ['LAB-TSH'],
+    sortOrder: 90,
+  }),
+  def({
+    code: 'dating_scan',
+    label: 'Dating scan',
+    labelHi: 'डेटिंग स्कैन',
+    kind: 'scan',
+    gaFromDays: 0,
+    gaToDays: w(13, 6),
+    serviceCodes: ['USG-OB-EARLY'],
+    sortOrder: 100,
+  }),
+  def({
+    code: 'nt_scan',
+    label: 'NT/NB scan',
+    labelHi: 'एनटी/एनबी स्कैन',
+    kind: 'scan',
+    gaFromDays: w(11, 0),
+    gaToDays: w(13, 6),
+    serviceCodes: ['USG-NT'],
+    sortOrder: 110,
+  }),
+  def({
+    code: 'anomaly_scan',
+    label: 'Anomaly scan (level II)',
+    labelHi: 'एनोमली स्कैन (लेवल II)',
+    kind: 'scan',
+    gaFromDays: w(18, 0),
+    gaToDays: w(22, 0),
+    serviceCodes: ['USG-ANOMALY'],
+    sortOrder: 120,
+  }),
+  def({
+    code: 'ogtt_repeat',
+    label: 'OGTT (repeat)',
+    labelHi: 'ओजीटीटी (दोबारा)',
+    kind: 'test',
+    gaFromDays: w(24, 0),
+    gaToDays: w(28, 0),
+    serviceCodes: ['LAB-OGTT'],
+    sortOrder: 130,
+  }),
+  def({
+    code: 'hb_repeat_1',
+    label: 'Hb repeat (26–30 weeks)',
+    labelHi: 'हीमोग्लोबिन दोबारा (26–30 सप्ताह)',
+    kind: 'test',
+    gaFromDays: w(26, 0),
+    gaToDays: w(30, 0),
+    serviceCodes: ['LAB-CBC', 'LAB-HB'],
+    sortOrder: 140,
+  }),
+  def({
+    code: 'hb_repeat_2',
+    label: 'Hb repeat (34–36 weeks)',
+    labelHi: 'हीमोग्लोबिन दोबारा (34–36 सप्ताह)',
+    kind: 'test',
+    gaFromDays: w(34, 0),
+    gaToDays: w(36, 0),
+    serviceCodes: ['LAB-CBC', 'LAB-HB'],
+    sortOrder: 150,
+  }),
+  def({
+    code: 'coombs_anti_d',
+    label: 'Indirect Coombs / anti-D (Rh-negative)',
+    labelHi: 'इंडायरेक्ट कूम्ब्स / एंटी-डी (आरएच नेगेटिव)',
+    kind: 'test',
+    gaFromDays: w(28, 0),
+    gaToDays: w(31, 6),
+    rhNegativeOnly: true,
+    sortOrder: 160,
+  }),
+  def({
+    code: 'growth_scan',
+    label: 'Growth scan',
+    labelHi: 'ग्रोथ स्कैन',
+    kind: 'scan',
+    gaFromDays: w(32, 0),
+    gaToDays: w(36, 0),
+    serviceCodes: ['USG-GROWTH'],
+    sortOrder: 170,
+  }),
+  def({
+    code: 'td_1',
+    label: 'Td-1 (or booster, per history)',
+    labelHi: 'टीडी-1 (या बूस्टर, इतिहास के अनुसार)',
+    kind: 'vaccine',
+    atBooking: true,
+    sortOrder: 180,
+  }),
+  def({
+    code: 'td_2',
+    label: 'Td-2 (4 weeks after Td-1)',
+    labelHi: 'टीडी-2 (टीडी-1 के 4 सप्ताह बाद)',
+    kind: 'vaccine',
+    afterCode: 'td_1',
+    afterDays: 28,
+    sortOrder: 190,
+  }),
+  def({
+    code: 'iron_folic',
+    label: 'Iron-folic acid (per doctor)',
+    labelHi: 'आयरन-फोलिक एसिड (डॉक्टर के अनुसार)',
+    kind: 'supplement',
+    gaFromDays: w(14, 0),
+    sortOrder: 200,
+  }),
+  def({
+    code: 'calcium',
+    label: 'Calcium (per doctor)',
+    labelHi: 'कैल्शियम (डॉक्टर के अनुसार)',
+    kind: 'supplement',
+    gaFromDays: w(14, 0),
+    sortOrder: 210,
+  }),
 ];
 
 export const DEFAULT_BOOKING_GRACE_DAYS = 14;
@@ -663,11 +851,13 @@ export function nextVisit(input: {
 
 // ---------------------------------------------------------------- inputs
 
+/** Free text of the ANC card: strict forbidden-term guard (AGENTS.md rule 7, D-10), blank → null. */
 const optionalText = (max: number) =>
   z
     .string()
     .trim()
     .max(max)
+    .refine(...noForbiddenTerms('strict'))
     .transform((s) => (s === '' ? null : s))
     .nullish()
     .transform((s) => s ?? null);
@@ -700,7 +890,8 @@ export const createPregnancySchema = z
     scan: z.object({ date: isoDateSchema, ga: gaInputSchema }).nullable().default(null),
     bloodGroupRh: bloodGroupRhSchema.nullable().default(null),
     plurality: z.enum(PLURALITIES).default('single'),
-    history: z.array(obHistoryEntrySchema).max(20).default([]),
+    /** Omitted = keep the history already on record; given = replaces it. */
+    history: z.array(obHistoryEntrySchema).max(20).optional(),
     notes: optionalText(500),
   })
   .refine((v) => v.lmp !== null || v.scan !== null, 'anc.datingNeeded');
@@ -724,23 +915,26 @@ export const confirmDatingSchema = z.object({
 const dipstick = z.enum(['nil', 'trace', 'plus1', 'plus2', 'plus3', 'plus4']);
 
 /** The ANC visit row (docs/11 §3.3); vitals fill the first columns automatically. */
-export const saveAncVisitSchema = z.object({
-  pregnancyId: uuidSchema,
-  /** The OPD visit this ANC visit belongs to; null for a retrospective entry. */
-  encounterId: uuidSchema.nullable().default(null),
-  visitDate: isoDateSchema,
-  weightKg: z.number().min(20).max(250).nullable().default(null),
-  bpSys: z.number().int().min(50).max(300).nullable().default(null),
-  bpDia: z.number().int().min(20).max(200).nullable().default(null),
-  fundalHeightCm: z.number().min(5).max(60).nullable().default(null),
-  fhr: z.number().int().min(60).max(220).nullable().default(null),
-  presentation: z.enum(PRESENTATIONS).nullable().default(null),
-  oedema: z.enum(['none', 'plus1', 'plus2']).nullable().default(null),
-  urineProtein: dipstick.nullable().default(null),
-  urineSugar: dipstick.nullable().default(null),
-  hb: z.number().min(2).max(20).nullable().default(null),
-  remarks: optionalText(500),
-});
+export const saveAncVisitSchema = z
+  .object({
+    pregnancyId: uuidSchema,
+    /** The OPD visit this ANC visit belongs to; null for a retrospective entry. */
+    encounterId: uuidSchema.nullable().default(null),
+    visitDate: isoDateSchema,
+    weightKg: z.number().min(20).max(250).nullable().default(null),
+    bpSys: z.number().int().min(50).max(300).nullable().default(null),
+    bpDia: z.number().int().min(20).max(200).nullable().default(null),
+    fundalHeightCm: z.number().min(5).max(60).nullable().default(null),
+    fhr: z.number().int().min(60).max(220).nullable().default(null),
+    presentation: z.enum(PRESENTATIONS).nullable().default(null),
+    oedema: z.enum(['none', 'plus1', 'plus2']).nullable().default(null),
+    urineProtein: dipstick.nullable().default(null),
+    urineSugar: dipstick.nullable().default(null),
+    hb: z.number().min(2).max(20).nullable().default(null),
+    remarks: optionalText(500),
+  })
+  .refine((v) => (v.bpSys === null) === (v.bpDia === null), 'vitals.bpPair')
+  .refine((v) => v.bpSys === null || v.bpDia === null || v.bpDia < v.bpSys, 'vitals.bpPair');
 export type SaveAncVisitInput = z.input<typeof saveAncVisitSchema>;
 
 export const updatePregnancySchema = z.object({
@@ -770,11 +964,18 @@ export const setGpalSchema = z.discriminatedUnion('manual', [
   }),
 ]);
 
+/**
+ * Closing a pregnancy. A delivery names how it ended (`obOutcome`) so the next pregnancy's
+ * history is complete; `gestationWeeks`, `babiesAlive` and `neonatalDeath` default sensibly.
+ */
 export const closePregnancySchema = z.object({
   pregnancyId: uuidSchema,
   outcome: z.enum(PREGNANCY_CLOSE_OUTCOMES),
   outcomeDate: isoDateSchema,
   reason: optionalText(300),
+  obOutcome: z.enum(['nvd', 'lscs', 'assisted', 'stillbirth']).nullable().default(null),
+  babiesAlive: z.number().int().min(0).max(4).nullable().default(null),
+  neonatalDeath: z.boolean().default(false),
 });
 
 export const markScheduleSchema = z.object({

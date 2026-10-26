@@ -16,6 +16,7 @@ import {
   usgProcedure,
   drug,
 } from '../schema';
+import { seedAncSchedule } from '../src/anc';
 import { ensureNumberSeriesRows } from '../src/number-series';
 import type { Tx } from '../src/tx';
 import { DEPARTMENTS } from './data/departments';
@@ -302,6 +303,9 @@ export async function seedMasters(
       ),
   );
   count('drug', drugs.inserted);
+
+  // Draft ANC schedule (docs/33 §4); the gynaecologist edits it and signs it off (OPD-05).
+  count('anc_schedule_item', await seedAncSchedule(tx, facilityId));
 
   return { inserted, defaultTariffId, selfPayerId };
 }

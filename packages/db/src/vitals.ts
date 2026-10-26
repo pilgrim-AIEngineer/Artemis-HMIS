@@ -33,6 +33,7 @@ import { and, desc, eq, inArray, ne, sql } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
 import { doctorProfile, encounter, opdToken, patient, vitals } from '../schema';
 import type { Db } from './client';
+import { activePregnancyId, syncAncVisitFromVitals } from './anc';
 import { advanceToken } from './queue';
 import { readSetting, readSettings } from './settings';
 import type { Tx } from './tx';
@@ -230,7 +231,7 @@ export interface VitalsContext {
   lastHeight: { cm: number; on: string } | null;
   heightDue: boolean;
   thresholds: VitalsThresholds;
-  /** True when the ANC visit type or an earlier pregnant-form reading suggests the pregnant form. */
+  /** True when the ANC visit type, an active pregnancy or an earlier pregnant-form reading suggests the pregnant form. */
   pregnantHint: boolean;
 }
 
@@ -298,9 +299,10 @@ export async function vitalsContext(
   const today = istDateString(now);
   const last = lastHeightRow[0];
   // A correction keeps the form it was saved with; a new reading follows the hint.
+  const activePregnancy = await activePregnancyId(tx, facilityId, row.patientId);
   const pregnantHint = current
     ? current.group === 'pregnant'
-    : row.visitType === 'anc' || recentPregnant.length > 0;
+    : row.visitType === 'anc' || activePregnancy !== null || recentPregnant.length > 0;
   const lastHeight = last?.cm ? { cm: Number(last.cm), on: istDateString(last.at) } : null;
   return {
     token: {
@@ -419,6 +421,24 @@ export async function recordVitals(
     recordedBy: actor.userId,
     flags,
   });
+
+  // With an active pregnancy the readings also fill today's ANC visit row (OPD-05).
+  await syncAncVisitFromVitals(
+    tx,
+    { ...actor, userId: actor.userId, mtp: { view: false, edit: false } },
+    {
+      encounterId: token.encounterId,
+      patientId: enc!.patientId,
+      formGroup: input.group,
+      visitType: (
+        await tx
+          .select({ t: encounter.visitType })
+          .from(encounter)
+          .where(eq(encounter.id, token.encounterId))
+      )[0]!.t,
+    },
+    now,
+  );
 
   const advanced = token.queueState === 'waiting';
   const moved = advanced
