@@ -445,7 +445,20 @@ describe('demo seed skeleton', () => {
       )
     ).rows[0]!.n;
     expect(rules).toBe(7);
-  });
+    // Every demo visit has its bill; priced fees were collected (BIL-02), so those bills are final.
+    const bills = (
+      await t.owner.$client.query<{ bills: number; final: number; receipts: number }>(
+        `select (select count(*) from bill where facility_id = $1)::int as bills,
+                (select count(*) from bill where facility_id = $1 and status = 'final')::int as final,
+                (select count(distinct number) from payment where facility_id = $1)::int as receipts`,
+        [f.facilityId],
+      )
+    ).rows[0]!;
+    expect(bills.bills).toBe(opd.visits);
+    expect(bills.final).toBeGreaterThan(0);
+    expect(bills.receipts).toBe(bills.final);
+    // 30 days of OPD through the real visit, bill and payment code: slow under a parallel run.
+  }, 90_000);
 
   it('generates deterministic Indian names and 9xxxxxxxxx mobiles', () => {
     const a = createRng(7);

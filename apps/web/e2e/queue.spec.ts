@@ -6,7 +6,7 @@
  */
 import { expect, test, type Browser, type Page } from '@playwright/test';
 import { E2E_USERS } from './fixtures';
-import { signInReady } from './helpers';
+import { payVisitInCash, signInReady } from './helpers';
 
 async function register(page: Page, first: string, mobile: string) {
   await page.goto('/reception/patients/new');
@@ -46,11 +46,11 @@ test('visit with fee from the tariff, follow-up, and a live queue on two screens
   await expect(page.getByRole('radio', { name: /^New/ })).toBeChecked();
   await page.getByRole('button', { name: 'Save visit' }).click();
 
-  // Fee ₹500: the token waits for the payment; reception releases it once the fee is collected.
+  // Fee ₹500: the token waits for the payment; collecting it (BIL-02) releases the token.
   const created = page.getByTestId('visit-created');
   await expect(created).toContainText('Visit OP/');
   await expect(created).toContainText('Collect ₹500.00, then give the token.');
-  await created.getByRole('button', { name: 'Fee collected: give token' }).click();
+  await payVisitInCash(page);
   await expect(created.getByRole('status').filter({ hasText: /Token\s*\d+/ })).toBeVisible();
 
   // ---- live queue: reception on this page, assistant in another browser context
@@ -125,7 +125,7 @@ test('the queue keeps updating every 5 seconds when the live stream is unavailab
   await desk.getByRole('button', { name: /Dr\. Sunita Verma/ }).click();
   await desk.getByRole('button', { name: 'Save visit' }).click();
   await expect(desk.getByTestId('visit-created')).toContainText('Visit OP/');
-  await desk.getByRole('button', { name: 'Fee collected: give token' }).click();
+  await payVisitInCash(desk);
   await expect(
     desk
       .getByTestId('visit-created')
