@@ -16,6 +16,7 @@ import {
   Undo2,
   Ticket,
   HeartPulse,
+  NotebookPen,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
@@ -38,6 +39,8 @@ type Dialogue = { kind: 'noShow' | 'transfer' | 'priority'; card: Card; doctorId
 
 const DOCTOR_KEY = 'hmis.queue.doctor';
 const PENDING: QueueState[] = ['waiting', 'vitals_done'];
+/** The doctor has seen the patient: the paper Rx can be typed (OPD-02), or corrected. */
+const RX_STATES: QueueState[] = ['with_doctor', 'seen', 'rx_entered', 'billed_orders'];
 
 const stateTone: Record<QueueState, string> = {
   waiting: 'border-input bg-muted text-foreground',
@@ -71,6 +74,7 @@ export function QueueBoard({ mode }: { mode: 'desk' | 'room' }) {
   const canManage = can('queue.manage');
   const canRelease = can('billing.payment.collect');
   const canVitals = can('vitals.record');
+  const canRx = can('rx.transcribe');
   const canPrint = can('patient.view');
 
   const { live, refetchInterval } = useLiveQueue();
@@ -189,6 +193,16 @@ export function QueueBoard({ mode }: { mode: 'desk' | 'room' }) {
             <Link href={`/nursing/vitals/${c.tokenId}`}>
               <HeartPulse aria-hidden />
               {c.queueState === 'waiting' ? t('enterVitals') : t('editVitals')}
+            </Link>
+          </Button>
+        )}
+        {canRx && RX_STATES.includes(c.queueState) && (
+          <Button asChild size="sm" variant={c.queueState === 'seen' ? 'default' : 'outline'}>
+            <Link href={`/assistant/rx/${c.encounterId}`}>
+              <NotebookPen aria-hidden />
+              {c.queueState === 'rx_entered' || c.queueState === 'billed_orders'
+                ? t('editRx')
+                : t('enterRx')}
             </Link>
           </Button>
         )}

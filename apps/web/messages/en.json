@@ -348,6 +348,18 @@
           "notesRequired": {
             "label": "Doctor notes required",
             "hint": "Do not let a visit be closed until a note is entered."
+          },
+          "quickOrderServices": {
+            "label": "Services behind quick orders",
+            "hint": "Advanced. For each tick-box name on the OPD sheet, the billing service codes it orders, as JSON (for example \"CBC\": [\"LAB-CBC\"])."
+          },
+          "complaintChips": {
+            "label": "Complaint buttons",
+            "hint": "Common complaints shown as one-tap buttons on the prescription screen, one per line."
+          },
+          "adviceChips": {
+            "label": "Advice buttons",
+            "hint": "Common advice shown as one-tap buttons on the prescription screen, one per line."
           }
         },
         "queue": {
@@ -437,7 +449,11 @@
           },
           "requirePhoto": {
             "label": "Photo of the paper prescription required",
-            "hint": "The assistant must attach a photo of the paper prescription."
+            "hint": "A typed prescription cannot be saved until a photo of the doctor’s paper is attached."
+          },
+          "hindiPhrases": {
+            "label": "Hindi wording of medicine instructions",
+            "hint": "Advanced. Replace any standard Hindi phrase, as JSON (for example \"timing.af\": \"भोजन के बाद\"). Leave it empty to keep the standard wording."
           }
         },
         "print": {
@@ -989,6 +1005,13 @@
       "notForGroup": "This reading is not taken for this patient.",
       "atLeastOne": "Enter at least one reading.",
       "number": "Enter a number (whole numbers only for this field)."
+    },
+    "rx": {
+      "pattern": "Write the pattern like 1-0-1.",
+      "duration": "Fill both the number and days / weeks / months.",
+      "duplicateOrder": "The same order is listed twice.",
+      "scanTooLarge": "The photo is too large (more than 10 MB).",
+      "scanInvalid": "The photo could not be read."
     }
   },
   "mobile": {
@@ -1102,7 +1125,8 @@
       "refundExceedsPaid": "A refund cannot be more than the amount paid.",
       "refundNotDue": "Nothing has to be refunded on this credit note.",
       "refundNotAllowed": "You may not give refunds. Ask the cashier in charge or the administrator.",
-      "hasPayments": "This draft has a payment on it. Collect or refund through a final bill instead."
+      "hasPayments": "This draft has a payment on it. Collect or refund through a final bill instead.",
+      "orderNotUnbilled": "This order is already on a bill or no longer open."
     },
     "approval": {
       "invalid": "The username or PIN is not correct.",
@@ -1129,6 +1153,23 @@
       "notAllowed": "Vitals cannot be taken for this visit now. It may be cancelled or already with the doctor’s team.",
       "groupMismatch": "This form does not fit the patient’s age. Choose the right form.",
       "invalid": "A reading is not possible. Please check the values."
+    },
+    "rx": {
+      "encounterNotFound": "This visit was not found.",
+      "encounterNotOpen": "This visit is closed or cancelled.",
+      "photoRequired": "Attach the photo of the paper prescription first.",
+      "scanNotFound": "The photo was not found for this visit. Take it again.",
+      "empty": "Nothing to save. Add a medicine, an order or a follow-up date.",
+      "drugNotFound": "A medicine is no longer in the list. Pick it again.",
+      "orderNotOrderable": "One of the orders cannot be ordered. Remove it and search again.",
+      "orderBilled": "An order already on a bill cannot be removed here. Ask billing to remove it first.",
+      "followUpInvalid": "The follow-up date must be after today and within a year.",
+      "admissionDateInvalid": "The expected admission date cannot be in the past.",
+      "notFound": "This prescription was not found.",
+      "notPendingVerification": "This prescription has already been checked or replaced.",
+      "notYourPatient": "Only the doctor who wrote this prescription can verify it.",
+      "scanTooLarge": "The photo is too large (more than 10 MB).",
+      "scanInvalid": "This file is not a photo (JPEG). Take the photo again."
     }
   },
   "nav": {
@@ -1448,7 +1489,9 @@
     "vitalsDone": "Vitals done",
     "printSheet": "Print OPD sheet",
     "enterVitals": "Enter vitals",
-    "editVitals": "Correct vitals"
+    "editVitals": "Correct vitals",
+    "enterRx": "Type Rx",
+    "editRx": "Correct Rx"
   },
   "visit": {
     "title": "New visit",
@@ -1663,7 +1706,12 @@
       "reasonTextMissing": "Write the details for the reason “Other”.",
       "printVoucherA5": "Print A5 refund voucher"
     },
-    "printReceiptA5": "Print A5 receipt"
+    "printReceiptA5": "Print A5 receipt",
+    "orders": {
+      "title": "Orders from the doctor",
+      "add": "{count, plural, one {Add # order to the bill} other {Add # orders to the bill}}",
+      "skipped": "{count, plural, one {# order was not added (no rate, or already billed).} other {# orders were not added (no rate, or already billed).}}"
+    }
   },
   "dayClose": {
     "title": "Day close",
@@ -1852,5 +1900,237 @@
     "allInRange": "All readings are in the normal range.",
     "printSheet": "Print OPD sheet",
     "nextPatient": "Next patient"
+  },
+  "rx": {
+    "title": "Type the prescription",
+    "titleCorrect": "Correct the prescription (now version {version})",
+    "visitLine": "Visit {number} · {doctor} · Token {token}",
+    "loading": "Loading…",
+    "loadFailed": "Could not load. Check the connection and try again.",
+    "closed": "This visit is closed or cancelled. The prescription cannot be changed.",
+    "mobile": "Mobile",
+    "pregnant": "Pregnant",
+    "weight": "Weight {kg} kg",
+    "tabsLabel": "Prescription parts",
+    "tabs": {
+      "medicines": "Medicines",
+      "orders": "Orders",
+      "notes": "Notes & diagnosis",
+      "followUp": "Follow-up"
+    },
+    "save": "Save prescription",
+    "saving": "Saving…",
+    "back": "Back to list",
+    "needPhoto": "Attach the photo of the paper prescription before saving.",
+    "lineNotAdded": "The medicine line is not added yet. Press Enter to add it, or clear it.",
+    "warningsSummary": "{count, plural, one {# warning} other {# warnings}}: please check against the paper. You can still save.",
+    "draft": {
+      "none": "Draft not saved yet",
+      "local": "Draft kept on this computer at {time}",
+      "server": "Draft saved at {time}"
+    },
+    "restore": {
+      "question": "An unsaved draft from {time} was found. Restore it?",
+      "restore": "Restore draft",
+      "discard": "Start fresh"
+    },
+    "saved": {
+      "title": "Prescription saved",
+      "corrected": "Correction saved (version {version})",
+      "token": "Token {no} moves on to billing.",
+      "orders": "{count, plural, one {# order} other {# orders}} sent to billing.",
+      "verify": "The doctor will check this one against the paper.",
+      "next": "Next patient",
+      "editAgain": "Open again"
+    },
+    "scan": {
+      "label": "Scan the OPD sheet",
+      "placeholder": "Scan the QR code on the sheet",
+      "hint": "Point the scanner at the QR code on the OPD sheet; the prescription screen opens.",
+      "bad": "This is not an OPD sheet code. Scan the QR code on the sheet again.",
+      "title": "Paper prescription",
+      "takePhoto": "Take photo",
+      "choose": "Choose picture",
+      "replace": "Replace picture",
+      "uploading": "Saving the photo…",
+      "failed": "The photo could not be read. Try again.",
+      "none": "No photo yet. Take a photo of the doctor’s sheet.",
+      "alt": "Photo of the paper prescription",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "rotate": "Rotate",
+      "cameraTitle": "Photo of the sheet",
+      "cameraHint": "Hold the sheet flat and fill the frame, then press Capture.",
+      "cameraFailed": "The camera could not be opened. Use “Choose picture” instead.",
+      "capture": "Capture",
+      "cancel": "Cancel"
+    },
+    "list": {
+      "title": "Prescriptions to type",
+      "hint": "Scan the OPD sheet, or open a patient the doctor has seen.",
+      "toTranscribe": "Seen — to transcribe",
+      "transcribed": "Typed today",
+      "nobody": "Nobody waiting. Patients appear here when the doctor has seen them.",
+      "open": "Type Rx",
+      "edit": "Correct",
+      "typed": "Typed",
+      "corrected": "Corrected (v{version})",
+      "toVerify": "doctor to check"
+    },
+    "med": {
+      "lineLabel": "Medicine line",
+      "linePlaceholder": "e.g. dolo 650 1-0-1 af 5d",
+      "lineHint": "Type as on the paper and press Enter to add. ↑ / ↓ picks another match.",
+      "add": "Add",
+      "previewTitle": "Will be added:",
+      "searching": "Looking up the medicine…",
+      "asTyped": "as typed",
+      "nothingParsed": "Dose and timing not recognised — fill them in the row",
+      "qtyShort": "Qty {n}",
+      "matches": "Matching medicines",
+      "oftenUsed": "Often used",
+      "notStocked": "Not stocked",
+      "drugOfRow": "Medicine of row {n}",
+      "freeTextOption": "Add “{text}” as typed",
+      "freeTextFlag": "Not in the medicine list. The admin will link it later.",
+      "rowLabel": "Row {n}: {drug}",
+      "remove": "Remove row {n}",
+      "listLabel": "Medicines",
+      "empty": "No medicines yet. Type the first line above.",
+      "repeatLast": "Repeat last Rx",
+      "clear": "Clear medicines",
+      "cleared": "Medicines cleared.",
+      "undo": "Undo"
+    },
+    "fields": {
+      "form": "Form",
+      "dose": "Dose",
+      "pattern": "Pattern",
+      "frequency": "How often",
+      "timing": "When",
+      "route": "Route",
+      "duration": "For",
+      "durationUnit": "Days / weeks / months",
+      "qty": "Qty",
+      "hindi": "Instructions (Hindi)"
+    },
+    "forms": {
+      "tab": "Tablet",
+      "cap": "Capsule",
+      "syp": "Syrup",
+      "inj": "Injection",
+      "drops": "Drops",
+      "cream": "Cream / ointment",
+      "pessary": "Pessary",
+      "sachet": "Sachet",
+      "inhaler": "Inhaler",
+      "other": "Other"
+    },
+    "codes": {
+      "OD": "OD – once a day",
+      "BD": "BD – twice a day",
+      "TDS": "TDS – three times a day",
+      "QID": "QID – four times a day",
+      "HS": "HS – at bedtime",
+      "SOS": "SOS – when needed",
+      "STAT": "STAT – at once",
+      "WEEKLY": "Weekly",
+      "ALT": "Alternate days"
+    },
+    "timings": {
+      "af": "After food",
+      "bf": "Before food",
+      "with_food": "With food",
+      "empty_stomach": "Empty stomach",
+      "any": "Any time"
+    },
+    "routes": {
+      "oral": "By mouth",
+      "im": "IM",
+      "iv": "IV",
+      "sc": "SC",
+      "sl": "Under the tongue",
+      "pv": "PV (vaginal)",
+      "pr": "PR (rectal)",
+      "topical": "Apply locally",
+      "inhalation": "Inhaled / nebulised",
+      "nasal": "Nasal",
+      "eye": "Eye",
+      "ear": "Ear"
+    },
+    "units": {
+      "d": "days",
+      "w": "weeks",
+      "m": "months"
+    },
+    "durations": {
+      "d": "{n, plural, one {# day} other {# days}}",
+      "w": "{n, plural, one {# week} other {# weeks}}",
+      "m": "{n, plural, one {# month} other {# months}}"
+    },
+    "warnings": {
+      "duplicate_drug": "This medicine is already in the list.",
+      "duplicate_generic": "Another medicine in this Rx has the same salt (generic).",
+      "many_units_per_dose": "More than 4 per dose. Please check the paper.",
+      "many_doses_per_day": "More than 6 doses a day. Please check the paper.",
+      "long_duration": "Longer than 6 months. Please check the paper.",
+      "large_quantity": "Quantity is above 300. Please check.",
+      "no_frequency": "How often is not filled in.",
+      "no_duration": "For how many days is not filled in.",
+      "free_text_drug": "Not in the medicine list; added as typed."
+    },
+    "kinds": {
+      "lab": "Lab",
+      "usg": "USG",
+      "procedure": "Procedure",
+      "admission": "Admission",
+      "referral": "Referral",
+      "cardiology_test": "Cardiology"
+    },
+    "orders": {
+      "quick": "Tick as on the sheet",
+      "notSetUp": "not set up",
+      "onBill": "on the bill",
+      "search": "Other test or procedure",
+      "searchPlaceholder": "Type a test, scan or procedure",
+      "results": "Matching services",
+      "none": "Nothing matches.",
+      "add": "Add",
+      "added": "Added",
+      "other": "Other orders",
+      "removeOne": "Remove {name}",
+      "admission": "Admission advice",
+      "admissionNo": "Not advised",
+      "admissionYes": "Admission advised",
+      "expectedDate": "Expected date",
+      "admissionNote": "Package / note",
+      "admissionNoteHint": "e.g. LSCS package"
+    },
+    "notes": {
+      "optional": "Optional: doctors write notes on the paper.",
+      "required": "Notes are required at this hospital.",
+      "complaints": "Complaints",
+      "complaintsText": "Other complaints, in words",
+      "diagnosis": "Provisional diagnosis",
+      "advice": "Advice",
+      "adviceText": "Other advice, in words"
+    },
+    "followUp": {
+      "after": "After {n} days",
+      "date": "Follow-up date",
+      "on": "Follow-up on {date}",
+      "invalid": "Pick a date after today, within a year.",
+      "clear": "No follow-up",
+      "reminder": "A WhatsApp reminder goes out a day before, once messaging is switched on."
+    },
+    "verify": {
+      "title": "Check typed prescriptions",
+      "hint": "Compare the typed prescription with the photo of your paper prescription, then tap Verify.",
+      "none": "Nothing to check right now.",
+      "typedBy": "typed by {name}",
+      "noPhoto": "No photo attached.",
+      "verify": "Verify",
+      "correctHint": "If something is wrong, tell the assistant: a correction is saved as a new version and comes back here."
+    }
   }
 }
