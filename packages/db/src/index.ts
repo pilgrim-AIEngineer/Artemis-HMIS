@@ -20,5 +20,7 @@ export * from './vitals';
 export * from './rx';
 export * from './anc';
 export * from './paeds';
+export * from './messaging';
+export * from './reminders';
 export * from './timeline';
 export * from './reports';

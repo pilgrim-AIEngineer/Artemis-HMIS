@@ -37,6 +37,8 @@ import {
   type PaymentMode,
   type RemoveBillLineInput,
   type Tender,
+  formatDate,
+  receiptVariables,
 } from '@hmis/shared';
 import {
   and,
@@ -72,6 +74,7 @@ import {
 } from '../schema';
 import type { Db } from './client';
 import { runIdempotent } from './idempotency';
+import { enqueueMessage } from './messaging';
 import { getRate } from './masters';
 import { allocateNumber } from './number-series';
 import { advanceToken } from './queue';
@@ -940,6 +943,25 @@ export async function collectPayment(
         token = out.token;
       } else if (settles) {
         token = await releaseToken(tx, actor, b.encounterId, now);
+      }
+      // MSG-01: the receipt message is a queued row; the worker sends it when it is online.
+      const cfgMsg = await readSettings(tx, actor.facilityId, ['whatsapp.sendReceipts']);
+      if (cfgMsg['whatsapp.sendReceipts']) {
+        await enqueueMessage(
+          tx,
+          {
+            facilityId: actor.facilityId,
+            patientId: b.patientId,
+            kind: 'receipt',
+            entityId: collectionId,
+            variables: receiptVariables({
+              amountPaise: check.totalPaise,
+              receiptNo: receipt.formatted,
+              date: formatDate(now),
+            }),
+          },
+          now,
+        );
       }
       return {
         collectionId,

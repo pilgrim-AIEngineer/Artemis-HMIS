@@ -54,7 +54,7 @@ import {
 import type { Db } from './client';
 import { runIdempotent } from './idempotency';
 import { readSettings } from './settings';
-import type { Tx } from './tx';
+import { withTx, type Tx } from './tx';
 
 type Queryable = Db | Tx;
 
@@ -1357,4 +1357,39 @@ export async function paedsRxContext(
     )
     .limit(1);
   return { weightKg: g?.w ? Number(g.w) : null, weightOn: g?.w ? today : null, rules };
+}
+
+/**
+ * The daily reminder run (MSG-01, docs/21 §3): rebuilds the queued vaccine reminder of every child
+ * whose next dose falls within the lead window, so a reminder missed at the time of the last dose
+ * (consent given later, setting changed) still goes out. One transaction per child.
+ */
+export async function refreshDueVaccineReminders(
+  db: Db,
+  facilityId: string,
+  now: Date,
+): Promise<number> {
+  const rules = await paedsRules(db, facilityId);
+  const due = await dueSoon(db, facilityId, now, {
+    lookBackDays: 0,
+    aheadDays: rules.reminderLeadDays + 1,
+    limit: 1000,
+  });
+  let touched = 0;
+  for (const d of due) {
+    await withTx({ db, userId: null, facilityId }, async (tx) => {
+      const p = await loadPatient(tx, facilityId, d.patientId);
+      const card = await buildCard(tx, facilityId, p, now);
+      const out = await refreshVaccineReminder(
+        tx,
+        facilityId,
+        p,
+        card.rows,
+        card.rules.reminderLeadDays,
+        now,
+      );
+      if (out.queued) touched += 1;
+    });
+  }
+  return touched;
 }
