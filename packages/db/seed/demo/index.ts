@@ -1,13 +1,16 @@
 /**
  * `db:seed --demo` skeleton (docs/02 §9, docs/50 PR 22). Each PR that adds data to the product
  * adds one step module here and appends it to `DEMO_STEPS`; steps run in order, are idempotent and
- * only use synthetic data from `people.ts` / `rng.ts`. Patients (500) since PR 7, 30 days of OPD since PR 8. Planned: PR 15 pregnancies (50), PR 16 children (80).
+ * only use synthetic data from `people.ts` / `rng.ts`. Patients (500) since PR 7, 30 days of OPD since PR 8, pregnancies (50) and children (80, with
+ * doses and growth readings) since PR 22.
  */
 import type { Tx } from '../../src/tx';
 import type { MasterSeedResult } from '../masters';
+import { demoChildren } from './children';
 import { demoDoctors } from './doctors';
 import { demoOpd } from './opd';
 import { demoPatients } from './patients';
+import { demoPregnancies } from './pregnancies';
 import { demoRates } from './rates';
 import { createRng, type Rng } from './rng';
 
@@ -24,7 +27,14 @@ export interface DemoStep {
   run(ctx: DemoContext): Promise<string>;
 }
 
-export const DEMO_STEPS: readonly DemoStep[] = [demoDoctors, demoRates, demoPatients, demoOpd];
+export const DEMO_STEPS: readonly DemoStep[] = [
+  demoDoctors,
+  demoRates,
+  demoPatients,
+  demoOpd,
+  demoPregnancies,
+  demoChildren,
+];
 
 export const DEMO_SEED = 20261026;
 
