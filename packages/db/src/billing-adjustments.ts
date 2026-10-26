@@ -676,6 +676,7 @@ export interface CancellationReportRow {
   at: Date;
   billNumber: string | null;
   uhid: string;
+  patientName: string;
   amountPaise: bigint;
   refundPaise: bigint;
   cancelsBill: boolean;
@@ -700,6 +701,7 @@ export async function cancellationReport(
       at: creditNote.issuedAt,
       billNumber: bill.number,
       uhid: patient.uhid,
+      patientName: patient.fullName,
       amountPaise: creditNote.amountPaise,
       refundPaise: sql<bigint>`coalesce((select -sum(p.amount_paise) from payment p
         where p.credit_note_id = ${creditNote.id} and p.kind = 'refund' and p.status = 'valid'), 0)`,
@@ -735,6 +737,7 @@ export async function cancellationReport(
     at: r.at,
     billNumber: r.billNumber,
     uhid: r.uhid,
+    patientName: r.patientName,
     amountPaise: r.amountPaise,
     refundPaise: BigInt(r.refundPaise),
     cancelsBill: r.cancelsBill,

@@ -467,7 +467,12 @@ describe('discounts, cancellation and refunds through the API (BIL-03, BIL-04)',
   });
 
   it('shows the owner the discount and cancellation reports', async () => {
-    const range = { from: '2020-01-01', to: '2099-01-01' };
+    // Reports take at most a year; the rows of this file were all written today.
+    const day = (offset: number) =>
+      new Date(Date.now() + offset * 86_400_000).toLocaleDateString('en-CA', {
+        timeZone: 'Asia/Kolkata',
+      });
+    const range = { from: day(-30), to: day(1) };
     const d = await owner.call((c) => c.billing.discountReport(range));
     expect(d.rows.length).toBeGreaterThan(0);
     expect(d.rows.some((r) => r.approvedByName === 'Test admin')).toBe(true);

@@ -2,3 +2,11 @@
 @import '@hmis/print/fonts.css';
 
 @source '../';
+
+/* Reports print on A4 (docs/20 §1); the screens hide their controls with `print:hidden`. */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+}

@@ -10,7 +10,7 @@ export function SkipLink() {
   return (
     <a
       href="#main"
-      className="sr-only rounded-md bg-primary px-4 py-3 font-medium text-primary-foreground focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50"
+      className="sr-only rounded-md bg-primary px-4 py-3 font-medium text-primary-foreground focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 print:hidden"
     >
       {t('skipToContent')}
     </a>
@@ -39,7 +39,7 @@ export function MainArea({ children }: { children: React.ReactNode }) {
       id="main"
       ref={ref}
       tabIndex={-1}
-      className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 outline-none"
+      className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 outline-none print:max-w-none print:p-0"
     >
       {children}
     </main>
