@@ -909,8 +909,9 @@ describe('partial credit notes (BIL-04)', () => {
     const before = await view(f.billId);
     const part = before.netPaise / 3n;
     await cancelBy(cashier, f.billId, { amountPaise: part, refund: { mode: 'cash' } });
-    await cancelBy(cashier, f.billId, { amountPaise: part, refund: { mode: 'cash' } });
-    const last = await cancelBy(cashier, f.billId, { refund: { mode: 'cash' } });
+    // Cumulative credits now pass the ₹1,000 limit (#70), so a supervisor approves the rest.
+    await cancelBy(cashier, f.billId, { amountPaise: part, refund: { mode: 'cash' } }, admin.id);
+    const last = await cancelBy(cashier, f.billId, { refund: { mode: 'cash' } }, admin.id);
     expect(last.billStatus).toBe('cancelled');
     const notes = await fx.t.app.select().from(creditNote).where(eq(creditNote.billId, f.billId));
     expect(notes).toHaveLength(3);
