@@ -1,5 +1,6 @@
 import { loadUserAccess, nextCopyNo, recordPrint, withTx } from '@hmis/db';
 import { appUser, document } from '@hmis/db/schema';
+import { copyFamilyKeys } from '@hmis/print';
 import { embeddedFontCss } from '@hmis/print/node';
 import { renderPrintHtml } from '@hmis/print/render';
 import { getTemplateMeta, preparePrintDocument } from '@hmis/print/server';
@@ -54,6 +55,7 @@ export const pdfRenderJob = defineJob({
       facilityId: data.facilityId,
       template: data.template,
       entityId: data.entityId,
+      family: copyFamilyKeys(meta),
     };
     const copyNo = await nextCopyNo(db, target);
     const now = new Date();

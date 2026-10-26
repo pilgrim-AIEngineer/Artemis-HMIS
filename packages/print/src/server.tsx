@@ -3,7 +3,14 @@
  * and the template's data from the database and assembles a `PrintDocument`. Import from
  * `@hmis/print/server`; the client-safe pieces are in `@hmis/print`.
  */
-import { loadReceipt, readSettings, type Db, type Tx } from '@hmis/db';
+import {
+  facilityCloseView,
+  loadDayClose,
+  loadReceipt,
+  readSettings,
+  type Db,
+  type Tx,
+} from '@hmis/db';
 import {
   doctorProfile,
   encounter,
@@ -22,16 +29,31 @@ import { SampleDocument } from './templates/sample';
 import { ageSex, mobileLast4 } from './templates/format';
 import { OpdSheet, type OpdSheetData } from './templates/opd-sheet';
 import { PatientSticker, UhidCard, type PatientLabelData } from './templates/patient-labels';
-import { Receipt, type ReceiptPrintData } from './templates/receipt';
 import {
+  DayCloseSlip,
+  FacilityCloseSummary,
+  type DayCloseSlipData,
+  type FacilityCloseSummaryData,
+} from './templates/day-close';
+import { Receipt, ReceiptA5, receiptStamp, type ReceiptPrintData } from './templates/receipt';
+import {
+  DAY_CLOSE_TEMPLATE,
+  FACILITY_CLOSE_TEMPLATE,
   findTemplateMeta,
   OPD_SHEET_TEMPLATE,
   PATIENT_STICKER_TEMPLATE,
   PRINT_TEMPLATE_METAS,
+  RECEIPT_A5_TEMPLATE,
   RECEIPT_TEMPLATE,
   UHID_CARD_TEMPLATE,
 } from './templates/meta';
-import type { PrintDocument, PrintHeaderData, PrintMeta, PrintTemplateMeta } from './types';
+import type {
+  Bilingual,
+  PrintDocument,
+  PrintHeaderData,
+  PrintMeta,
+  PrintTemplateMeta,
+} from './types';
 
 type Queryable = Db | Tx;
 
@@ -48,6 +70,8 @@ interface TemplateImpl<D> {
   body(data: D, meta: PrintMeta, header: PrintHeaderData): ReactNode;
   /** What the QR encodes; defaults to the entity id. Never patient data beyond an identifier. */
   qr?(data: D, entityId: string): string;
+  /** A status mark across the page (e.g. a cancelled receipt); null/undefined = none. */
+  stamp?(data: D): Bilingual | null;
 }
 
 const impl = <D,>(t: TemplateImpl<D>) => t as unknown as TemplateImpl<unknown>;
@@ -212,36 +236,116 @@ const uhidCard = impl<PatientLabelData>({
   qr: (data) => data.uhid,
 });
 
-/** `/print/receipt/<collection id>`: the receipt of one payment (all modes of a split). */
+async function loadReceiptData({
+  db,
+  facilityId,
+  entityId,
+}: LoadContext): Promise<ReceiptPrintData | null> {
+  const r = await loadReceipt(db, facilityId, entityId);
+  if (!r) return null;
+  return {
+    number: r.number,
+    kind: r.kind,
+    receivedAt: r.receivedAt,
+    receivedBy: r.receivedByName,
+    status: r.status,
+    totalPaise: r.totalPaise,
+    tenders: r.tenders,
+    patient: {
+      name: r.patient.fullName,
+      nameHi: r.patient.nameHi,
+      ageSex: ageSex(r.patient.dob, r.patient.sex, r.receivedAt),
+      uhid: r.patient.uhid,
+    },
+    encounterNumber: r.encounterNumber,
+    doctorName: r.doctorName,
+    bill: r.bill,
+  };
+}
+
+/** `/print/receipt/<collection id>`: the receipt of one payment (all modes of a split), 80 mm. */
 const receipt = impl<ReceiptPrintData>({
   meta: metaOf(RECEIPT_TEMPLATE),
+  load: loadReceiptData,
+  body: (data) => <Receipt data={data} />,
+  stamp: receiptStamp,
+});
+
+/** `/print/receipt-a5/<collection id>`: the same receipt, itemised on A5 (BIL-05). */
+const receiptA5 = impl<ReceiptPrintData>({
+  meta: metaOf(RECEIPT_A5_TEMPLATE),
+  load: loadReceiptData,
+  body: (data) => <ReceiptA5 data={data} />,
+  stamp: receiptStamp,
+});
+
+/** `/print/day-close/<user close id>`: a cashier's close slip on the roll (BIL-06). */
+const dayCloseSlip = impl<DayCloseSlipData>({
+  meta: metaOf(DAY_CLOSE_TEMPLATE),
   async load({ db, facilityId, entityId }) {
-    const r = await loadReceipt(db, facilityId, entityId);
-    if (!r) return null;
+    const c = await loadDayClose(db, facilityId, entityId);
+    if (!c || c.kind !== 'user') return null;
     return {
-      number: r.number,
-      kind: r.kind,
-      receivedAt: r.receivedAt,
-      receivedBy: r.receivedByName,
-      status: r.status,
-      totalPaise: r.totalPaise,
-      tenders: r.tenders,
-      patient: {
-        name: r.patient.fullName,
-        nameHi: r.patient.nameHi,
-        ageSex: ageSex(r.patient.dob, r.patient.sex, r.receivedAt),
-        uhid: r.patient.uhid,
-      },
-      encounterNumber: r.encounterNumber,
-      doctorName: r.doctorName,
-      bill: r.bill,
+      closeDate: c.closeDate,
+      closedAt: c.closedAt,
+      userName: c.userName,
+      totals: c.totals,
+      cashCountedPaise: c.cashCountedPaise,
+      differencePaise: c.differencePaise,
+      differenceReason: c.differenceReason,
+      paymentCount: c.paymentCount,
+      denominations: c.denominations,
     };
   },
-  body: (data) => <Receipt data={data} />,
+  body: (data) => <DayCloseSlip data={data} />,
+});
+
+/** `/print/facility-close/<facility close id>`: the owner's A4 summary of a closed day (BIL-06). */
+const facilityClose = impl<FacilityCloseSummaryData>({
+  meta: metaOf(FACILITY_CLOSE_TEMPLATE),
+  async load({ db, facilityId, entityId }) {
+    const c = await loadDayClose(db, facilityId, entityId);
+    if (!c || c.kind !== 'facility') return null;
+    const v = await facilityCloseView(db, facilityId, c.closeDate);
+    if (!v.close) return null;
+    return {
+      closeDate: c.closeDate,
+      closedAt: c.closedAt,
+      closedByName: v.close.closedByName,
+      totals: v.close.totals,
+      cashCountedPaise: v.close.cashCountedPaise,
+      differencePaise: v.close.differencePaise,
+      paymentCount: v.close.paymentCount,
+      pendingAcknowledged: v.close.pendingAcknowledged,
+      note: v.close.note,
+      userCloses: v.userCloses.map((u) => ({
+        userName: u.userName,
+        closedAt: u.closedAt,
+        cashExpectedPaise: u.totals.cashPaise,
+        cashCountedPaise: u.cashCountedPaise,
+        differencePaise: u.differencePaise,
+        differenceReason: u.differenceReason,
+      })),
+      byDoctor: v.byDoctor,
+      byDepartment: v.byDepartment,
+      upiStatus: v.upiStatus,
+      upiDifferencePaise: v.upiDifferencePaise,
+    };
+  },
+  body: (data) => <FacilityCloseSummary data={data} />,
 });
 
 const IMPLS = new Map<string, TemplateImpl<unknown>>(
-  [...sampleTemplates, opdSheet, patientSticker, uhidCard, receipt].map((t) => [t.meta.key, t]),
+  [
+    ...sampleTemplates,
+    opdSheet,
+    patientSticker,
+    uhidCard,
+    receipt,
+    receiptA5,
+    dayCloseSlip,
+    facilityClose,
+  ].map((t) => [t.meta.key, t]),
 );
 
 /** Facility profile + `print.header` + `ui.accentColor`, shaped for the header component. */
@@ -319,5 +423,11 @@ export async function preparePrintDocument(input: PrepareInput): Promise<PrintDo
     docRef,
     qrSvg: await qrSvg(docRef),
   };
-  return { template: t.meta, header, meta, body: t.body(data, meta, header) };
+  return {
+    template: t.meta,
+    header,
+    meta,
+    body: t.body(data, meta, header),
+    stamp: t.stamp?.(data) ?? null,
+  };
 }

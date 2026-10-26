@@ -11,7 +11,7 @@ import { PrintHeader } from './print-header';
  * two can never drift apart (docs/01 §4).
  */
 export function PrintPage({ doc }: { doc: PrintDocument }) {
-  const { template, header, meta, body } = doc;
+  const { template, header, meta, body, stamp } = doc;
   const paper = template.paper;
   const isLabel = paper === 'label50x25';
   const chrome = isLabel ? 'none' : (template.chrome ?? 'full');
@@ -26,8 +26,24 @@ export function PrintPage({ doc }: { doc: PrintDocument }) {
     >
       <style dangerouslySetInnerHTML={{ __html: printCss(paper) }} />
       <div className="print-sheet">
+        {stamp && (
+          <div
+            className={`print-watermark print-stamp${duplicate ? 'with-duplicate' : ''}`}
+            aria-hidden="true"
+            data-testid="status-watermark"
+          >
+            <span>
+              {stamp.en}
+              <small>{stamp.hi}</small>
+            </span>
+          </div>
+        )}
         {duplicate && (
-          <div className="print-watermark" aria-hidden="true" data-testid="duplicate-watermark">
+          <div
+            className={`print-watermark print-duplicate-mark${stamp ? 'with-stamp' : ''}`}
+            aria-hidden="true"
+            data-testid="duplicate-watermark"
+          >
             <span>
               {L.duplicate.en}
               <small>

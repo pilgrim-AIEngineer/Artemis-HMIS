@@ -17,6 +17,9 @@ export const OPD_SHEET_TEMPLATE = 'opd-sheet';
 export const PATIENT_STICKER_TEMPLATE = 'patient-sticker';
 export const UHID_CARD_TEMPLATE = 'uhid-card';
 export const RECEIPT_TEMPLATE = 'receipt';
+export const RECEIPT_A5_TEMPLATE = 'receipt-a5';
+export const DAY_CLOSE_TEMPLATE = 'day-close';
+export const FACILITY_CLOSE_TEMPLATE = 'facility-close';
 
 /** REG-06: A5 sheet per visit; the entity is the encounter. */
 const OPD_SHEET: PrintTemplateMeta = {
@@ -56,6 +59,35 @@ const RECEIPT: PrintTemplateMeta = {
   entity: 'receipt',
   permission: 'billing.payment.collect',
   title: L.receiptTitle,
+  copyFamily: 'receipt',
+};
+
+/** BIL-05: the same receipt on A5 (itemised, with signature line); shares the copy counter. */
+const RECEIPT_A5: PrintTemplateMeta = {
+  key: RECEIPT_A5_TEMPLATE,
+  paper: 'a5',
+  entity: 'receipt',
+  permission: 'billing.payment.collect',
+  title: L.receiptTitle,
+  copyFamily: 'receipt',
+};
+
+/** BIL-06: a cashier's day-close slip on the 80 mm roll; the entity is the user close. */
+const DAY_CLOSE: PrintTemplateMeta = {
+  key: DAY_CLOSE_TEMPLATE,
+  paper: 'thermal80',
+  entity: 'day_close',
+  permission: 'billing.dayclose.own',
+  title: L.dayCloseTitle,
+};
+
+/** BIL-06: facility day-close summary for the owner on A4; the entity is the facility close. */
+const FACILITY_CLOSE: PrintTemplateMeta = {
+  key: FACILITY_CLOSE_TEMPLATE,
+  paper: 'a4',
+  entity: 'day_close',
+  permission: 'billing.dayclose.facility',
+  title: L.facilityCloseTitle,
 };
 
 /** All print templates, client-safe. Add real templates here and in `server.tsx`. */
@@ -65,7 +97,16 @@ export const PRINT_TEMPLATE_METAS: readonly PrintTemplateMeta[] = [
   PATIENT_STICKER,
   UHID_CARD,
   RECEIPT,
+  RECEIPT_A5,
+  DAY_CLOSE,
+  FACILITY_CLOSE,
 ];
 
 export const findTemplateMeta = (key: string): PrintTemplateMeta | undefined =>
   PRINT_TEMPLATE_METAS.find((t) => t.key === key);
+
+/** Template keys that share a copy counter with `meta` (itself included). */
+export const copyFamilyKeys = (meta: PrintTemplateMeta): string[] =>
+  meta.copyFamily
+    ? PRINT_TEMPLATE_METAS.filter((t) => t.copyFamily === meta.copyFamily).map((t) => t.key)
+    : [meta.key];

@@ -1030,6 +1030,8 @@ export interface ReceiptData {
   bill: {
     number: string | null;
     status: BillStatus;
+    grossPaise: bigint;
+    discountPaise: bigint;
     netPaise: bigint;
     paidPaise: bigint;
     balancePaise: bigint;
@@ -1037,6 +1039,7 @@ export interface ReceiptData {
       description: string;
       descriptionHi: string | null;
       qty: string;
+      unitRatePaise: bigint;
       amountPaise: bigint;
     }[];
   } | null;
@@ -1080,6 +1083,7 @@ export async function loadReceipt(
         description: billLine.description,
         descriptionHi: billLine.descriptionHi,
         qty: billLine.qty,
+        unitRatePaise: billLine.unitRatePaise,
         amountPaise: billLine.patientSharePaise,
       })
       .from(billLine)
@@ -1089,6 +1093,8 @@ export async function loadReceipt(
       billData = {
         number: b.number,
         status: b.status as BillStatus,
+        grossPaise: b.grossPaise,
+        discountPaise: b.discountPaise,
         netPaise: b.netPaise,
         paidPaise: b.paidPaise,
         balancePaise: b.balancePaise,

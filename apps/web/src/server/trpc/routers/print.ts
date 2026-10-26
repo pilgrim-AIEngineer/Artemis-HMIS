@@ -1,5 +1,5 @@
 import { nextCopyNo, recordPrint } from '@hmis/db';
-import { findTemplateMeta } from '@hmis/print';
+import { copyFamilyKeys, findTemplateMeta } from '@hmis/print';
 import { printEntityExists } from '@hmis/print/server';
 import { uuidSchema } from '@hmis/shared';
 import { z } from 'zod';
@@ -22,6 +22,7 @@ export const printRouter = router({
         facilityId: ctx.auth.facilityId,
         template: meta.key,
         entityId: input.entityId,
+        family: copyFamilyKeys(meta),
       };
       if (!(await printEntityExists({ db: ctx.db(), ...target }))) {
         throw appError('NOT_FOUND', 'errors.notFound');
@@ -49,6 +50,7 @@ export const printRouter = router({
           facilityId: ctx.auth.facilityId,
           template: meta.key,
           entityId: input.entityId,
+          family: copyFamilyKeys(meta),
         }),
       };
     }),

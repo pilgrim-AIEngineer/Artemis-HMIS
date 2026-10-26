@@ -30,6 +30,8 @@ export interface ReceiptPrintData {
   bill: {
     number: string | null;
     status: 'draft' | 'final' | 'cancelled';
+    grossPaise: bigint;
+    discountPaise: bigint;
     netPaise: bigint;
     paidPaise: bigint;
     balancePaise: bigint;
@@ -37,6 +39,7 @@ export interface ReceiptPrintData {
       description: string;
       descriptionHi: string | null;
       qty: string;
+      unitRatePaise: bigint;
       amountPaise: bigint;
     }[];
   } | null;
@@ -53,9 +56,16 @@ const MODE: Partial<Record<PaymentMode, Bilingual>> = {
 /** `1.000` → `1`, `1.500` → `1.5` */
 const qtyText = (q: string) => q.replace(/\.?0+$/, '');
 
+/** The mark drawn across a receipt that no longer stands (BIL-05, docs/12 §9). */
+export function receiptStamp(data: ReceiptPrintData): Bilingual | null {
+  if (data.status === 'reversed') return L.reversed;
+  if (data.kind !== 'refund' && data.bill?.status === 'cancelled') return L.billCancelled;
+  return null;
+}
+
 /**
- * Payment receipt on the 80 mm roll (BIL-02; the A5 layout and reprint rules come with BIL-05):
- * UHID, bill number, items, amount, mode(s) with only the last digits of a UTR or card, balance,
+ * Payment receipt on the 80 mm roll (BIL-02; BIL-05 adds the A5 layout, the CANCELLED mark and the
+ * DUPLICATE rule, which `PrintPage` applies to every reprint): UHID, bill number, items, amount, mode(s) with only the last digits of a UTR or card, balance,
  * who received it, and the amount in words in Hindi and English. Bilingual for the patient.
  */
 export function Receipt({ data }: { data: ReceiptPrintData }) {
@@ -172,6 +182,152 @@ export function Receipt({ data }: { data: ReceiptPrintData }) {
           <span>{data.receivedBy}</span>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * The same receipt on A5 (BIL-05): itemised with quantity and rate, bill summary, the tenders, the
+ * amount in words and a signature line. Same data and rules as the roll; only the layout differs.
+ */
+export function ReceiptA5({ data }: { data: ReceiptPrintData }) {
+  const { patient, bill } = data;
+  const refund = data.kind === 'refund';
+  const shown = refund ? -data.totalPaise : data.totalPaise;
+  return (
+    <div className="receipt receipt-a5" data-testid="receipt">
+      {data.status === 'reversed' && <p className="receipt-status">{bi(L.reversed)}</p>}
+      {refund && <p className="receipt-status">{bi(L.refundTitle)}</p>}
+      {!refund && bill?.status === 'cancelled' && (
+        <p className="receipt-status" data-testid="receipt-bill-cancelled">
+          {bi(L.billCancelled)}
+        </p>
+      )}
+      <div className="receipt-a5-grid">
+        <div>
+          <span className="receipt-k">{bi(refund ? L.creditNoteNo : L.receiptNo)}</span>
+          <strong data-testid="receipt-number">{data.number}</strong>
+        </div>
+        <div>
+          <span className="receipt-k">{bi(L.dateTime)}</span>
+          <span>{formatDateTime(data.receivedAt)}</span>
+        </div>
+        <div>
+          <span className="receipt-k">{bi(L.patient)}</span>
+          <strong>{patient.name}</strong>
+          {patient.nameHi && <span>{patient.nameHi}</span>}
+        </div>
+        <div>
+          <span className="receipt-k">{L.uhid.en}</span>
+          <strong>{patient.uhid}</strong>
+          <span>{patient.ageSex}</span>
+        </div>
+        {data.encounterNumber && (
+          <div>
+            <span className="receipt-k">{bi(L.visitNo)}</span>
+            <span>{data.encounterNumber}</span>
+          </div>
+        )}
+        {data.doctorName && (
+          <div>
+            <span className="receipt-k">{bi(L.doctor)}</span>
+            <span>{data.doctorName}</span>
+          </div>
+        )}
+        {bill && (
+          <div>
+            <span className="receipt-k">{bi(L.billNo)}</span>
+            <span>{bill.number ?? bi(L.billDraft)}</span>
+          </div>
+        )}
+      </div>
+      {bill && bill.lines.length > 0 && (
+        <table className="print-table" data-testid="receipt-items">
+          <thead>
+            <tr>
+              <th>{L.sNo.en}</th>
+              <th>{bi(L.item)}</th>
+              <th className="num">{bi(L.qty)}</th>
+              <th className="num">{bi(L.rate)}</th>
+              <th className="num">{bi(L.amount)}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {bill.lines.map((l, i) => (
+              <tr key={i}>
+                <td>{i + 1}</td>
+                <td>{l.descriptionHi ? `${l.descriptionHi} / ${l.description}` : l.description}</td>
+                <td className="num">{qtyText(l.qty)}</td>
+                <td className="num">{formatINR(l.unitRatePaise)}</td>
+                <td className="num">{formatINR(l.amountPaise)}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            {bill.discountPaise > 0n && (
+              <>
+                <tr>
+                  <td colSpan={4}>{bi(L.grossTotal)}</td>
+                  <td className="num">{formatINR(bill.grossPaise)}</td>
+                </tr>
+                <tr>
+                  <td colSpan={4}>{bi(L.discount)}</td>
+                  <td className="num">−{formatINR(bill.discountPaise)}</td>
+                </tr>
+              </>
+            )}
+            <tr>
+              <td colSpan={4}>{bi(L.billTotal)}</td>
+              <td className="num">{formatINR(bill.netPaise)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      )}
+      <div className="receipt-row receipt-paid">
+        <span>{bi(refund ? L.refundedNow : L.paidNow)}</span>
+        <span data-testid="receipt-amount">{formatINR(shown)}</span>
+      </div>
+      {data.tenders.map((t) => (
+        <div className="receipt-row" key={t.mode}>
+          <span>
+            {bi(MODE[t.mode] ?? L.modeOther)}
+            {t.upiRef && ` · ${L.utr.en} ${maskRef(t.upiRef)}`}
+            {t.cardLast4 && ` · ${L.cardEnding.en} …${t.cardLast4}`}
+          </span>
+          <span className="receipt-amount">
+            {formatINR(refund ? -t.amountPaise : t.amountPaise)}
+          </span>
+        </div>
+      ))}
+      <p className="receipt-words">
+        {bi(L.inWords)}: {amountInWordsHi(shown)} / {amountInWordsEn(shown)}
+      </p>
+      {bill && (
+        <div className="receipt-a5-balance">
+          <div className="receipt-row">
+            <span className="receipt-k">{bi(L.paidTotal)}</span>
+            <span>{formatINR(bill.paidPaise)}</span>
+          </div>
+          <div className="receipt-row">
+            <strong>{bi(L.balanceDue)}</strong>
+            <strong data-testid="receipt-balance">{formatINR(bill.balancePaise)}</strong>
+          </div>
+        </div>
+      )}
+      <div className="receipt-a5-sign">
+        <div>
+          {data.receivedBy && (
+            <p>
+              <span className="receipt-k">{bi(L.receivedBy)}: </span>
+              {data.receivedBy}
+            </p>
+          )}
+        </div>
+        <div className="receipt-a5-sign-box">
+          <span className="receipt-k">{bi(L.receiverSign)}</span>
+        </div>
+      </div>
+      <p className="print-note">{bi(L.receiptNote)}</p>
     </div>
   );
 }

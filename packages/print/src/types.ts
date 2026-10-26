@@ -60,6 +60,11 @@ export interface PrintTemplateMeta {
    * printed in numbers on purpose. `print_log` still counts every copy.
    */
   markDuplicate?: boolean;
+  /**
+   * Templates with the same `copyFamily` are layouts of one document (receipt: 80 mm and A5) and
+   * share the copy counter, so printing the other layout after the first is a DUPLICATE.
+   */
+  copyFamily?: string;
 }
 
 /** Everything needed to draw one printed document; same input for web print and worker PDF. */
@@ -68,4 +73,6 @@ export interface PrintDocument {
   header: PrintHeaderData;
   meta: PrintMeta;
   body: ReactNode;
+  /** Status mark across the page (e.g. CANCELLED), drawn next to the DUPLICATE mark. */
+  stamp?: Bilingual | null;
 }

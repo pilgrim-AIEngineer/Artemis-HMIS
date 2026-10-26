@@ -4,6 +4,8 @@
  */
 import {
   addBillLine,
+  nextCopyNo,
+  recordPrint,
   cancelFinalBill,
   collectPayment,
   ensureFacilityRbac,
@@ -16,8 +18,14 @@ import { and, eq } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
 import { renderPrintHtml } from './render';
+import { receiptStamp } from './templates/receipt';
 import { preparePrintDocument } from './server';
-import { RECEIPT_TEMPLATE } from './templates/meta';
+import {
+  copyFamilyKeys,
+  findTemplateMeta,
+  RECEIPT_A5_TEMPLATE,
+  RECEIPT_TEMPLATE,
+} from './templates/meta';
 
 let fx: OpdFixture;
 let collectionId: string;
@@ -126,11 +134,11 @@ afterAll(async () => {
   await fx.t.close();
 });
 
-const prepare = (entityId: string, copyNo = 1) =>
+const prepare = (entityId: string, copyNo = 1, template: string = RECEIPT_TEMPLATE) =>
   preparePrintDocument({
     db: fx.t.app,
     facilityId: fx.f.facilityId,
-    template: RECEIPT_TEMPLATE,
+    template,
     entityId,
     copyNo,
     printedAt: IST('2028-05-03T10:43:00'),
@@ -190,5 +198,98 @@ describe('refund voucher and cancelled bill (BIL-04)', () => {
     expect(html).toContain('BILL CANCELLED');
     expect(html).toContain('Amount received');
     expect(renderPrintHtml((await prepare(collectionId))!, '')).not.toContain('BILL CANCELLED');
+  });
+});
+
+describe('receipt on A5 (BIL-05)', () => {
+  const prepareA5 = (id: string, copyNo = 1) => prepare(id, copyNo, RECEIPT_A5_TEMPLATE);
+
+  it('is the same receipt, itemised with quantity and rate on A5 paper', async () => {
+    const doc = (await prepareA5(collectionId))!;
+    expect(doc.template.paper).toBe('a5');
+    expect(doc.template.markDuplicate).toBeUndefined();
+    const html = renderPrintHtml(doc, '');
+    expect(html).toContain('print-paper-a5');
+    expect(html).toContain('data-testid="receipt-items"');
+    expect(html).toMatch(/RC\/28-29\/\d{6}/);
+    expect(html).toContain('Sita Kumari');
+    expect(html).toContain('सीता कुमारी');
+    expect(html).toContain('UH-000777');
+    expect(html).toContain('Qty');
+    expect(html).toContain('मात्रा');
+    expect(html).toContain('₹400.00'); // the ANC rate
+    expect(html).toContain('₹800.00'); // 2 × ANC
+    expect(html).toContain('₹1,300.00');
+    expect(html).toContain('UTR …9012');
+    expect(html).not.toContain('123456789012');
+    expect(html).toContain('Card …4242');
+    expect(html).toContain('One thousand three hundred rupees');
+    expect(html).toContain('Receiver signature');
+    expect(html).not.toContain('DUPLICATE');
+    expect(html).not.toContain('status-watermark');
+  });
+
+  it('marks a reprint DUPLICATE with the copy number', async () => {
+    const html = renderPrintHtml((await prepareA5(collectionId, 3))!, '');
+    expect(html).toContain('data-testid="duplicate-watermark"');
+    expect(html).toContain('DUPLICATE');
+    expect(html).toContain('#3');
+  });
+
+  it('draws the CANCELLED mark on a reversed receipt and BILL CANCELLED on a cancelled bill', async () => {
+    const bill = renderPrintHtml((await prepareA5(cancelledPaymentId))!, '');
+    expect(bill).toContain('data-testid="status-watermark"');
+    expect(bill).toContain('BILL CANCELLED');
+    // …on the roll as well, and together with DUPLICATE on a reprint
+    const roll = renderPrintHtml((await prepare(cancelledPaymentId, 2))!, '');
+    expect(roll).toContain('data-testid="status-watermark"');
+    expect(roll).toContain('data-testid="duplicate-watermark"');
+    expect(renderPrintHtml((await prepareA5(refundId))!, '')).not.toContain('status-watermark');
+  });
+
+  it('a reversed payment prints CANCELLED across the page', async () => {
+    // Payment reversal itself arrives with a later PR; the mark follows `status = reversed`.
+    const doc = (await prepareA5(partialId))!;
+    expect(doc.stamp).toBeNull();
+    const reversed = receiptStamp({ status: 'reversed', kind: 'payment', bill: null } as never);
+    expect(reversed).toEqual({ hi: 'रद्द', en: 'CANCELLED' });
+    const html = renderPrintHtml({ ...doc, stamp: reversed }, '');
+    expect(html).toContain('data-testid="status-watermark"');
+    expect(html).toContain('CANCELLED');
+  });
+
+  it('thermal and A5 are one document: they share the copy counter', async () => {
+    const target = {
+      facilityId: fx.f.facilityId,
+      entityId: collectionId,
+      family: copyFamilyKeys(findTemplateMeta(RECEIPT_TEMPLATE)!),
+    };
+    expect(target.family.sort()).toEqual([RECEIPT_A5_TEMPLATE, RECEIPT_TEMPLATE].sort());
+    expect(await nextCopyNo(fx.t.app, { ...target, template: RECEIPT_A5_TEMPLATE })).toBe(1);
+    const first = await fx.run((tx) =>
+      recordPrint(tx, {
+        ...target,
+        template: RECEIPT_TEMPLATE,
+        entity: 'receipt',
+        userId: fx.f.userId,
+      }),
+    );
+    expect(first.copyNo).toBe(1);
+    // The A5 print of an already printed receipt is copy 2, i.e. a DUPLICATE.
+    expect(await nextCopyNo(fx.t.app, { ...target, template: RECEIPT_A5_TEMPLATE })).toBe(2);
+    const second = await fx.run((tx) =>
+      recordPrint(tx, {
+        ...target,
+        template: RECEIPT_A5_TEMPLATE,
+        entity: 'receipt',
+        userId: fx.f.userId,
+      }),
+    );
+    expect(second.copyNo).toBe(2);
+    expect(await nextCopyNo(fx.t.app, { ...target, template: RECEIPT_TEMPLATE })).toBe(3);
+    // Other documents are not affected.
+    expect(
+      await nextCopyNo(fx.t.app, { ...target, entityId: partialId, template: RECEIPT_TEMPLATE }),
+    ).toBe(1);
   });
 });
