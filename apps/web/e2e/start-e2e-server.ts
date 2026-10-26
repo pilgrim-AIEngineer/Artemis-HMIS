@@ -9,12 +9,14 @@ import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { cpSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { createDb, ensureAppLoginRole, ensureFacilityRbac, withTx } from '@hmis/db';
+import { createDb, ensureAppLoginRole, ensureFacilityRbac, setServiceRate, withTx } from '@hmis/db';
+import { rupeesToPaise } from '@hmis/shared';
+import { and, eq } from 'drizzle-orm';
 import { insertUser } from '@hmis/db/auth';
 import { seedMasters } from '@hmis/db/seed';
 import { DEMO_STEPS } from '@hmis/db/seed/demo';
 import { runMigrations } from '@hmis/db/migrate';
-import { facility } from '@hmis/db/schema';
+import { facility, service } from '@hmis/db/schema';
 import { startPostgresContainer } from '@hmis/db/testing';
 import { uuidv7 } from 'uuidv7';
 import { E2E_PASSWORD, E2E_USERS } from './fixtures';
@@ -44,10 +46,26 @@ await withTx({ db: owner, userId: null }, async (tx) => {
     await insertUser(tx, { facilityId, ...u, password: E2E_PASSWORD, roles: [...u.roles] });
   }
   const masters = await seedMasters(tx, facilityId); // docs/33 master seeds: names only, no rates
-  // Demo doctors with consultation rules and synthetic demo rates (no patients, no visits), so the
-  // visit and queue specs can price a consultation.
-  for (const step of DEMO_STEPS.filter((x) => x.name === 'doctors' || x.name === 'rates')) {
+  // Demo doctors with consultation rules, and prices for their two Gynae consultation services
+  // only: other services stay unpriced because the masters spec starts from "rate not set".
+  for (const step of DEMO_STEPS.filter((x) => x.name === 'doctors')) {
     await step.run({ tx, facilityId, masters, rng: () => 0.5 });
+  }
+  for (const [code, rupees] of [
+    ['CONS-GYN-NEW', 500],
+    ['CONS-GYN-FU', 300],
+  ] as const) {
+    const [svc] = await tx
+      .select({ id: service.id })
+      .from(service)
+      .where(and(eq(service.facilityId, facilityId), eq(service.code, code)));
+    await setServiceRate(tx, {
+      facilityId,
+      serviceId: svc!.id,
+      tariffId: masters.defaultTariffId,
+      ratePaise: rupeesToPaise(rupees),
+      effectiveFrom: '2026-04-01',
+    });
   }
 });
 await owner.$client.end();
