@@ -8,7 +8,7 @@ import { PRINT_FONT_STACK } from './fonts';
 const TEMPLATE_CSS = `
 .print-header-compact { padding-bottom: 1mm; margin-bottom: 1.5mm; }
 .print-header-compact .print-name { font-size: 1.25em; }
-.sheet { display: flex; flex-direction: column; gap: 1.3mm; min-height: 172mm; }
+.sheet { display: flex; flex-direction: column; gap: 1.2mm; height: 164mm; }
 .sheet-k { display: block; font-size: 0.7em; color: #333; line-height: 1.1; }
 .sheet-doctor { font-size: 0.95em; }
 .sheet-top { display: flex; gap: 2mm; align-items: stretch; }
@@ -23,15 +23,15 @@ const TEMPLATE_CSS = `
 .sheet-barcode { height: 6mm; margin-top: 0.8mm; }
 .sheet-barcode svg { display: block; width: 100%; height: 100%; }
 .sheet-visit-no { font-size: 0.65em; line-height: 1.1; }
-.sheet-vitals { display: flex; flex-wrap: wrap; gap: 1mm 3mm; align-items: flex-end; border: 0.75pt solid #000; padding: 1mm 1.5mm; }
+.sheet-vitals { display: flex; flex-wrap: wrap; gap: 1mm 2mm; align-items: flex-end; border: 0.75pt solid #000; padding: 1mm 1.5mm; }
 .sheet-vital { display: inline-flex; align-items: flex-end; gap: 1mm; }
 .sheet-vital-label { font-weight: 700; }
-.sheet-vital-box { display: inline-block; min-width: 11mm; height: 5mm; border-bottom: 0.75pt solid #000; padding: 0 0.5mm; text-align: center; }
+.sheet-vital-box { display: inline-block; min-width: 9mm; height: 5mm; border-bottom: 0.75pt solid #000; padding: 0 0.5mm; text-align: center; }
 .sheet-vital-unit { font-size: 0.7em; }
 .sheet-context { border: 0.75pt solid #000; padding: 1mm 1.5mm; display: grid; gap: 1mm; }
 .sheet-blank-line { display: inline-block; min-width: 40mm; border-bottom: 0.5pt solid #000; height: 3.5mm; vertical-align: bottom; }
 .sheet-blank-line.short { min-width: 12mm; }
-.sheet-write { flex: 1; display: grid; grid-template-columns: 2fr 3fr; min-height: 44mm; border: 0.75pt solid #000; }
+.sheet-write { flex: 1; display: grid; grid-template-columns: 2fr 3fr; min-height: 30mm; border: 0.75pt solid #000; }
 .sheet-write-left { border-right: 0.75pt solid #000; padding: 1mm 1.5mm; }
 .sheet-write-right { padding: 1mm 1.5mm; }
 .sheet-write .sheet-k { font-size: 0.8em; font-weight: 700; color: #000; }
@@ -42,7 +42,7 @@ const TEMPLATE_CSS = `
 .sheet-orders .sheet-other .sheet-blank-line { flex: 1; min-width: 0; }
 .sheet-tick { display: inline-block; width: 3mm; height: 3mm; border: 0.75pt solid #000; flex: none; }
 .sheet-follow { display: flex; justify-content: space-between; gap: 3mm; flex-wrap: wrap; }
-.sheet-sign { text-align: right; padding-top: 6mm; font-size: 0.8em; }
+.sheet-sign { text-align: right; padding-top: 4mm; font-size: 0.8em; }
 .sheet-sign span { display: inline-block; border-top: 0.5pt solid #000; padding: 0.5mm 4mm 0; }
 .sticker-name { font-weight: 700; font-size: 1.2em; line-height: 1.1; }
 .sticker-name-hi { line-height: 1.1; }

@@ -42,7 +42,7 @@ export function DisplayLink() {
   const configured = status.data?.configured ?? false;
   // Replacing a working link needs a second click, so the TV is not switched off by accident.
   const make = () => {
-    if (configured && !link && !confirm) setConfirm(true);
+    if (configured && !confirm) setConfirm(true);
     else rotate.mutate();
   };
 

@@ -15,4 +15,6 @@ export const E2E_USERS = {
     roles: ['doctor_assistant'],
   },
   admin: { username: 'e2e_admin', fullName: 'E2E Admin', pin: '1357', roles: ['admin'] },
+  // Holds queue.display.manage (the waiting-room TV link); admins do not by default.
+  owner: { username: 'e2e_owner', fullName: 'E2E Owner', pin: '3691', roles: ['owner'] },
 } as const;

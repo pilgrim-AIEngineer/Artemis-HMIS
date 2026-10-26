@@ -245,7 +245,7 @@ export function PatientForm({ patientId, familyOf }: { patientId?: string; famil
     trpc.patients.create.mutationOptions({
       onSuccess: (out) => {
         if (out.status === 'created') {
-          router.push(`/reception/patients/${out.id}?registered=${encodeURIComponent(out.uhid)}`);
+          router.push(`/reception/patients/${out.id}?registered=1`);
         } else {
           setMatches(out.matches);
           setOverriding(false);
