@@ -194,3 +194,33 @@ export function allocatePaise(total: Paise, weights: readonly Paise[]): Paise[] 
 export function roundOffToRupee(total: Paise): Paise {
   return divRound(total, PAISE_PER_RUPEE) * PAISE_PER_RUPEE - total;
 }
+
+/**
+ * What a money field holds while typing: digits with at most one `.` and two decimals; grouping
+ * commas, spaces and `₹` are dropped. Returns null for anything else (letters, a second dot,
+ * three decimals), so the field can refuse the keystroke instead of rounding.
+ */
+export function cleanRupeeText(text: string): string | null {
+  const s = text.replace(/[₹,\s]/g, '');
+  return /^\d{0,11}(\.\d{0,2})?$/.test(s) ? s : null;
+}
+
+/** Paise of a money field's text (`"1,250.5"` → 125050n); null when empty or not a number. */
+export function parseRupeeText(text: string): Paise | null {
+  const s = cleanRupeeText(text);
+  if (!s || s === '.') return null;
+  return rupeesToPaise(s.endsWith('.') ? s.slice(0, -1) : s.startsWith('.') ? `0${s}` : s);
+}
+
+/** Indian grouping of a money field's text as typed: `"125000.5"` → `"1,25,000.5"`. */
+export function groupRupeeText(text: string): string {
+  const s = cleanRupeeText(text) ?? '';
+  const [whole = '', frac] = s.split('.');
+  const grouped = whole ? groupIndian(String(BigInt(whole))) : '';
+  return frac === undefined ? grouped : `${grouped || '0'}.${frac}`;
+}
+
+/** The text a money field shows for an amount: `125000n` → `"1,250"`, `125050n` → `"1,250.50"`. */
+export function paiseToRupeeText(paise: Paise): string {
+  return formatINR(paise, { symbol: false, decimals: 'auto' });
+}

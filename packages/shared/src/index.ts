@@ -1,5 +1,6 @@
 export * from './accent';
 export * from './auth';
+export * from './billing';
 export * from './compliance/forbidden-terms';
 export * from './dates';
 export * from './display';
@@ -22,3 +23,4 @@ export * from './settings';
 export * from './settings-meta';
 export * from './transliterate';
 export * from './visits';
+export * from './words';

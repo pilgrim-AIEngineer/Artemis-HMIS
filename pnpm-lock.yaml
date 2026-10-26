@@ -398,6 +398,9 @@ importers:
       '@types/react-dom':
         specifier: ^19.3.0
         version: 19.3.0(@types/react@19.3.0)
+      uuidv7:
+        specifier: 1.2.1
+        version: 1.2.1
 
   packages/shared:
     dependencies:
@@ -420,6 +423,9 @@ importers:
 
   packages/ui:
     dependencies:
+      '@hmis/shared':
+        specifier: workspace:*
+        version: link:../shared
       class-variance-authority:
         specifier: 0.7.1
         version: 0.7.1

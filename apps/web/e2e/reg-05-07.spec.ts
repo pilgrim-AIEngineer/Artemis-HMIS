@@ -6,7 +6,7 @@
  */
 import { expect, test, type Browser, type Page, type Request } from '@playwright/test';
 import { E2E_USERS } from './fixtures';
-import { signInReady } from './helpers';
+import { payVisitInCash, signInReady } from './helpers';
 
 const stubPrint = `window.__printCalls = 0; window.print = () => { window.__printCalls++; };`;
 const KEY_PARAM = /^[A-Za-z0-9_-]{43}$/;
@@ -121,14 +121,14 @@ test.describe.serial('TV display and registration prints', () => {
     await page.getByRole('button', { name: /Dr\. Sunita Verma/ }).click();
     await page.getByRole('button', { name: 'Save visit' }).click();
     const created = page.getByTestId('visit-created');
-    await created.getByRole('button', { name: 'Fee collected: give token' }).click();
+    await payVisitInCash(page);
     const tokenText = await created
       .getByRole('status')
       .filter({ hasText: /Token\s*\d+/ })
       .textContent();
     const tokenNo = /Token\s*(\d+)/.exec(tokenText ?? '')![1]!;
-    // Sheet prints at the vitals desk by default (Q11): nothing printed at reception.
-    await expect(page.locator('iframe[aria-hidden="true"]')).toHaveCount(0);
+    // Sheet prints at the vitals desk by default (Q11): reception prints only the receipt.
+    await printed(page, 'receipt', 1);
 
     // The TV lists waiting tokens: numbers only.
     await expect(tv.page.getByTestId('display-next').first()).toBeVisible({ timeout: 6_000 });

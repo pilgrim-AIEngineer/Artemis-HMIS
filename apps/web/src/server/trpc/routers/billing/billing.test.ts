@@ -1,0 +1,259 @@
+/**
+ * BIL-01 / BIL-02 through tRPC: who may bill and collect (AGENTS.md rule 6), error keys instead
+ * of SQL (docs/02 §7), the visit → bill → payment → token flow, and idempotent replays over the
+ * API. The money math and races are covered against the db layer (packages/db billing.test.ts).
+ */
+import { billLine, opdToken, payment, service } from '@hmis/db/schema';
+import { seedOpdData, type OpdFixture } from '@hmis/db/testing/opd';
+import { withTx, writeSetting } from '@hmis/db';
+import { insertUser } from '@hmis/db/auth';
+import { and, eq } from 'drizzle-orm';
+import { uuidv7 } from 'uuidv7';
+import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
+import {
+  PASSWORD,
+  PIN,
+  setupAuthFixture,
+  trpcError,
+  type AuthFixture,
+  type TestBrowser,
+} from '../../../../../test/auth-fixture';
+
+let f: AuthFixture;
+let opd: Omit<OpdFixture, 't' | 'f'>;
+let reception: TestBrowser;
+let cashier: TestBrowser;
+let doctor: TestBrowser;
+let nurse: TestBrowser;
+let admin: TestBrowser;
+let noRoles: TestBrowser;
+let adminB: TestBrowser;
+
+beforeAll(async () => {
+  f = await setupAuthFixture(inject('testPgAdminUrl'));
+  opd = await seedOpdData(f.t, {
+    facilityId: f.a.facilityId,
+    userId: f.users.reception.id,
+    workstationId: f.a.workstationId,
+  });
+  const login = async (u: { username: string }) => {
+    const b = f.browser();
+    await b.login(u.username);
+    return b;
+  };
+  [reception, cashier, doctor, nurse, admin, noRoles, adminB] = await Promise.all([
+    login(f.users.reception),
+    login(f.users.cashier),
+    login(f.users.doctor),
+    login(f.users.nurse),
+    login(f.users.admin),
+    login(f.users.noRoles),
+    login(f.users.adminB),
+  ]);
+});
+afterAll(async () => {
+  await f.close();
+});
+
+const book = (b: TestBrowser = reception) =>
+  b.call(async (c) =>
+    c.visit.create({
+      patientId: await opd.newPatient(),
+      doctorId: opd.doctorA,
+      idempotencyKey: uuidv7(),
+    }),
+  );
+
+const collect = (b: TestBrowser, billId: string, tenders: unknown[], key = uuidv7()) =>
+  b.call((c) => c.billing.collect({ billId, tenders: tenders as never, idempotencyKey: key }));
+
+describe('visit → bill → payment → token (flow 1 server side)', () => {
+  it('collects cash in full, finalises the bill and releases the token', async () => {
+    const v = await book();
+    expect(v.tokenNo).toBeNull();
+    const bill = await reception.call((c) => c.billing.get({ billId: v.billId }));
+    expect(bill).toMatchObject({ status: 'draft', netPaise: 50_000n, balancePaise: 50_000n });
+    expect(bill.lines.map((l) => l.description)).toHaveLength(1);
+
+    const r = await collect(reception, v.billId, [{ mode: 'cash', amountPaise: '50000' }]);
+    expect(r).toMatchObject({ billStatus: 'final', balancePaise: '0', printSheet: false });
+    expect(r.tokenNo).toBeGreaterThan(0);
+    const after = await reception.call((c) => c.billing.get({ billId: v.billId }));
+    expect(after).toMatchObject({ status: 'final', tokenNo: r.tokenNo });
+    expect(after.payments[0]?.receivedByName).toBe('Test reception');
+    const [row] = await f.db.select().from(payment).where(eq(payment.billId, v.billId));
+    expect(row).toMatchObject({
+      receivedBy: f.users.reception.id,
+      workstationId: null, // this test session is not on a paired workstation
+    });
+  });
+
+  it('prints the OPD sheet with the token when the sheet prints at reception', async () => {
+    await opd.run((tx) => writeSetting(tx, f.a.facilityId, 'opd.sheetPrintAt', 'reception'));
+    try {
+      const v = await book();
+      const r = await collect(reception, v.billId, [{ mode: 'upi', amountPaise: 50_000 }]);
+      expect(r.printSheet).toBe(true);
+    } finally {
+      await opd.run((tx) => writeSetting(tx, f.a.facilityId, 'opd.sheetPrintAt', 'vitals'));
+    }
+  });
+
+  it('replays a double submit and maps a reused key to a conflict', async () => {
+    const v = await book();
+    const key = uuidv7();
+    const [a, b] = await Promise.all([
+      collect(cashier, v.billId, [{ mode: 'cash', amountPaise: 20_000 }], key),
+      collect(cashier, v.billId, [{ mode: 'cash', amountPaise: 20_000 }], key),
+    ]);
+    expect(b).toEqual(a);
+    const e = await trpcError(
+      collect(cashier, v.billId, [{ mode: 'cash', amountPaise: 30_000 }], key),
+    );
+    expect([e.code, e.message]).toEqual(['CONFLICT', 'errors.idempotency.conflict']);
+    expect(await f.db.select().from(payment).where(eq(payment.billId, v.billId))).toHaveLength(1);
+  });
+
+  it('adds and removes services on the draft and lists billable services with rates', async () => {
+    const v = await book();
+    const list = await reception.call((c) => c.billing.services({ billId: v.billId, q: 'cons' }));
+    const anc = list.find((s) => s.code === 'CONS-ANC');
+    expect(anc?.ratePaise).toBe(40_000n);
+    const added = await reception.call((c) =>
+      c.billing.addLine({ billId: v.billId, serviceId: anc!.id, idempotencyKey: uuidv7() }),
+    );
+    expect(added.netPaise).toBe('90000');
+    const removed = await reception.call((c) =>
+      c.billing.removeLine({ billId: v.billId, lineId: added.lineId!, idempotencyKey: uuidv7() }),
+    );
+    expect(removed.netPaise).toBe('50000');
+    const lines = await f.db.select().from(billLine).where(eq(billLine.billId, v.billId));
+    expect(lines.map((l) => l.status).sort()).toEqual(['active', 'cancelled']);
+  });
+});
+
+describe('billing permissions (AGENTS.md rule 6)', () => {
+  it('refuses roles without billing permissions on every procedure', async () => {
+    const v = await book();
+    for (const who of [doctor, nurse, admin, noRoles]) {
+      const calls = [
+        () => who.call((c) => c.billing.pending({})),
+        () => who.call((c) => c.billing.get({ billId: v.billId })),
+        () => who.call((c) => c.billing.forEncounter({ encounterId: v.encounterId })),
+        () => who.call((c) => c.billing.services({ billId: v.billId, q: '' })),
+        () =>
+          who.call((c) =>
+            c.billing.createOpdBill({ encounterId: v.encounterId, idempotencyKey: uuidv7() }),
+          ),
+        () =>
+          who.call((c) =>
+            c.billing.addLine({ billId: v.billId, serviceId: uuidv7(), idempotencyKey: uuidv7() }),
+          ),
+        () =>
+          who.call((c) =>
+            c.billing.removeLine({ billId: v.billId, lineId: uuidv7(), idempotencyKey: uuidv7() }),
+          ),
+        () => who.call((c) => c.billing.finalize({ billId: v.billId, idempotencyKey: uuidv7() })),
+        () => who.call((c) => c.billing.paymentSettings()),
+        () => collect(who, v.billId, [{ mode: 'cash', amountPaise: 100 }]),
+      ];
+      for (const call of calls) expect((await trpcError(call())).code).toBe('FORBIDDEN');
+    }
+    expect(await f.db.select().from(payment).where(eq(payment.billId, v.billId))).toHaveLength(0);
+  });
+
+  it('lets the cashier work the desk', async () => {
+    const v = await book();
+    const pending = await cashier.call((c) => c.billing.pending({ q: v.number }));
+    expect(pending.map((p) => p.id)).toEqual([v.billId]);
+    expect(await cashier.call((c) => c.billing.paymentSettings())).toMatchObject({
+      upiRef: { mode: 'optional' },
+      allowOpdCredit: false,
+    });
+    const r = await collect(cashier, v.billId, [
+      { mode: 'cash', amountPaise: 25_000 },
+      { mode: 'card', amountPaise: 25_000, cardLast4: '1234' },
+    ]);
+    expect(r.billStatus).toBe('final');
+    const [tok] = await f.db.select().from(opdToken).where(eq(opdToken.encounterId, v.encounterId));
+    expect(tok?.issuedBasis).toBe('payment');
+  });
+
+  it('never shows or takes money on another facility’s bill', async () => {
+    const v = await book();
+    const username = `cashierb_${uuidv7().slice(-8)}`;
+    await withTx({ db: f.db, userId: null }, (tx) =>
+      insertUser(tx, {
+        facilityId: f.b.facilityId,
+        username,
+        fullName: 'Cashier B',
+        password: PASSWORD,
+        pin: PIN,
+        roles: ['cashier'],
+      }),
+    );
+    const cashierB = f.browser();
+    await cashierB.login(username);
+    const e1 = await trpcError(cashierB.call((c) => c.billing.get({ billId: v.billId })));
+    expect([e1.code, e1.message]).toEqual(['NOT_FOUND', 'errors.billing.billNotFound']);
+    const e2 = await trpcError(collect(cashierB, v.billId, [{ mode: 'cash', amountPaise: 100 }]));
+    expect(e2.code).toBe('NOT_FOUND');
+    expect(await cashierB.call((c) => c.billing.pending({}))).toEqual([]);
+    expect((await trpcError(adminB.call((c) => c.billing.pending({})))).code).toBe('FORBIDDEN');
+  });
+});
+
+describe('billing errors are i18n keys', () => {
+  it('maps overpayment, missing bill, missing rate and a settled bill', async () => {
+    const v = await book();
+    const e1 = await trpcError(
+      collect(reception, v.billId, [{ mode: 'cash', amountPaise: 50_001 }]),
+    );
+    expect([e1.code, e1.message]).toEqual(['BAD_REQUEST', 'errors.billing.overpayment']);
+    const e2 = await trpcError(reception.call((c) => c.billing.get({ billId: uuidv7() })));
+    expect([e2.code, e2.message]).toEqual(['NOT_FOUND', 'errors.billing.billNotFound']);
+    const [unpriced] = await f.db
+      .select({ id: service.id })
+      .from(service)
+      .where(and(eq(service.facilityId, f.a.facilityId), eq(service.code, 'CONS-PAED-NEW')));
+    const e3 = await trpcError(
+      reception.call((c) =>
+        c.billing.addLine({ billId: v.billId, serviceId: unpriced!.id, idempotencyKey: uuidv7() }),
+      ),
+    );
+    expect([e3.code, e3.message]).toEqual(['BAD_REQUEST', 'errors.billing.noRate']);
+    await collect(reception, v.billId, [{ mode: 'cash', amountPaise: 50_000 }]);
+    const e4 = await trpcError(collect(reception, v.billId, [{ mode: 'cash', amountPaise: 1 }]));
+    expect([e4.code, e4.message]).toEqual(['CONFLICT', 'errors.billing.nothingDue']);
+    const e5 = await trpcError(
+      reception.call((c) => c.billing.finalize({ billId: v.billId, idempotencyKey: uuidv7() })),
+    );
+    expect([e5.code, e5.message]).toEqual(['CONFLICT', 'errors.billing.notDraft']);
+  });
+
+  it('rejects malformed money input before it reaches the database', async () => {
+    const v = await book();
+    for (const tenders of [
+      [{ mode: 'cash', amountPaise: 12.5 }],
+      [{ mode: 'cash', amountPaise: -100 }],
+      [{ mode: 'cheque', amountPaise: 100 }],
+      [
+        { mode: 'cash', amountPaise: 1 },
+        { mode: 'cash', amountPaise: 1 },
+      ],
+    ]) {
+      expect((await trpcError(collect(reception, v.billId, tenders))).code).toBe('BAD_REQUEST');
+    }
+  });
+
+  it('refuses to cancel a visit whose bill holds money', async () => {
+    const owner = f.browser();
+    await owner.login(f.users.owner.username);
+    const v = await book();
+    await collect(reception, v.billId, [{ mode: 'cash', amountPaise: 10_000 }]);
+    const e = await trpcError(
+      owner.call((c) => c.visit.cancel({ encounterId: v.encounterId, reason: 'Patient left' })),
+    );
+    expect([e.code, e.message]).toEqual(['CONFLICT', 'errors.visit.billHasPayments']);
+  });
+});

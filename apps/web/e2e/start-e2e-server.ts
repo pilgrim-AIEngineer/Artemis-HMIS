@@ -46,14 +46,18 @@ await withTx({ db: owner, userId: null }, async (tx) => {
     await insertUser(tx, { facilityId, ...u, password: E2E_PASSWORD, roles: [...u.roles] });
   }
   const masters = await seedMasters(tx, facilityId); // docs/33 master seeds: names only, no rates
-  // Demo doctors with consultation rules, and prices for their two Gynae consultation services
-  // only: other services stay unpriced because the masters spec starts from "rate not set".
+  // Demo doctors with consultation rules, and prices for their consultations plus one procedure
+  // (billing flows): other services stay unpriced because the masters start from "rate not set".
+  // The paediatric follow-up is ₹0, so a follow-up with Dr. Gupta is free (flow 2).
   for (const step of DEMO_STEPS.filter((x) => x.name === 'doctors')) {
     await step.run({ tx, facilityId, masters, rng: () => 0.5 });
   }
   for (const [code, rupees] of [
     ['CONS-GYN-NEW', 500],
     ['CONS-GYN-FU', 300],
+    ['CONS-PAED-NEW', 400],
+    ['CONS-PAED-FU', 0],
+    ['PROC-SUTURE-REM', '350.50'],
   ] as const) {
     const [svc] = await tx
       .select({ id: service.id })

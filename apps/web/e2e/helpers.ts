@@ -24,3 +24,15 @@ export async function samplePrintHref(page: Page, paper: string): Promise<string
   if (!href) throw new Error(`no sample link for ${paper}`);
   return href;
 }
+
+/**
+ * On the "visit created" panel: Collect → payment dialog (cash, full amount by default) → confirm
+ * (BIL-02). Waits for the paid state, which shows the receipt number and the token.
+ */
+export async function payVisitInCash(page: Page) {
+  const created = page.getByTestId('visit-created');
+  await created.getByTestId('visit-collect').click();
+  await page.getByTestId('payment-dialog').getByTestId('pay-submit').click();
+  await page.getByTestId('confirm-money-ok').click();
+  await expect(created.getByTestId('visit-paid')).toContainText(/Receipt RC\//);
+}

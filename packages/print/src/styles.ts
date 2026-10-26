@@ -2,7 +2,7 @@ import { PAPER_SIZES, pageCss, type PaperSize } from './paper';
 import { PRINT_FONT_STACK } from './fonts';
 
 /**
- * Layout of the real templates (OPD sheet, sticker, UHID card). Millimetre sizes assume the
+ * Layout of the real templates (OPD sheet, sticker, UHID card, receipt). Millimetre sizes assume the
  * template's own paper (A5 sheet, 50 × 25 mm label); the rules are inert on other templates.
  */
 const TEMPLATE_CSS = `
@@ -64,6 +64,16 @@ const TEMPLATE_CSS = `
 .card-back { justify-content: center; text-align: center; gap: 1.5mm; }
 .card-note { font-size: 0.95em; }
 .card-contact { margin-top: 2mm; font-size: 0.8em; border-top: 0.5pt solid #000; padding-top: 1mm; }
+.receipt { display: flex; flex-direction: column; gap: 1.5mm; }
+.receipt-row { display: flex; justify-content: space-between; gap: 2mm; }
+.receipt-row > :last-child { text-align: right; overflow-wrap: anywhere; }
+.receipt-k { color: #333; }
+.receipt-patient { border-top: 0.5pt dashed #000; border-bottom: 0.5pt dashed #000; padding: 1mm 0; }
+.receipt-name { font-weight: 700; font-size: 1.1em; }
+.receipt-paid { font-size: 1.35em; font-weight: 700; align-items: baseline; }
+.receipt-paid > :last-child, .receipt-amount { white-space: nowrap; }
+.receipt-words { font-size: 0.85em; }
+.receipt-status { text-align: center; font-weight: 700; border: 1pt solid #000; padding: 0.5mm; }
 `;
 
 /**
