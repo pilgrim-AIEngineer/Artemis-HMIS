@@ -195,7 +195,10 @@ export const saveUpiReconciliationSchema = z.object({
     .array(
       z.object({
         paymentId: uuidSchema,
-        statementUtr: z.string().regex(/^[0-9]{6,22}$/, 'validation.utr').optional(),
+        statementUtr: z
+          .string()
+          .regex(/^[0-9]{6,22}$/, 'validation.utr')
+          .optional(),
       }),
     )
     .max(2000),
@@ -246,7 +249,9 @@ export function matchUpiStatement(
     if (!p.upiRef) continue;
     const candidates = lines
       .map((l, i) => ({ l, i }))
-      .filter(({ l, i }) => !used.has(i) && l.amountPaise === p.amountPaise && l.utr.endsWith(p.upiRef!));
+      .filter(
+        ({ l, i }) => !used.has(i) && l.amountPaise === p.amountPaise && l.utr.endsWith(p.upiRef!),
+      );
     if (candidates.length !== 1) continue;
     // Another receipt with the same ending and amount would claim the same line: ambiguous.
     const rivals = payments.filter(

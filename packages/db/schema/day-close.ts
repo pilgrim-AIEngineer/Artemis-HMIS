@@ -92,10 +92,7 @@ export const dayClose = pgTable(
       'day_close_difference_reason',
       sql`${t.differencePaise} = 0 or ${t.differenceReason} is not null`,
     ),
-    check(
-      'day_close_facility_note',
-      sql`not ${t.pendingAcknowledged} or ${t.note} is not null`,
-    ),
+    check('day_close_facility_note', sql`not ${t.pendingAcknowledged} or ${t.note} is not null`),
     check(
       'day_close_attach_fields',
       sql`(${t.facilityCloseId} is null) = (${t.verifiedAt} is null) and (${t.facilityCloseId} is null) = (${t.verifiedBy} is null)`,

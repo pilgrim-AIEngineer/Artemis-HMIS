@@ -62,7 +62,12 @@ describe('variance', () => {
       { mode: 'card', amountPaise: 30000n },
       { mode: 'cheque', amountPaise: 1000n },
     ]);
-    expect(t).toEqual({ cashPaise: 100000n, upiPaise: 20000n, cardPaise: 30000n, otherPaise: 1000n });
+    expect(t).toEqual({
+      cashPaise: 100000n,
+      upiPaise: 20000n,
+      cardPaise: 30000n,
+      otherPaise: 1000n,
+    });
     expect(totalOfModes(t)).toBe(151000n);
   });
 });

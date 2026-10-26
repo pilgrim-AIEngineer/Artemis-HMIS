@@ -405,7 +405,12 @@ async function breakdown(q: Queryable, closeIds: readonly string[]) {
     .leftJoin(doctorProfile, eq(doctorProfile.id, encounter.doctorId))
     .leftJoin(department, eq(department.id, encounter.departmentId))
     .where(and(inArray(payment.dayCloseId, [...closeIds]), countable))
-    .groupBy(encounter.doctorId, doctorProfile.displayName, encounter.departmentId, department.name);
+    .groupBy(
+      encounter.doctorId,
+      doctorProfile.displayName,
+      encounter.departmentId,
+      department.name,
+    );
   const doc = new Map<string, BreakdownRow>();
   const dep = new Map<string, BreakdownRow>();
   for (const r of rows) {
@@ -420,7 +425,9 @@ async function breakdown(q: Queryable, closeIds: readonly string[]) {
     dep.set(pk, p);
   }
   const sort = (m: Map<string, BreakdownRow>) =>
-    [...m.values()].sort((a, b) => (a.netPaise === b.netPaise ? 0 : a.netPaise > b.netPaise ? -1 : 1));
+    [...m.values()].sort((a, b) =>
+      a.netPaise === b.netPaise ? 0 : a.netPaise > b.netPaise ? -1 : 1,
+    );
   return { byDoctor: sort(doc), byDepartment: sort(dep) };
 }
 
@@ -490,7 +497,9 @@ export async function facilityCloseView(
   const [recon] = await q
     .select({ status: upiReconciliation.status, difference: upiReconciliation.differencePaise })
     .from(upiReconciliation)
-    .where(and(eq(upiReconciliation.facilityId, facilityId), eq(upiReconciliation.reconDate, date)));
+    .where(
+      and(eq(upiReconciliation.facilityId, facilityId), eq(upiReconciliation.reconDate, date)),
+    );
   return {
     date,
     close: fc
@@ -645,7 +654,9 @@ export async function dayCloseReport(
   facilityId: string,
   range: { from: string; to: string },
 ): Promise<DayCloseReportRow[]> {
-  const fc = sql<string | null>`(select f.close_date::text from day_close f where f.id = ${dayClose.facilityCloseId})`;
+  const fc = sql<
+    string | null
+  >`(select f.close_date::text from day_close f where f.id = ${dayClose.facilityCloseId})`;
   const rows = await q
     .select({ ...userCloseSelect, facilityCloseDate: fc })
     .from(dayClose)
@@ -673,7 +684,15 @@ export interface DayCloseSlip {
   differencePaise: bigint;
   differenceReason: string | null;
   paymentCount: number;
-  denominations: { n500: number; n200: number; n100: number; n50: number; n20: number; n10: number; coinsPaise: bigint } | null;
+  denominations: {
+    n500: number;
+    n200: number;
+    n100: number;
+    n50: number;
+    n20: number;
+    n10: number;
+    coinsPaise: bigint;
+  } | null;
   note: string | null;
   pendingAcknowledged: boolean;
 }
@@ -791,7 +810,9 @@ export async function upiReconciliationView(
     .select({ r: upiReconciliation, reconciledByName: appUser.fullName })
     .from(upiReconciliation)
     .leftJoin(appUser, eq(appUser.id, upiReconciliation.reconciledBy))
-    .where(and(eq(upiReconciliation.facilityId, facilityId), eq(upiReconciliation.reconDate, date)));
+    .where(
+      and(eq(upiReconciliation.facilityId, facilityId), eq(upiReconciliation.reconDate, date)),
+    );
   const items = rec
     ? await q
         .select({
@@ -882,9 +903,6 @@ export async function saveUpiReconciliation(
         statementTotalPaise: input.statementTotalPaise,
         differencePaise: difference,
         differenceReason: difference === 0n ? null : (input.differenceReason ?? null),
-        status: input.complete ? 'reconciled' : 'open',
-        reconciledBy: input.complete ? actor.userId : null,
-        reconciledAt: input.complete ? now : null,
       };
       let id = existing?.id;
       if (id) {
@@ -926,6 +944,13 @@ export async function saveUpiReconciliation(
             .set({ matched: false, statementUtr: null })
             .where(eq(upiReconciliationItem.id, itemId));
         }
+      }
+      // Frozen last: the item guard only lets an open reconciliation change.
+      if (input.complete) {
+        await tx
+          .update(upiReconciliation)
+          .set({ status: 'reconciled', reconciledBy: actor.userId, reconciledAt: now })
+          .where(eq(upiReconciliation.id, id));
       }
       return {
         reconciliationId: id,
