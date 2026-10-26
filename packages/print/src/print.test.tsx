@@ -53,9 +53,11 @@ const prepare = (paper: PaperSize, copyNo: number, entityId = facilityId) =>
 
 describe('print templates (FND-06)', () => {
   it('registers a sample template per paper size', () => {
-    expect(PRINT_TEMPLATE_METAS.map((m) => m.paper).sort()).toEqual(
-      Object.keys(PAPER_SIZES).sort(),
-    );
+    expect(
+      PRINT_TEMPLATE_METAS.filter((m) => m.key.startsWith('sample-'))
+        .map((m) => m.paper)
+        .sort(),
+    ).toEqual(Object.keys(PAPER_SIZES).sort());
   });
 
   it('emits @page rules for every paper size', () => {

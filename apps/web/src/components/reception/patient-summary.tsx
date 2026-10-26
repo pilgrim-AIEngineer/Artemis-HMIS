@@ -8,6 +8,7 @@ import { Pencil, Search, Stethoscope, UserRoundPlus } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useSession } from '@/components/auth/session-provider';
+import { PrintButton } from '@/components/print/print-button';
 import { Section } from '@/components/section';
 import { useAgeText } from '@/lib/use-age-text';
 import { useTRPC } from '@/trpc/client';
@@ -102,6 +103,20 @@ export function PatientSummary({ id, registeredUhid }: { id: string; registeredU
         flags={flags}
       />
       <div className="flex flex-wrap gap-3">
+        <PrintButton
+          template="patient-sticker"
+          entityId={id}
+          label={tSum('printSticker')}
+          variant="outline"
+          shortcut={false}
+        />
+        <PrintButton
+          template="uhid-card"
+          entityId={id}
+          label={tSum('printCard')}
+          variant="outline"
+          shortcut={false}
+        />
         {can('visit.create') && !p.isDeceased && (
           <Button asChild size="lg">
             <Link href={`/reception/patients/${id}/visit`}>
