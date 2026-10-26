@@ -10,6 +10,8 @@ export interface CreateDbOptions {
   /** Shown in pg_stat_activity, e.g. `hmis-web`. */
   applicationName?: string;
   max?: number;
+  /** How long a query waits for a free connection (default 5 s). */
+  connectionTimeoutMs?: number;
 }
 
 export function createPool(opts: CreateDbOptions): pg.Pool {
@@ -17,7 +19,7 @@ export function createPool(opts: CreateDbOptions): pg.Pool {
     connectionString: opts.connectionString,
     application_name: opts.applicationName ?? 'hmis',
     max: opts.max ?? 10,
-    connectionTimeoutMillis: 5_000,
+    connectionTimeoutMillis: opts.connectionTimeoutMs ?? 5_000,
     idleTimeoutMillis: 30_000,
   });
   // Idle clients emit 'error' when Postgres restarts/fails over/terminates a backend. Without a

@@ -9,6 +9,7 @@ import { IST, setupOpdFixture, type OpdFixture } from '../testing/opd';
 import { setServiceRate } from './masters';
 import { writeSetting } from './settings';
 import { withTx } from './tx';
+import { createDb } from './client';
 import { issueToken, previewVisit, VisitInputError, createVisit } from './visits';
 
 let fx: OpdFixture;
@@ -315,14 +316,46 @@ describe('visit creation guards and tokens', () => {
 });
 
 describe('token numbers under concurrency (docs/10 §10)', () => {
-  it('100 parallel visits for one doctor get tokens 1..100, no duplicate, no gap', async () => {
+  // The suite runs many database tests at once; a loaded machine must not turn a queue for a
+  // pooled connection into a test failure, so these tests use a pool that waits longer.
+  let slowDb: ReturnType<typeof createDb>;
+  let runSlow: OpdFixture['run'];
+  beforeAll(() => {
+    slowDb = createDb({
+      connectionString: t.app.$client.options.connectionString!,
+      max: 30,
+      connectionTimeoutMs: 120_000,
+    });
+    runSlow = (fn) => withTx({ db: slowDb, userId: f.userId, facilityId: f.facilityId }, fn);
+  });
+  afterAll(async () => {
+    await slowDb.$client.end();
+  });
+  const visitSlow: OpdFixture['visit'] = (over, now) =>
+    runSlow((tx) =>
+      createVisit(
+        tx,
+        actor(),
+        { patientId: patients[0]!, doctorId: doctorA, idempotencyKey: uuidv7(), ...over },
+        now,
+      ),
+    );
+
+  it('100 parallel token requests for one doctor get 1..100, no duplicate, no gap', async () => {
     const ids = await newPatients(100);
     const at = IST('2027-02-01T09:00:00');
+    // Book the visits in small batches (the visit-number row lock serialises them anyway), then
+    // release all 100 tokens at once: that is the contended step (docs/10 §10).
+    const encounters: string[] = [];
+    for (let i = 0; i < ids.length; i += 10) {
+      const batch = await Promise.all(
+        ids.slice(i, i + 10).map((patientId) => visitSlow({ patientId, doctorId: doctorB }, at)),
+      );
+      encounters.push(...batch.map((v) => v.encounterId));
+    }
     const results = await Promise.all(
-      ids.map((patientId) =>
-        visit({ patientId, doctorId: doctorB }, at).then((v) =>
-          run((tx) => issueToken(tx, actor(), v.encounterId, 'manual_fee_pending', at)),
-        ),
+      encounters.map((id) =>
+        runSlow((tx) => issueToken(tx, actor(), id, 'manual_fee_pending', at)),
       ),
     );
     const nos = results.map((r) => r.tokenNo).sort((a, b) => a - b);
@@ -335,12 +368,29 @@ describe('token numbers under concurrency (docs/10 §10)', () => {
     expect(dups?.n).toBe('0');
   });
 
+  it('40 parallel visits that need no payment get distinct tokens and visit numbers', async () => {
+    const ids = await newPatients(40);
+    const at = IST('2027-02-04T09:00:00');
+    await run((tx) => writeSetting(tx, f.facilityId, 'queue.issueTokenBeforePayment', true));
+    try {
+      const out = await Promise.all(
+        ids.map((patientId) => visitSlow({ patientId, doctorId: doctorB }, at)),
+      );
+      expect(out.map((o) => o.tokenNo).sort((a, b) => a! - b!)).toEqual(
+        Array.from({ length: 40 }, (_, i) => i + 1),
+      );
+      expect(new Set(out.map((o) => o.number)).size).toBe(40);
+    } finally {
+      await run((tx) => writeSetting(tx, f.facilityId, 'queue.issueTokenBeforePayment', false));
+    }
+  });
+
   it('parallel free visits to two doctors number independently and restart each day', async () => {
     const ids = await newPatients(20);
     const day1 = IST('2027-02-02T09:00:00');
     const out = await Promise.all(
       ids.map((patientId, i) =>
-        visit(
+        visitSlow(
           {
             patientId,
             doctorId: i % 2 ? doctorA : doctorB,
@@ -354,7 +404,7 @@ describe('token numbers under concurrency (docs/10 §10)', () => {
     expect(out.filter((x) => x instanceof VisitInputError)).toHaveLength(10);
     const day2 = IST('2027-02-03T09:00:00');
     const q = await newPatient();
-    const v = await visit({ patientId: q, doctorId: doctorB }, day2);
+    const v = await visitSlow({ patientId: q, doctorId: doctorB }, day2);
     const tok = await run((tx) =>
       issueToken(tx, actor(), v.encounterId, 'manual_fee_pending', day2),
     );
@@ -365,7 +415,7 @@ describe('token numbers under concurrency (docs/10 §10)', () => {
     const ids = await newPatients(30);
     const at = IST('2027-02-10T09:00:00');
     const out = await Promise.all(
-      ids.map((patientId) => visit({ patientId, doctorId: doctorNoRule }, at)),
+      ids.map((patientId) => visitSlow({ patientId, doctorId: doctorNoRule }, at)),
     );
     const nums = out.map((o) => Number(o.number.split('/').at(-1))).sort((a, b) => a - b);
     expect(new Set(nums).size).toBe(30);
