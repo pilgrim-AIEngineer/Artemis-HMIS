@@ -1,4 +1,13 @@
 {
   "extends": "../../tsconfig.base.json",
-  "include": ["src", "schema", "seed", "testing", "drizzle.config.ts", "vitest.config.ts"]
+  "include": [
+    "src",
+    "schema",
+    "seed",
+    "testing",
+    "perf",
+    "drizzle.config.ts",
+    "vitest.config.ts",
+    "vitest.perf.config.ts"
+  ]
 }
