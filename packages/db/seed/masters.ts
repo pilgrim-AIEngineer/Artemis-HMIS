@@ -17,6 +17,7 @@ import {
   drug,
 } from '../schema';
 import { seedAncSchedule } from '../src/anc';
+import { seedImmunisationSchedule } from '../src/paeds';
 import { ensureNumberSeriesRows } from '../src/number-series';
 import type { Tx } from '../src/tx';
 import { DEPARTMENTS } from './data/departments';
@@ -306,6 +307,9 @@ export async function seedMasters(
 
   // Draft ANC schedule (docs/33 §4); the gynaecologist edits it and signs it off (OPD-05).
   count('anc_schedule_item', await seedAncSchedule(tx, facilityId));
+
+  // Draft IAP / UIP immunisation schedules (docs/33 §5); the paediatrician edits and signs them off (OPD-06).
+  count('immunisation_schedule', await seedImmunisationSchedule(tx, facilityId));
 
   return { inserted, defaultTariffId, selfPayerId };
 }

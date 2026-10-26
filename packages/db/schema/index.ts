@@ -15,3 +15,4 @@ export * from './upi-reconciliation';
 export * from './vitals';
 export * from './clinical';
 export * from './anc';
+export * from './paeds';
