@@ -37,6 +37,9 @@ export async function startPostgresContainer(): Promise<{
     .withDatabase('hmis_test')
     .withUsername('hmis')
     .withPassword(randomBytes(12).toString('hex'))
+    // Every test file opens its own pools (up to ~35 connections) and Vitest runs files in
+    // parallel: the default of 100 runs out as the suite grows ("too many clients").
+    .withCommand(['postgres', '-c', 'max_connections=600'])
     .withCopyFilesToContainer([
       { source: INIT_SQL, target: '/docker-entrypoint-initdb.d/01-extensions.sql' },
     ])
