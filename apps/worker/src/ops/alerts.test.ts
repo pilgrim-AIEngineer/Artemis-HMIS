@@ -45,7 +45,7 @@ describe('sendAlerts', () => {
       [alert('backup.local_stale', 'critical')],
       sinks({ telegram: { token: 'TOKEN', chatId: '42' } }),
       logger,
-      f as unknown as typeof fetch,
+      f,
     );
     expect(ok).toBe(true);
     expect(f).toHaveBeenCalledTimes(2);
@@ -58,18 +58,13 @@ describe('sendAlerts', () => {
 
   it('reports failure (offline) without throwing, so the alert is retried', async () => {
     const f = vi.fn(() => Promise.reject(new TypeError('fetch failed')));
-    const ok = await sendAlerts([alert('disk.low')], sinks(), logger, f as unknown as typeof fetch);
+    const ok = await sendAlerts([alert('disk.low')], sinks(), logger, f);
     expect(ok).toBe(false);
   });
 
   it('counts as delivered when no sink is configured (logged only)', async () => {
     const f = vi.fn();
-    const ok = await sendAlerts(
-      [alert('disk.low')],
-      alertSinksFromEnv({}),
-      logger,
-      f as unknown as typeof fetch,
-    );
+    const ok = await sendAlerts([alert('disk.low')], alertSinksFromEnv({}), logger, f);
     expect(ok).toBe(true);
     expect(f).not.toHaveBeenCalled();
   });
@@ -79,12 +74,10 @@ describe('sendAlerts', () => {
     const down = vi.fn(() => Promise.reject(new Error('offline')));
     const a = [alert('disk.low')];
     const base = { active: a, throttle, sinks: sinks(), logger, now: T0 };
-    expect(await dispatchAlerts({ ...base, fetchImpl: down as unknown as typeof fetch })).toEqual(
-      [],
-    );
+    expect(await dispatchAlerts({ ...base, fetchImpl: down })).toEqual([]);
     const up = vi.fn(() => Promise.resolve(new Response('ok')));
-    expect(await dispatchAlerts({ ...base, fetchImpl: up as unknown as typeof fetch })).toEqual(a);
-    expect(await dispatchAlerts({ ...base, fetchImpl: up as unknown as typeof fetch })).toEqual([]);
+    expect(await dispatchAlerts({ ...base, fetchImpl: up })).toEqual(a);
+    expect(await dispatchAlerts({ ...base, fetchImpl: up })).toEqual([]);
   });
 });
 

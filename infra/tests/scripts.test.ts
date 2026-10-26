@@ -315,7 +315,11 @@ describe('update.sh', () => {
     expect(envVersion(rig)).toBe('v2026.10.01.1');
     expect(readFileSync(path.join(rig.state, 'running'), 'utf8').trim()).toBe('v2026.10.01.1');
     expect(
-      JSON.parse(readFileSync(path.join(rig.hmis, 'state/last-update.json'), 'utf8')).result,
+      (
+        JSON.parse(readFileSync(path.join(rig.hmis, 'state/last-update.json'), 'utf8')) as {
+          result: string;
+        }
+      ).result,
     ).toBe('rolled_back');
   });
 
