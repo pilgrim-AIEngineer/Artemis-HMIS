@@ -6,6 +6,7 @@ import {
   hasContent,
   pickDraft,
   rowFromParsed,
+  rowsFromSaved,
   shownInstruction,
   shownQuantity,
   toDraft,
@@ -86,6 +87,31 @@ describe('transcription screen state (OPD-02)', () => {
     expect(parsed.orders).toEqual([
       { serviceId: '0190a000-0000-7000-8000-000000000002', priority: 'routine', notes: null },
     ]);
+  });
+
+  it('loads a saved Rx with computed values back as computed, typed ones as typed', () => {
+    const [a, b] = rowsFromSaved(
+      [
+        {
+          ...rowFromParsed(parseRxShorthand('dolo 650 1-0-1 af 5d'), pcm),
+          quantity: 10,
+          instructionsHi: '1-0-1, खाने के बाद, 5 दिन',
+          instructionsEn: '1-0-1, after food, 5 days',
+        },
+        {
+          ...rowFromParsed(parseRxShorthand('dolo 650 1-0-1 af 5d'), pcm),
+          quantity: 12,
+          instructionsHi: 'अपना',
+          instructionsEn: null,
+        },
+      ],
+      {},
+    );
+    expect([a!.quantity, a!.instructionsHi, a!.instructionsEn]).toEqual([null, null, null]);
+    expect(shownInstruction({ ...a!, pattern: '1-1-1' }, 'hi', {})).toBe(
+      '1-1-1, खाने के बाद, 5 दिन',
+    );
+    expect([b!.quantity, b!.instructionsHi]).toEqual([12, 'अपना']);
   });
 
   it('offers the newest draft that is newer than the saved Rx', () => {

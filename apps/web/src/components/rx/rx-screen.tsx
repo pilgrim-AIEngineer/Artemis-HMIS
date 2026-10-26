@@ -57,7 +57,7 @@ function initialState(ctx: Context): RxState {
   const admission = ctx.orders.find((o) => o.kind === 'admission');
   return {
     ...emptyState(scan),
-    rows: ctx.current ? rowsFromSaved(ctx.current.items) : [],
+    rows: ctx.current ? rowsFromSaved(ctx.current.items, ctx.settings.hindiPhrases) : [],
     orders: ctx.orders.flatMap((o) => (o.kind !== 'admission' && o.serviceId ? [o.serviceId] : [])),
     admission: admission
       ? { advised: true, expectedDate: admission.expectedDate, note: admission.notes }
@@ -207,7 +207,7 @@ export function RxScreen({ ctx, onReload }: { ctx: Context; onReload: () => void
   const repeatLast = async () => {
     const last = await queryClient.fetchQuery(trpc.rx.lastRx.queryOptions({ encounterId }));
     if (!last) return;
-    setState((s) => ({ ...s, rows: [...s.rows, ...rowsFromSaved(last.items)] }));
+    setState((s) => ({ ...s, rows: [...s.rows, ...rowsFromSaved(last.items, phrases)] }));
   };
   useEffect(() => {
     if (!cleared) return;

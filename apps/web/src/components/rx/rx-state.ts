@@ -147,9 +147,25 @@ export interface SavedItem {
   sourceLine: string | null;
 }
 
-/** Rows of a saved (or the last) Rx. Stored instructions are kept as typed overrides. */
-export const rowsFromSaved = (items: readonly SavedItem[]): RxRow[] =>
-  items.map((i) => ({ ...i, key: newRowKey(), extra: null }));
+/**
+ * Rows of a saved (or the last) Rx. A stored quantity or instruction that equals the computed one
+ * goes back to "computed", so editing the pattern in a correction updates it; one the assistant
+ * had typed stays as typed.
+ */
+export function rowsFromSaved(items: readonly SavedItem[], phrases: RxPhrasesOverride): RxRow[] {
+  return items.map((i) => {
+    const row: RxRow = { ...i, key: newRowKey(), extra: null };
+    const computed = { ...row, quantity: null, instructionsHi: null, instructionsEn: null };
+    return {
+      ...row,
+      quantity: row.quantity === shownQuantity(computed) ? null : row.quantity,
+      instructionsHi:
+        row.instructionsHi === buildInstruction(row, 'hi', phrases) ? null : row.instructionsHi,
+      instructionsEn:
+        row.instructionsEn === buildInstruction(row, 'en') ? null : row.instructionsEn,
+    };
+  });
+}
 
 // ---------------------------------------------------------------- draft
 
