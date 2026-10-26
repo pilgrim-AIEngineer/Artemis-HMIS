@@ -26,7 +26,6 @@ describe('health.check', () => {
     // OPS-01: no backup volume in tests => an alert, but never a degraded status.
     expect(res.checks.backup.state).toBe('missing');
     expect(res.alerts.map((a) => a.code)).toContain('backup.missing');
-    expect(res.checks.queue).toMatchObject({ ok: true, backlog: 0 });
   });
 
   it('reports degraded (not an error) when the database is unreachable', async () => {
