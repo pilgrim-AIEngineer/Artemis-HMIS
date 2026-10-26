@@ -6,7 +6,7 @@
  * Synthetic data only.
  */
 import { rupeesToPaise, type RoleKey, type TenderInput } from '@hmis/shared';
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { randomBytes } from 'node:crypto';
 import { uuidv7 } from 'uuidv7';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
@@ -690,6 +690,25 @@ describe('cancelling a final bill with a credit note and refund (BIL-04)', () =>
     expect(cn?.approvalId).toBe(ap?.id);
   });
 
+  it('counts credits and refunds cumulatively per bill, so splitting cannot dodge the supervisor (#70)', async () => {
+    const f = await finalBill([big]); // ₹2,500 paid in cash
+    const part = (amountPaise: bigint, approverId: string | null = null) =>
+      cancelBy(cashier, f.billId, { amountPaise, refund: { mode: 'cash' } }, approverId);
+    await part(100_000n); // ₹1,000 — at the limit, alone
+    expect(await errorKey(part(100_000n))).toBe('billing.approvalRequired');
+    expect(await errorKey(part(1_000n))).toBe('billing.approvalRequired');
+    const r = await part(100_000n, admin.id);
+    expect(r.refundPaise).toBe('100000');
+    const [ap] = await fx.t.app
+      .select()
+      .from(approval)
+      .where(eq(approval.billId, f.billId))
+      .orderBy(desc(approval.createdAt))
+      .limit(1);
+    expect(ap).toMatchObject({ method: 'pin', approverId: admin.id });
+    expect(await errorKey(part(50_000n))).toBe('billing.approvalRequired');
+  });
+
   it('lets the owner approve their own large cancellation (self)', async () => {
     const f = await finalBill([big]);
     await cancelBy(owner, f.billId, { refund: { mode: 'upi', upiRef: '123456' } });
@@ -890,8 +909,9 @@ describe('partial credit notes (BIL-04)', () => {
     const before = await view(f.billId);
     const part = before.netPaise / 3n;
     await cancelBy(cashier, f.billId, { amountPaise: part, refund: { mode: 'cash' } });
-    await cancelBy(cashier, f.billId, { amountPaise: part, refund: { mode: 'cash' } });
-    const last = await cancelBy(cashier, f.billId, { refund: { mode: 'cash' } });
+    // Cumulative credits now pass the ₹1,000 limit (#70), so a supervisor approves the rest.
+    await cancelBy(cashier, f.billId, { amountPaise: part, refund: { mode: 'cash' } }, admin.id);
+    const last = await cancelBy(cashier, f.billId, { refund: { mode: 'cash' } }, admin.id);
     expect(last.billStatus).toBe('cancelled');
     const notes = await fx.t.app.select().from(creditNote).where(eq(creditNote.billId, f.billId));
     expect(notes).toHaveLength(3);

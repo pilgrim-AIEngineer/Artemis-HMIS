@@ -394,8 +394,9 @@ export interface CancelBillResult {
  * - needs `billing.bill.cancel` (router) and a reason; refunding needs `billing.refund.create`;
  * - the refund is the amount paid beyond the bill's new value, in one counter mode, and can never
  *   exceed what was paid; a stale screen amount is refused;
- * - a credit above `billing.cancelApprovalAbovePaise` or a refund above
- *   `billing.refundApprovalAbovePaise` needs a supervisor (PIN or self);
+ * - credits on the bill totalling above `billing.cancelApprovalAbovePaise`, or refunds on it
+ *   totalling above `billing.refundApprovalAbovePaise` (this one included), need a supervisor
+ *   (PIN or self) — cumulative per bill, so splitting does not help (D-14);
  * - a refund always carries an approval row (docs/04 §15.8): under the threshold the requester
  *   answers for it (`within_limit`);
  * - credit note and refund voucher share one `credit_note` number, allocated in this transaction.
@@ -450,9 +451,25 @@ export async function cancelFinalBill(
         'billing.cancelApprovalAbovePaise',
         'billing.refundApprovalAbovePaise',
       ]);
+      // Thresholds apply to the bill's running totals (the bill row is locked above), so splitting
+      // one cancellation into small credits cannot stay under the limit.
+      const [paidOut] = await tx
+        .select({ total: sql<string>`coalesce(-sum(${payment.amountPaise}), 0)` })
+        .from(payment)
+        .where(
+          and(eq(payment.billId, b.id), eq(payment.kind, 'refund'), eq(payment.status, 'valid')),
+        );
+      const refundedBefore = BigInt(paidOut?.total ?? '0');
       const needsSupervisor =
-        needsApprovalAbove(amount, BigInt(cfg['billing.cancelApprovalAbovePaise'])) ||
-        (due > 0n && needsApprovalAbove(due, BigInt(cfg['billing.refundApprovalAbovePaise'])));
+        needsApprovalAbove(
+          b.creditedPaise + amount,
+          BigInt(cfg['billing.cancelApprovalAbovePaise']),
+        ) ||
+        (due > 0n &&
+          needsApprovalAbove(
+            refundedBefore + due,
+            BigInt(cfg['billing.refundApprovalAbovePaise']),
+          ));
       let approvalId: string | null = null;
       if (needsSupervisor) {
         const who = await resolveApprover(tx, actor, access.permissions, opts);
