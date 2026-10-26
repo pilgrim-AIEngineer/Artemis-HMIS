@@ -16,6 +16,7 @@ import {
   opdToken,
   prescription,
   prescriptionItem,
+  reasonCode,
   rxDraft,
   service,
 } from '../schema';
@@ -29,6 +30,7 @@ import {
   removeBillLine,
   collectPayment,
 } from './billing';
+import { voidDraftBill } from './billing-adjustments';
 import { setServiceRate } from './masters';
 import { markSeen, sendIn } from './queue';
 import {
@@ -778,6 +780,51 @@ describe('orders flow into billing (OPD-04, docs/12 §2)', () => {
     expect(view.unbilledOrders.map((o) => o.serviceId)).toEqual([ids.cbc]);
     const desk = await pendingBills(fx.t.app, fx.f.facilityId, {});
     expect(desk.map((b) => b.id)).toContain(bills[0]!.id);
+  });
+
+  it('a voided draft gives its orders back for the next bill', async () => {
+    const at = nextDay()();
+    const v = await seenVisit(at);
+    const { documentId } = await scan(v.encounterId, at);
+    await save(
+      {
+        encounterId: v.encounterId,
+        scanDocumentId: documentId,
+        items: [],
+        orders: [{ serviceId: ids.cbc }],
+      },
+      at,
+    );
+    const [draft] = await billsForEncounter(fx.t.app, fx.f.facilityId, v.encounterId);
+    const [order] = (await getBillView(fx.t.app, fx.f.facilityId, draft!.id))!.unbilledOrders;
+    await fx.run((tx) =>
+      addOrdersToBill(
+        tx,
+        fx.actor(),
+        { billId: draft!.id, orderIds: [order!.id], idempotencyKey: uuidv7() },
+        at,
+      ),
+    );
+    const [reason] = await fx.t.app
+      .select({ id: reasonCode.id })
+      .from(reasonCode)
+      .where(and(eq(reasonCode.facilityId, fx.f.facilityId), eq(reasonCode.kind, 'cancel')))
+      .limit(1);
+    await fx.run((tx) =>
+      voidDraftBill(
+        tx,
+        fx.actor(),
+        {
+          billId: draft!.id,
+          reasonCodeId: reason!.id,
+          reasonText: 'Wrong bill',
+          idempotencyKey: uuidv7(),
+        },
+        at,
+      ),
+    );
+    const [o] = await fx.t.app.select().from(clinicalOrder).where(eq(clinicalOrder.id, order!.id));
+    expect(o).toMatchObject({ status: 'ordered', billLineId: null });
   });
 
   it('does not move the token while an order is still unbilled', async () => {

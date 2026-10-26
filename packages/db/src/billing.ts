@@ -508,6 +508,21 @@ export async function removeBillLine(
 
 // ---------------------------------------------------------------- orders (OPD-04)
 
+/**
+ * A draft bill that is voided or cancelled with its visit gives its orders back: they are on no
+ * bill again (still `ordered`), so the next draft lists them.
+ */
+export async function releaseOrdersOfBill(tx: Tx, billId: string): Promise<void> {
+  const lines = await tx
+    .select({ id: billLine.id })
+    .from(billLine)
+    .where(eq(billLine.billId, billId));
+  await unlinkOrders(
+    tx,
+    lines.map((l) => l.id),
+  );
+}
+
 /** Orders of the cancelled / removed lines go back to "not on a bill". */
 async function unlinkOrders(tx: Tx, lineIds: string[]) {
   if (lineIds.length === 0) return;
@@ -601,6 +616,10 @@ export async function addOrdersToBill(
         )
         .for('update');
       const byId = new Map(orders.map((o) => [o.id, o]));
+      const [enc] = await tx
+        .select({ doctorId: encounter.doctorId })
+        .from(encounter)
+        .where(eq(encounter.id, b.encounterId));
       const added: string[] = [];
       const skipped: AddOrdersResult['skipped'] = [];
       let lastLine: string | null = null;
@@ -626,10 +645,6 @@ export async function addOrdersToBill(
           }
           throw err;
         }
-        const [enc] = await tx
-          .select({ doctorId: encounter.doctorId })
-          .from(encounter)
-          .where(eq(encounter.id, b.encounterId));
         lastLine = await insertLine(tx, b, svc, '1', today, enc?.doctorId ?? null, o.id);
         await tx
           .update(clinicalOrder)
@@ -914,14 +929,7 @@ export async function cancelBillsOfVisit(
       .update(bill)
       .set({ status: 'cancelled', cancelNote: reason, cancelledBy: actor.userId, cancelledAt: now })
       .where(eq(bill.id, b.id));
-    const lines = await tx
-      .select({ id: billLine.id })
-      .from(billLine)
-      .where(eq(billLine.billId, b.id));
-    await unlinkOrders(
-      tx,
-      lines.map((l) => l.id),
-    );
+    await releaseOrdersOfBill(tx, b.id);
   }
   return 'ok';
 }
