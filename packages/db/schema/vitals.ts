@@ -47,7 +47,8 @@ export const vitals = pgTable(
     bpSys: smallint(),
     bpDia: smallint(),
     pulse: smallint(),
-    tempC: numeric({ precision: 4, scale: 1 }),
+    /** Two decimals, so a °F entry (one decimal) converts back to exactly what was typed. */
+    tempC: numeric({ precision: 5, scale: 2 }),
     spo2: smallint(),
     rr: smallint(),
     weightKg: numeric({ precision: 5, scale: 2 }),

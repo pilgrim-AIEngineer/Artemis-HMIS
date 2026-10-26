@@ -177,8 +177,12 @@ const round = (n: number, decimals: number) => {
   return Math.round((n + Number.EPSILON * Math.sign(n)) * f) / f;
 };
 
-/** Thermometers here read °F; the record keeps °C with one decimal (docs/11 §1). */
-export const fahrenheitToCelsius = (f: number): number => round(((f - 32) * 5) / 9, 1);
+/**
+ * Thermometers here read °F; the record keeps °C (docs/11 §1). Two decimals, so that converting
+ * back to °F at one decimal returns what was typed (101 °F → 38.33 °C → 101 °F; one decimal of
+ * °C would print it as 100.9).
+ */
+export const fahrenheitToCelsius = (f: number): number => round(((f - 32) * 5) / 9, 2);
 export const celsiusToFahrenheit = (c: number): number => round((c * 9) / 5 + 32, 1);
 
 /** kg / m², one decimal. */

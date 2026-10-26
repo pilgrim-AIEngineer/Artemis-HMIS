@@ -171,7 +171,11 @@ export function VitalsForm({ ctx }: { ctx: Context }) {
   const canSave = ctx.token.open && entered > 0 && problem.size === 0;
 
   // ---- focus and keys
-  const order: VitalsField[] = [...BP_FIELDS, ...NUMERIC.map((n) => n.key)].filter(has);
+  // Paper order: the shared field list of the group is also the tab and Enter order.
+  const numeric = fields.flatMap((f) => NUMERIC.filter((n) => n.key === f));
+  const order: VitalsField[] = fields.filter(
+    (f) => BP_FIELDS.includes(f) || NUMERIC.some((n) => n.key === f),
+  );
   const focusNext = (from: VitalsField) => {
     const next = order[order.indexOf(from) + 1];
     if (next) refs.current.get(next)?.focus();
@@ -448,7 +452,7 @@ export function VitalsForm({ ctx }: { ctx: Context }) {
             </div>
           )}
           <div className="grid gap-4 sm:grid-cols-2">
-            {NUMERIC.filter((n) => has(n.key)).map((n) => (
+            {numeric.map((n) => (
               <div key={n.key} className="space-y-1">
                 {numberInput(n.key, n.flag)}
                 {n.flag && flagText(n.flag)}

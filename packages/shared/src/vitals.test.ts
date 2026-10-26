@@ -198,11 +198,15 @@ describe('implausible values are blocked', () => {
 });
 
 describe('units and calculations', () => {
-  it('°F in, °C out with one decimal', () => {
+  it('°F in, °C out with two decimals, and back to the same °F', () => {
     expect(fahrenheitToCelsius(98.6)).toBe(37);
     expect(fahrenheitToCelsius(100.4)).toBe(38);
-    expect(fahrenheitToCelsius(100.3)).toBe(37.9);
-    expect(fahrenheitToCelsius(101)).toBe(38.3);
+    expect(fahrenheitToCelsius(100.3)).toBe(37.94);
+    expect(fahrenheitToCelsius(101)).toBe(38.33);
+    for (let tenths = 860; tenths <= 1130; tenths++) {
+      const f = tenths / 10;
+      expect(celsiusToFahrenheit(fahrenheitToCelsius(f))).toBe(f);
+    }
     expect(celsiusToFahrenheit(38)).toBe(100.4);
     expect(celsiusToFahrenheit(37)).toBe(98.6);
   });

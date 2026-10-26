@@ -1,6 +1,6 @@
 {
-  "id": "3fcd9844-1555-426e-ac89-4bee4a068dc2",
-  "prevId": "d29a2d54-8bae-4bb6-98dd-b4a4a270eee6",
+  "id": "3bda030e-f2b7-43cb-8c62-e4543fdb2a35",
+  "prevId": "0a1b4965-b601-4e82-9cae-ac57f0370204",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -9305,7 +9305,7 @@
         },
         "temp_c": {
           "name": "temp_c",
-          "type": "numeric(4, 1)",
+          "type": "numeric(5, 2)",
           "primaryKey": false,
           "notNull": false
         },

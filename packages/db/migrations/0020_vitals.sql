@@ -8,7 +8,7 @@ CREATE TABLE "vitals" (
 	"bp_sys" smallint,
 	"bp_dia" smallint,
 	"pulse" smallint,
-	"temp_c" numeric(4, 1),
+	"temp_c" numeric(5, 2),
 	"spo2" smallint,
 	"rr" smallint,
 	"weight_kg" numeric(5, 2),
