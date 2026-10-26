@@ -114,3 +114,17 @@ Covered in `11-opd-clinical` (OPD-01). The vitals desk list shows tokens in `wai
 - Duplicate modal appears for same mobile + similar name; does not appear for different family members with distinct names.
 - Two receptionists issuing tokens for the same doctor simultaneously never get the same number (concurrency test, 100 parallel requests).
 - Queue updates appear on other screens within 2 s.
+
+## 11. Implementation notes: visit and queue (REG-03, REG-04)
+
+Decisions made while building PR 8; each is a setting or a one-line change.
+
+- **Follow-up window** runs from the patient's latest consultation with the same doctor that was not itself a follow-up (a follow-up does not extend it). The last valid day is `consultation date + validity days` (7 days = same weekday next week), counted on IST calendar days. The free count is the number of follow-ups allowed per consultation; when used up (or the window is over) the visit is `new`. Validity and free count come from `consultation_rule` (follow-up row), then `opd.followUpRulesByDoctor[doctor]`, then `opd.followUpValidityDays` / `opd.freeFollowUps` (Q6 defaults 7 / 1).
+- **Follow-up fee** is the rate of the follow-up consultation service in the payer's tariff (set it to ₹0 for a free follow-up). A doctor without a follow-up rule gets ₹0. Reception cannot choose `follow_up` when the patient is not entitled; a concession goes through a discount with approval (BIL-03).
+- **A missing fee is not given away**: a visit type without a consultation rule or rate gets ₹0 with `fee_basis` `no_rule` / `no_rate` and no automatic token; the queue shows it under "Visits without a token" with a warning.
+- **Token timing**: issued at visit creation when the fee is ₹0 (and known) or `queue.issueTokenBeforePayment` is on; otherwise on payment (BIL-01 calls `issueToken(…, 'payment')`). Until BIL-01, someone with `billing.payment.collect` can release it by hand (`manual_fee_pending` on the token).
+- **Second visit with the same doctor on the same day** asks for confirmation (`allowRepeatToday`).
+- **Priority order** is `queue.priorityOrder` (default emergency, labour, elderly, staff, vip); normal tokens follow by number. **Skip** puts a patient behind the next three of the same priority class; a called patient who does not come returns to `waiting` / `vitals_done`.
+- **Transfer** gives a new number in the other doctor's day counter; the fee is unchanged. **No-show** needs a reason; **reinstate** works on the same day only. Unseen tokens (`waiting`, `vitals_done`) become `no_show` at 23:30 IST (worker job `queue.endOfDay`).
+- **Permissions**: reading the board needs `patient.view`; doctor-room actions (call, send in, recall, skip, seen, done) need `queue.call` (doctor, assistant, nurse, reception); desk actions (no-show, reinstate, transfer, priority) need `queue.manage`; cancelling a visit needs `visit.cancel`.
+- **Live updates**: the `opd_token` trigger runs `pg_notify('hmis_events', {f, t, d})` (ids only). `/api/events` fans it out over SSE per facility; clients poll every 5 s while no stream is open (503 while the listener is down) and every 60 s as a safety net while one is.

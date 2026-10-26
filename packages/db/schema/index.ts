@@ -8,3 +8,4 @@ export * from './platform';
 export * from './masters';
 export * from './patient';
 export { currentAppUserId } from './columns';
+export * from './visit';

@@ -3,6 +3,7 @@ import { accentColorSchema } from './accent';
 import { cidrSchema, DEFAULT_LAN_CIDRS } from './network';
 import { NUMBER_SERIES_CONFIG_SETTING, numberSeriesConfigSchema } from './number-series';
 import { ROLE_KEYS, type RoleKey } from './permissions';
+import { PRIORITY_CLASSES } from './visits';
 
 /**
  * Settings registry (docs/01 §7). One entry per `setting.key`: a zod schema plus the default used
@@ -76,6 +77,19 @@ export const SETTINGS = {
   'opd.notesRequired': def(z.boolean(), false),
   'queue.showNameOnDisplay': def(z.boolean(), false),
   'queue.issueTokenBeforePayment': def(z.boolean(), false),
+  /** Order of the priority classes above normal tokens, one per line (docs/10 §5). */
+  'queue.priorityOrder': def(
+    z
+      .array(z.string())
+      .refine(
+        (a) =>
+          a.length <= PRIORITY_CLASSES.length &&
+          new Set(a).size === a.length &&
+          a.every((v) => (PRIORITY_CLASSES as readonly string[]).includes(v)),
+        'validation.invalid',
+      ),
+    [...PRIORITY_CLASSES],
+  ),
   /** Long random key in the `/display/queue` URL; generated on first use, never defaulted. */
   'queue.displayKey': def(z.string().min(32).nullable(), null),
 

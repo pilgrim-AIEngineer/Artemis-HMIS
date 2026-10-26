@@ -2,6 +2,7 @@ import { createDb, resolveAppDatabaseUrl, resolveDatabaseUrl } from '@hmis/db';
 import { createLogger } from '@hmis/shared/logger';
 import { createBoss, registerJobs } from './boss';
 import { filesDirFromEnv } from './files';
+import { QUEUE_END_OF_DAY, QUEUE_END_OF_DAY_CRON } from './jobs/queue-end-of-day';
 
 const logger = createLogger('hmis-worker');
 const boss = createBoss(resolveDatabaseUrl());
@@ -19,6 +20,7 @@ boss.on('error', (err) =>
 
 await boss.start();
 await registerJobs(boss, { logger, db, filesDir: filesDirFromEnv() });
+await boss.schedule(QUEUE_END_OF_DAY, QUEUE_END_OF_DAY_CRON, {}, { tz: 'Asia/Kolkata' });
 logger.info('worker started');
 
 let stopping = false;

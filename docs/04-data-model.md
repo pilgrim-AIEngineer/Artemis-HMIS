@@ -48,10 +48,10 @@ Relational core in PostgreSQL. Every table below implicitly has: `id uuid pk (UU
 
 | Table | Key columns |
 | --- | --- |
-| `encounter` | patient_id, type (`opd`, `ipd`, `daycare`, `emergency`), number (OP/IP series), doctor_id, department_id, payer_id (default Cash), tariff_id, visit_type, chief_complaint_short, started_at, ended_at, status (`open`, `closed`, `cancelled`), is_restricted bool, referral_source, is_downtime_entry, pregnancy_id nullable |
-| `opd_token` | encounter_id, doctor_id, token_date, token_no, priority (`normal`, `emergency`, `labour`, `elderly`, `staff`, `vip`), queue_state (`waiting`, `vitals_done`, `with_doctor`, `seen`, `rx_entered`, `billed_orders`, `done`, `no_show`, `cancelled`), called_at, seen_at, done_at, unique(doctor_id, token_date, token_no) |
+| `encounter` | patient_id, type (`opd`, `ipd`, `daycare`, `emergency`), number (OP/IP series), doctor_id, department_id, payer_id (default Cash), tariff_id, visit_type, chief_complaint_short, started_at, ended_at, status (`open`, `closed`, `cancelled`), is_restricted bool, referral_source, is_downtime_entry, pregnancy_id nullable, **priority, visit_date (IST day), consultation_service_id, consultation_fee_paise, fee_basis (`tariff`, `free_follow_up`, `no_rule`, `no_rate`), cancel_reason/cancelled_by/cancelled_at** |
+| `opd_token` | encounter_id, doctor_id, token_date, token_no, priority (`normal`, `emergency`, `labour`, `elderly`, `staff`, `vip`), queue_state (`waiting`, `vitals_done`, `with_doctor`, `seen`, `rx_entered`, `billed_orders`, `done`, `no_show`, `cancelled`), called_at, seen_at, done_at, **queue_order (token_no × 1000; skip renumbers), issued_basis (`free`, `before_payment_setting`, `payment`, `manual_fee_pending`), issued_at, vitals_at, recall_count, state_reason (required for `no_show`/`cancelled`)**, unique(doctor_id, token_date, token_no), unique(encounter_id) |
 | `appointment` | patient_id nullable, name, mobile, doctor_id, slot_start, slot_end, source (`phone`, `walk_in`, `whatsapp`), status (`booked`, `arrived`, `cancelled`, `no_show`), encounter_id |
-| `queue_event` | token_id, from_state, to_state, by_user, at (for wait-time analytics) |
+| `queue_event` | token_id, from_state, to_state, by_user, at, **action** (`issue`, `call`, `recall`, `skip`, `seen`, `done`, `no_show`, `auto_no_show`, `reinstate`, `transfer`, `priority`, `cancel`) (for wait-time analytics) |
 
 ## 5. Clinical [P1 unless marked]
 

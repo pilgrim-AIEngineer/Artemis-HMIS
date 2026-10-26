@@ -100,7 +100,16 @@ export interface AuthFixture {
   a: { facilityId: string; workstationId: string };
   b: { facilityId: string };
   users: Record<
-    'admin' | 'owner' | 'reception' | 'nurse' | 'noRoles' | 'noPin' | 'adminB',
+    | 'admin'
+    | 'owner'
+    | 'reception'
+    | 'nurse'
+    | 'doctor'
+    | 'assistant'
+    | 'cashier'
+    | 'noRoles'
+    | 'noPin'
+    | 'adminB',
     { id: string; username: string }
   >;
   browser(clock?: Clock): TestBrowser;
@@ -140,6 +149,9 @@ export async function setupAuthFixture(adminUrl: string): Promise<AuthFixture> {
       owner: await make('owner', a.facilityId, ['owner']),
       reception: await make('reception', a.facilityId, ['reception']),
       nurse: await make('nurse', a.facilityId, ['nurse']),
+      doctor: await make('doctor', a.facilityId, ['doctor']),
+      assistant: await make('assistant', a.facilityId, ['doctor_assistant']),
+      cashier: await make('cashier', a.facilityId, ['cashier']),
       noRoles: await make('noroles', a.facilityId, []),
       noPin: await make('nopin', a.facilityId, ['reception'], { pin: null }),
       adminB: await make('adminb', b.facilityId, ['admin']),

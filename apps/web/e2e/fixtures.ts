@@ -8,5 +8,11 @@ export const E2E_USERS = {
     pin: '2580',
     roles: ['reception'],
   },
+  assistant: {
+    username: 'e2e_assistant',
+    fullName: 'E2E Assistant',
+    pin: '2468',
+    roles: ['doctor_assistant'],
+  },
   admin: { username: 'e2e_admin', fullName: 'E2E Admin', pin: '1357', roles: ['admin'] },
 } as const;

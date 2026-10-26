@@ -354,6 +354,10 @@
           "issueTokenBeforePayment": {
             "label": "Give the token before payment",
             "hint": "Off: the token is given after the bill is paid."
+          },
+          "priorityOrder": {
+            "label": "Order of priority patients",
+            "hint": "One per line, first line is called first: emergency, labour, elderly, staff, vip. Normal patients follow by token number. A priority not listed is treated as normal."
           }
         },
         "billing": {
@@ -988,6 +992,30 @@
       "notFound": "This patient was not found. It may have been changed; please search again.",
       "ageInvalid": "The age or date of birth is not valid.",
       "notEditable": "This patient record can no longer be edited."
+    },
+    "visit": {
+      "patientNotFound": "Patient not found.",
+      "patientDeceased": "This patient is marked deceased. A visit cannot be made.",
+      "doctorNotFound": "Doctor not found or not available.",
+      "noPayer": "No cash payer is set up. Ask the administrator.",
+      "noTariff": "No price list is set up for today. Ask the administrator.",
+      "followUpNotEligible": "This patient is not entitled to a follow-up now. Choose new visit; a concession can be given in billing.",
+      "alreadyToday": "This patient already has a visit with this doctor today.",
+      "notFound": "Visit not found.",
+      "notCancellable": "The patient has already been seen, so the visit cannot be cancelled.",
+      "tokenAlreadyIssued": "This visit already has a token.",
+      "notOpen": "This visit is already closed or cancelled."
+    },
+    "queue": {
+      "tokenNotFound": "Token not found. Please reload.",
+      "invalidTransition": "This cannot be done at this step. Reload the queue to see the latest state.",
+      "nothingWaiting": "Nobody is waiting for this doctor.",
+      "sameDoctor": "The patient is already with this doctor.",
+      "notToday": "Only today’s tokens can be changed.",
+      "notPending": "The priority can be changed only for patients who are still waiting."
+    },
+    "idempotency": {
+      "conflict": "This request was already used for a different entry. Reload the page and try again."
     }
   },
   "nav": {
@@ -1208,8 +1236,10 @@
         "occupation": "Occupation",
         "referredBy": "Referred by",
         "registered": "Registered on"
-      }
-    }
+      },
+      "newVisit": "New visit"
+    },
+    "queue": "Queue"
   },
   "age": {
     "days": "{count, plural, one {# day} other {# days}}",
@@ -1224,5 +1254,108 @@
   },
   "uhid": {
     "invalid": "Enter a UHID like UH-000123."
+  },
+  "queue": {
+    "deskTitle": "Queue",
+    "roomTitle": "Doctor room queue",
+    "live": "Live",
+    "polling": "Refreshing every 5 seconds",
+    "allDoctors": "All doctors",
+    "chooseDoctor": "Choose doctor",
+    "noDoctors": "No doctor has a fee set yet. Ask the administrator to add the doctors’ consultation fees.",
+    "callNext": "Call next",
+    "sendIn": "Send in",
+    "recall": "Call again",
+    "skip": "Skip",
+    "seen": "Seen",
+    "done": "Done",
+    "noShow": "No-show",
+    "transfer": "Move to doctor",
+    "priority": "Priority",
+    "reinstate": "Back in queue",
+    "waited": "waiting {minutes} min",
+    "tokenNo": "Token {no}",
+    "waitingCount": "{count, plural, =0 {Nobody waiting} one {# waiting} other {# waiting}}",
+    "emptyColumn": "Nobody in the queue.",
+    "finished": "{count, plural, one {# finished or left} other {# finished or left}}",
+    "queueOf": "Queue of {name}",
+    "loadFailed": "The queue could not be loaded. Check the connection; it will try again.",
+    "close": "Close",
+    "cancel": "Cancel",
+    "noShowTitle": "Token {no}: mark as not present",
+    "reasonLabel": "Reason",
+    "reasonPlaceholder": "e.g. went home, left without seeing",
+    "reasonShort": "Write at least 3 letters.",
+    "transferTitle": "Token {no}: move to another doctor",
+    "transferHint": "The patient gets a new token number in the other doctor’s queue. The fee is not changed.",
+    "transferTo": "Move to",
+    "priorityTitle": "Token {no}: priority",
+    "priorityLabel": "Priority",
+    "awaitingTitle": "Visits without a token",
+    "awaitingHint": "The token is given after the fee is paid. Give it here only when the fee has been collected.",
+    "giveToken": "Give token",
+    "feeNotSet": "Fee not set for this doctor: check before giving the token",
+    "feeToCollect": "Fee {amount}",
+    "sex": {
+      "F": "Female",
+      "M": "Male",
+      "O": "Other"
+    },
+    "states": {
+      "waiting": "Waiting",
+      "vitals_done": "Vitals done",
+      "with_doctor": "With doctor",
+      "seen": "Seen",
+      "rx_entered": "Rx entered",
+      "billed_orders": "Orders billed",
+      "done": "Done",
+      "no_show": "Not present",
+      "cancelled": "Cancelled"
+    },
+    "priorities": {
+      "normal": "Normal",
+      "emergency": "Emergency",
+      "labour": "Labour",
+      "elderly": "Elderly",
+      "staff": "Staff",
+      "vip": "VIP"
+    },
+    "visitTypes": {
+      "new": "New",
+      "follow_up": "Follow-up",
+      "emergency": "Emergency",
+      "anc": "ANC",
+      "paeds_vaccination": "Vaccination"
+    }
+  },
+  "visit": {
+    "title": "New visit",
+    "patientNotFound": "Patient not found. Go back and search again.",
+    "doctor": "Doctor",
+    "noDoctors": "No doctor can be booked yet. Ask the administrator to add the doctors’ consultation fees.",
+    "visitType": "Type of visit",
+    "suggested": "suggested",
+    "fee": "Consultation fee",
+    "feeFree": "No fee",
+    "feeNotSet": "Fee not set for this visit type. Ask the administrator.",
+    "followUp": {
+      "valid": "Follow-up is allowed until {date} ({left, plural, one {# free visit left} other {# free visits left}}).",
+      "exhausted": "The free follow-up was already used. This is a new visit.",
+      "expired": "The last consultation was on {date}. The follow-up period is over.",
+      "disabled": "Free follow-up is switched off."
+    },
+    "priority": "Priority",
+    "complaint": "Complaint (short)",
+    "save": "Save visit",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "allowRepeat": "Yes, make another visit today",
+    "repeatConfirmed": "Another visit today is confirmed. Press Save visit.",
+    "created": "Visit {number} saved",
+    "tokenLabel": "Token",
+    "collectThenToken": "Collect {amount}, then give the token.",
+    "feeMissing": "The fee is not set. Check with the administrator before giving a token.",
+    "giveToken": "Fee collected: give token",
+    "openQueue": "Open queue"
   }
 }

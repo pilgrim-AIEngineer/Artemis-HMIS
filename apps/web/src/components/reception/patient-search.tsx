@@ -4,7 +4,7 @@ import { keepPreviousData, skipToken, useQuery } from '@tanstack/react-query';
 import { Input } from '@hmis/ui/components/input';
 import { Button } from '@hmis/ui/components/button';
 import { cn } from '@hmis/ui/lib/utils';
-import { Search, UserRoundPlus, Users } from 'lucide-react';
+import { ListChecks, Search, UserRoundPlus, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -70,15 +70,23 @@ export function PatientSearch({ canCreate }: { canCreate: boolean }) {
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <h1 className="text-3xl font-semibold">{t('title')}</h1>
-        {canCreate && (
-          <Button asChild>
-            <Link href="/reception/patients/new">
-              <UserRoundPlus aria-hidden />
-              {t('newPatient')}
-              <ShortcutHint keys="F2" />
+        <div className="flex flex-wrap gap-3">
+          <Button asChild variant="outline">
+            <Link href="/reception/queue">
+              <ListChecks aria-hidden />
+              {t('queue')}
             </Link>
           </Button>
-        )}
+          {canCreate && (
+            <Button asChild>
+              <Link href="/reception/patients/new">
+                <UserRoundPlus aria-hidden />
+                {t('newPatient')}
+                <ShortcutHint keys="F2" />
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="space-y-2">

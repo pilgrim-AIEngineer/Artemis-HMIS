@@ -413,7 +413,7 @@ describe('rates and tariffs (docs/12 §1)', () => {
 });
 
 describe('demo seed skeleton', () => {
-  it('creates demo doctors, rates and patients, idempotently', async () => {
+  it('creates demo doctors, rates, patients and 30 days of OPD, idempotently', async () => {
     const run = () => withTx(ctx(), (tx) => seedDemoData(tx, f.facilityId, m));
     const first = await run();
     expect(first[0]).toBe('doctors: 3 new demo doctor(s)');
@@ -422,7 +422,22 @@ describe('demo seed skeleton', () => {
       'doctors: 0 new demo doctor(s)',
       'rates: 0 synthetic demo rate(s) in the default tariff',
       'patients: 500 already present',
+      expect.stringMatching(/^opd: \d+ visits already present$/),
     ]);
+    expect(first[3]).toMatch(/^opd: \d+ visits over 30 days$/);
+    const opd = (
+      await t.owner.$client.query<{ visits: number; tokens: number; open: number; dup: number }>(
+        `select (select count(*) from encounter where facility_id = $1)::int as visits,
+                (select count(*) from opd_token where facility_id = $1 and queue_state = 'done')::int as tokens,
+                (select count(*) from encounter where facility_id = $1 and status <> 'open')::int as open,
+                (select count(*) from (select 1 from opd_token where facility_id = $1
+                   group by doctor_id, token_date, token_no having count(*) > 1) d)::int as dup`,
+        [f.facilityId],
+      )
+    ).rows[0]!;
+    expect(opd.visits).toBeGreaterThan(300);
+    expect(opd.tokens).toBe(opd.visits);
+    expect(opd).toMatchObject({ open: 0, dup: 0 });
     const rules = (
       await t.owner.$client.query<{ n: number }>(
         `select count(*)::int as n from consultation_rule where facility_id = $1`,
