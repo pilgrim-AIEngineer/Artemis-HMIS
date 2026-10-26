@@ -4,6 +4,7 @@
  * `@hmis/print/server`; the client-safe pieces are in `@hmis/print`.
  */
 import {
+  activeVitals,
   facilityCloseView,
   loadDayClose,
   loadReceipt,
@@ -26,7 +27,7 @@ import type { ReactNode } from 'react';
 import { L } from './labels';
 import { initials, qrSvg } from './doc-utils';
 import { SampleDocument } from './templates/sample';
-import { ageSex, mobileLast4 } from './templates/format';
+import { ageSex, mobileLast4, sheetVitals } from './templates/format';
 import { OpdSheet, type OpdSheetData } from './templates/opd-sheet';
 import { PatientSticker, UhidCard, type PatientLabelData } from './templates/patient-labels';
 import {
@@ -153,6 +154,7 @@ const opdSheet = impl<OpdSheetData>({
       )
       .orderBy(desc(encounter.startedAt))
       .limit(1);
+    const reading = await activeVitals(db, facilityId, entityId);
     const s = await readSettings(db, facilityId, ['opd.quickOrders']);
     const configured = s['opd.quickOrders'][row.doctorId];
     return {
@@ -177,8 +179,8 @@ const opdSheet = impl<OpdSheetData>({
         startedAt: row.startedAt,
         payer: row.payer,
       },
-      // Vitals are recorded by OPD-01; until then the boxes print blank.
-      vitals: null,
+      // Blank boxes until the vitals desk has saved a reading (OPD-01).
+      ...(reading ? sheetVitals(reading) : { vitals: null }),
       lastVisit: last ? { date: formatDate(last.visitDate), doctor: last.doctor } : null,
       quickOrders: configured && configured.length > 0 ? configured : [...DEFAULT_QUICK_ORDERS],
     };

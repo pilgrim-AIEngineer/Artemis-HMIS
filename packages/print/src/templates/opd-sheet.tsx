@@ -3,7 +3,9 @@ import { code128Svg } from '../barcode';
 import { L } from '../labels';
 import type { Bilingual, PrintMeta } from '../types';
 
-export type VitalKey = 'bp' | 'pulse' | 'weight' | 'temp' | 'spo2';
+import type { VitalKey } from './format';
+
+export type { VitalKey };
 
 /** Everything the OPD sheet shows (docs/10 §7). The QR (in `PrintMeta`) encodes the visit id only. */
 export interface OpdSheetData {
@@ -31,6 +33,12 @@ export interface OpdSheetData {
   };
   /** Printed when the vitals desk has entered them (OPD-01); null leaves the boxes blank. */
   vitals: Partial<Record<VitalKey, string>> | null;
+  /** Out-of-range readings: `*` amber, `**` red, with a key line under the boxes. */
+  vitalFlags?: Partial<Record<VitalKey, 'amber' | 'red'>>;
+  /** Readings beyond the five boxes (height, sugar, pregnancy or child measures), label + value. */
+  vitalsMore?: { label: Bilingual; value: string }[];
+  /** Patient alerts for the doctor (docs/11 §1: Raised BP in pregnancy). */
+  alerts?: 'raised_bp_pregnancy'[];
   lastVisit: { date: string; doctor: string } | null;
   quickOrders: string[];
 }
@@ -52,6 +60,9 @@ const bi = (l: Bilingual) => `${l.hi} / ${l.en}`;
  */
 export function OpdSheet({ data, meta }: { data: OpdSheetData; meta: PrintMeta }) {
   const { doctor, patient, visit, vitals, lastVisit } = data;
+  const flags = data.vitalFlags ?? {};
+  const more = data.vitalsMore ?? [];
+  const flagged = Object.keys(flags).length > 0 || more.some((m) => m.value.endsWith('*'));
   const orders = data.quickOrders.slice(0, MAX_QUICK_ORDERS_ON_SHEET);
   return (
     <div className="sheet">
@@ -112,11 +123,27 @@ export function OpdSheet({ data, meta }: { data: OpdSheetData; meta: PrintMeta }
         {VITALS.map((v) => (
           <span key={v.key} className="sheet-vital">
             <span className="sheet-vital-label">{v.label.en}</span>
-            <span className="sheet-vital-box">{vitals?.[v.key] ?? ''}</span>
+            <span className="sheet-vital-box" data-flag={flags[v.key]}>
+              {vitals?.[v.key] ?? ''}
+              {flags[v.key] === 'red' ? '**' : flags[v.key] ? '*' : ''}
+            </span>
             <span className="sheet-vital-unit">{v.unit}</span>
           </span>
         ))}
+        {more.map((m) => (
+          <span key={m.label.en} className="sheet-vital sheet-vital-more">
+            <span className="sheet-vital-label">{m.label.en}</span>
+            <span className="sheet-vital-box">{m.value}</span>
+          </span>
+        ))}
+        {flagged && <span className="sheet-vital-key">* {bi(L.outOfRange)}</span>}
       </div>
+
+      {(data.alerts ?? []).length > 0 && (
+        <p className="sheet-alert" data-testid="sheet-alert">
+          <strong>{bi(L.alert)}:</strong> {bi(L.raisedBpPregnancy)}
+        </p>
+      )}
 
       <div className="sheet-context">
         <p>
