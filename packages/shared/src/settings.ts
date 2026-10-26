@@ -10,6 +10,7 @@ import {
   riskRulesSchema,
   visitIntervalsSchema,
 } from './anc';
+import { FORBIDDEN_TERM_MESSAGE, noForbiddenTerms } from './compliance/forbidden-terms';
 import { DEFAULT_QUICK_ORDER_SERVICES, displayKeyHashSchema } from './display';
 import { rxPhrasesOverrideSchema } from './rx-hindi';
 import { cidrSchema, DEFAULT_LAN_CIDRS } from './network';
@@ -35,6 +36,8 @@ import {
 const paiseJson = z.number().int().min(0).max(Number.MAX_SAFE_INTEGER);
 const roleKey = z.enum(ROLE_KEYS);
 const uuid = z.uuid();
+/** Free text a setting can print or show (D-10, rule 7): runs the forbidden-term guard. */
+const guard = <T extends z.ZodString>(s: T) => s.refine(...noForbiddenTerms('always'));
 
 const followUpRuleSchema = z.object({
   validityDays: z.number().int().min(0).max(365),
@@ -62,14 +65,14 @@ const upiRefSchema = z.object({
  * patients are bilingual (Hindi first, docs/05 §6).
  */
 export const printHeaderSchema = z.object({
-  nameHi: z.string().trim().max(120).default(''),
-  taglineEn: z.string().trim().max(120).default(''),
-  taglineHi: z.string().trim().max(120).default(''),
-  addressHi: z.string().trim().max(300).default(''),
+  nameHi: guard(z.string().trim().max(120)).default(''),
+  taglineEn: guard(z.string().trim().max(120)).default(''),
+  taglineHi: guard(z.string().trim().max(120)).default(''),
+  addressHi: guard(z.string().trim().max(300)).default(''),
   /** Registration numbers (clinical establishment, GSTIN) under the address. */
   showRegistrationNos: z.boolean().default(true),
-  footerNoteEn: z.string().trim().max(300).default(''),
-  footerNoteHi: z.string().trim().max(300).default(''),
+  footerNoteEn: guard(z.string().trim().max(300)).default(''),
+  footerNoteHi: guard(z.string().trim().max(300)).default(''),
 });
 export type PrintHeaderSettings = z.output<typeof printHeaderSchema>;
 
@@ -90,15 +93,19 @@ export const SETTINGS = {
   /** Per-doctor overrides of the two settings above, keyed by doctor id (docs/10 §4). */
   'opd.followUpRulesByDoctor': def(z.record(uuid, followUpRuleSchema), {}),
   'opd.sheetPrintAt': def(z.enum(['reception', 'vitals']), 'vitals'), // Q11
-  'opd.quickOrders': def(z.record(uuid, z.array(z.string().min(1).max(80)).max(30)), {}),
+  'opd.quickOrders': def(z.record(uuid, z.array(guard(z.string().min(1).max(80))).max(30)), {}),
   /** Quick-tick label → billing service codes it orders (docs/11 §2.4). */
   'opd.quickOrderServices': def(
-    z.record(z.string().min(1).max(80), z.array(z.string().min(1).max(40)).max(10)),
+    z
+      .record(z.string().min(1).max(80), z.array(z.string().min(1).max(40)).max(10))
+      .refine((r) => Object.keys(r).every((k) => noForbiddenTerms('always')[0](k)), {
+        message: FORBIDDEN_TERM_MESSAGE,
+      }),
     structuredClone(DEFAULT_QUICK_ORDER_SERVICES) as Record<string, string[]>,
   ),
   'opd.notesRequired': def(z.boolean(), false),
   /** Complaint chips of the Notes tab (docs/11 §2.5); wording for the doctors to review. */
-  'opd.complaintChips': def(z.array(z.string().trim().min(1).max(80)).max(40), [
+  'opd.complaintChips': def(z.array(guard(z.string().trim().min(1).max(80))).max(40), [
     'Fever',
     'Pain abdomen',
     'White discharge',
@@ -111,7 +118,7 @@ export const SETTINGS = {
     'Weakness',
   ]),
   /** Advice chips of the Notes tab (docs/11 §2.5 examples). */
-  'opd.adviceChips': def(z.array(z.string().trim().min(1).max(120)).max(40), [
+  'opd.adviceChips': def(z.array(guard(z.string().trim().min(1).max(120))).max(40), [
     'Plenty of fluids',
     'Iron-rich diet',
     'Report immediately if bleeding, leaking or decreased movements of the baby',
@@ -206,7 +213,13 @@ export const SETTINGS = {
   'rx.hindiPhrases': def(rxPhrasesOverrideSchema, {}),
   'print.rxCopy': def(z.boolean(), false), // Q16
   'print.header': def(printHeaderSchema, printHeaderSchema.parse({})),
-  'usg.reportFooter': def(z.string().max(2000), ''),
+  'usg.reportFooter': def(
+    z
+      .string()
+      .max(2000)
+      .refine(...noForbiddenTerms('strict')),
+    '',
+  ),
   'pcpndt.patientDeclarationBeforeScan': def(z.boolean(), true),
   /** Gestation-based MTP rules, maintained by the MTP doctor (docs/14); free-form JSON. */
   'mtp.rules': def(z.record(z.string(), z.unknown()), {}),

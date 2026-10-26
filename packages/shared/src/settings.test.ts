@@ -171,7 +171,8 @@ describe('effectiveDiscountLimit', () => {
     it.each(Object.entries(bad))('%s rejects a forbidden phrase', (key, value) => {
       const r = SETTINGS[key as keyof typeof bad].schema.safeParse(value);
       expect(r.success).toBe(false);
-      if (!r.success) expect(r.error.issues.some((i) => i.message === 'validation.forbiddenTerm')).toBe(true);
+      if (!r.success)
+        expect(r.error.issues.some((i) => i.message === 'validation.forbiddenTerm')).toBe(true);
     });
 
     it.each(['nameHi', 'taglineEn', 'taglineHi', 'addressHi', 'footerNoteEn', 'footerNoteHi'])(
