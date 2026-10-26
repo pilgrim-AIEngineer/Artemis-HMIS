@@ -2,6 +2,7 @@ export * from './accent';
 export * from './auth';
 export * from './compliance/forbidden-terms';
 export * from './dates';
+export * from './display';
 export * from './enums';
 export * from './facility';
 export * from './fy';

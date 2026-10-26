@@ -8,12 +8,13 @@ import { Pencil, Search, Stethoscope, UserRoundPlus } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useSession } from '@/components/auth/session-provider';
+import { PrintButton } from '@/components/print/print-button';
 import { Section } from '@/components/section';
 import { useAgeText } from '@/lib/use-age-text';
 import { useTRPC } from '@/trpc/client';
 
 /** Patient page: identity strip, details, the family on the same mobile, and the next actions. */
-export function PatientSummary({ id, registeredUhid }: { id: string; registeredUhid?: string }) {
+export function PatientSummary({ id, justRegistered }: { id: string; justRegistered?: boolean }) {
   const t = useTranslations('reception');
   const tSum = useTranslations('reception.summary');
   const tEnum = useTranslations('reception.enums');
@@ -84,12 +85,12 @@ export function PatientSummary({ id, registeredUhid }: { id: string; registeredU
 
   return (
     <div className="space-y-5">
-      {registeredUhid && (
+      {justRegistered && (
         <p
           role="status"
           className="rounded-lg border-2 border-money p-4 text-xl font-semibold text-money"
         >
-          {tSum('registered', { uhid: registeredUhid })}
+          {tSum('registered', { uhid: p.uhid })}
         </p>
       )}
       <PatientHeader
@@ -102,6 +103,20 @@ export function PatientSummary({ id, registeredUhid }: { id: string; registeredU
         flags={flags}
       />
       <div className="flex flex-wrap gap-3">
+        <PrintButton
+          template="patient-sticker"
+          entityId={id}
+          label={tSum('printSticker')}
+          variant="outline"
+          shortcut={false}
+        />
+        <PrintButton
+          template="uhid-card"
+          entityId={id}
+          label={tSum('printCard')}
+          variant="outline"
+          shortcut={false}
+        />
         {can('visit.create') && !p.isDeceased && (
           <Button asChild size="lg">
             <Link href={`/reception/patients/${id}/visit`}>

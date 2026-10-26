@@ -6,8 +6,29 @@ import type { PrintHeaderData } from '../types';
  * Hospital header on every print (docs/05 §6): Hindi name first, English second, then address,
  * phone and registration numbers. Labels carry no header (the sticker is too small).
  */
-export function PrintHeader({ header, paper }: { header: PrintHeaderData; paper: PaperSize }) {
+export function PrintHeader({
+  header,
+  paper,
+  compact = false,
+}: {
+  header: PrintHeaderData;
+  paper: PaperSize;
+  /** Name line, then address and phone on one line (OPD sheet). */
+  compact?: boolean;
+}) {
   if (paper === 'label50x25') return null;
+  if (compact) {
+    const line = [
+      header.addressEn,
+      header.phone && `${L.phone.hi} / ${L.phone.en}: ${header.phone}`,
+    ].filter(Boolean);
+    return (
+      <header className="print-header print-header-compact">
+        <h1 className="print-name">{[header.nameHi, header.nameEn].filter(Boolean).join(' / ')}</h1>
+        {line.length > 0 && <p className="print-line">{line.join(' · ')}</p>}
+      </header>
+    );
+  }
   const showHiAddress = header.addressHi && paper !== 'thermal80';
   const contact = [
     header.phone && `${L.phone.hi} / ${L.phone.en}: ${header.phone}`,

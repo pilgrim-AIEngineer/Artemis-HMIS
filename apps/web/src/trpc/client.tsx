@@ -57,9 +57,10 @@ export function TRPCReactProvider({ children }: { children: ReactNode }) {
       links: [
         httpBatchLink({
           url: '/api/trpc',
-          transformer: superjson,
-          // AGENTS.md rule 15: query inputs carry patient name/mobile/DOB; keep them out of URLs.
+          // Queries too go by POST: a GET would put the input (a patient's name or mobile in the
+          // search box) in the URL, and so in access logs (AGENTS.md rule 15).
           methodOverride: 'POST',
+          transformer: superjson,
           // Double-submit CSRF token (set by the proxy on page load).
           headers: () => {
             const token = readCookie(CSRF_COOKIE);

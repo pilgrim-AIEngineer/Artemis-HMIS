@@ -13,10 +13,6 @@ export default async function PatientPage({
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const { registered } = await searchParams;
-  return (
-    <PatientSummary
-      id={id}
-      registeredUhid={/^[A-Z0-9]{1,12}-\d{4,12}$/.test(registered ?? '') ? registered : undefined}
-    />
-  );
+  // Only a flag: the UHID and everything else about the patient is read by id, never in the URL.
+  return <PatientSummary id={id} justRegistered={registered === '1'} />;
 }

@@ -1,6 +1,6 @@
-import { opdToken } from '@hmis/db/schema';
+import { opdToken, setting } from '@hmis/db/schema';
 import { seedOpdData, type OpdFixture } from '@hmis/db/testing/opd';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
 import {
@@ -147,5 +147,99 @@ describe('queue procedures', () => {
     await waiting(opd.doctorA);
     const board = await who.assistant.call((c) => c.queue.board({ doctorIds: [opd.doctorA] }));
     expect(board.columns.map((c) => c.doctor.displayName)).toEqual(['Dr. A']);
+  });
+});
+
+describe('waiting-room TV link (REG-05)', () => {
+  it('is for queue.display.manage only (owner by default), and the key is never readable', async () => {
+    const made = await who.owner.call((c) => c.queue.rotateDisplayKey());
+    expect(made.key).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(await who.owner.call((c) => c.queue.displayStatus())).toEqual({ configured: true });
+    // The setting holds the hash, and the generic settings list does not offer it.
+    const stored = await f.db.execute(
+      sql`select value from setting where key = 'queue.displayKey' and facility_id = ${f.a.facilityId}`,
+    );
+    expect(JSON.stringify(stored.rows)).not.toContain(made.key);
+    for (const k of [
+      'admin',
+      'reception',
+      'doctor',
+      'assistant',
+      'nurse',
+      'cashier',
+      'noRoles',
+    ] as const) {
+      expect((await trpcError(who[k].call((c) => c.queue.rotateDisplayKey()))).code).toBe(
+        'FORBIDDEN',
+      );
+      expect((await trpcError(who[k].call((c) => c.queue.displayStatus()))).code).toBe('FORBIDDEN');
+    }
+    expect((await trpcError(f.browser().call((c) => c.queue.rotateDisplayKey()))).code).toBe(
+      'UNAUTHORIZED',
+    );
+  });
+});
+
+describe('vitals done and the OPD sheet (REG-06)', () => {
+  it('moves waiting → vitals_done for the vitals desk and says to print the sheet by default', async () => {
+    const t = await waiting();
+    const r = await who.nurse.call((c) => c.queue.vitalsDone({ tokenId: t }));
+    expect(r).toMatchObject({ id: t, queueState: 'vitals_done', printSheet: true });
+    expect(r.encounterId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(await stateOf(t)).toBe('vitals_done');
+    const again = await trpcError(who.nurse.call((c) => c.queue.vitalsDone({ tokenId: t })));
+    expect(again.code).toBe('CONFLICT');
+  });
+
+  it('does not ask for a print at the vitals desk when the sheet prints at reception', async () => {
+    await f.t.owner.insert(setting).values({
+      facilityId: f.a.facilityId,
+      key: 'opd.sheetPrintAt',
+      value: 'reception',
+    });
+    try {
+      const t = await waiting();
+      expect((await who.assistant.call((c) => c.queue.vitalsDone({ tokenId: t }))).printSheet).toBe(
+        false,
+      );
+      const v = await who.reception.call(async (c) =>
+        c.visit.create({
+          patientId: await opd.newPatient(),
+          doctorId: opd.doctorB,
+          idempotencyKey: uuidv7(),
+        }),
+      );
+      expect(v.printSheet).toBe(false); // fee ₹500: no token yet
+      const issued = await who.reception.call((c) =>
+        c.visit.issueToken({ encounterId: v.encounterId }),
+      );
+      expect(issued.printSheet).toBe(true);
+    } finally {
+      await f.t.owner.delete(setting).where(eq(setting.key, 'opd.sheetPrintAt'));
+    }
+  });
+
+  it('keeps the sheet for the vitals desk by default, also at reception issue', async () => {
+    const v = await who.reception.call(async (c) =>
+      c.visit.create({
+        patientId: await opd.newPatient(),
+        doctorId: opd.doctorB,
+        idempotencyKey: uuidv7(),
+      }),
+    );
+    const issued = await who.reception.call((c) =>
+      c.visit.issueToken({ encounterId: v.encounterId }),
+    );
+    expect(issued.printSheet).toBe(false);
+  });
+
+  it('is for vitals.record only', async () => {
+    const t = await waiting();
+    for (const k of ['doctor', 'cashier', 'admin', 'noRoles'] as const) {
+      expect((await trpcError(who[k].call((c) => c.queue.vitalsDone({ tokenId: t })))).code).toBe(
+        'FORBIDDEN',
+      );
+    }
+    expect(await stateOf(t)).toBe('waiting');
   });
 });

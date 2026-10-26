@@ -7,3 +7,4 @@ export * from './paper';
 export * from './styles';
 export * from './templates/meta';
 export * from './types';
+export * from './barcode';

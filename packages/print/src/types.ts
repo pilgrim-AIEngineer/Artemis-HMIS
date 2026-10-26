@@ -31,11 +31,18 @@ export interface PrintMeta {
   printedAt: Date;
   /** Initials of the user who printed, e.g. `AS`. */
   printedBy: string;
-  /** Encoded in the QR code (the document id). */
+  /** Encoded in the QR code: the document id, or an identifier such as `E:<visit id>` / the UHID. */
   docRef: string;
   /** Inline `<svg>` of the QR code. */
   qrSvg: string;
 }
+
+/**
+ * How much of the standard frame (hospital header, title, QR footer) a template gets:
+ * `full` everywhere by default; `compact` for a one-line header and a text-only footer (the OPD
+ * sheet carries its own QR); `none` when the template draws everything itself (UHID card).
+ */
+export type PrintChrome = 'full' | 'compact' | 'none';
 
 /** Client-safe description of a template (the permission is enforced by the server). */
 export interface PrintTemplateMeta {
@@ -46,6 +53,13 @@ export interface PrintTemplateMeta {
   /** Needed to print (and to render a PDF of) this template. */
   permission: Permission;
   title: Bilingual;
+  /** Defaults to `full` (labels never have a frame). */
+  chrome?: PrintChrome;
+  /**
+   * Reprints carry the DUPLICATE mark unless this is false (default true): stickers and cards are
+   * printed in numbers on purpose. `print_log` still counts every copy.
+   */
+  markDuplicate?: boolean;
 }
 
 /** Everything needed to draw one printed document; same input for web print and worker PDF. */

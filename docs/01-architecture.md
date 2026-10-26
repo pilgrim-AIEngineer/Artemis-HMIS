@@ -22,7 +22,7 @@ Everything runs on one server inside the hospital on the LAN. Clients are Chrome
 ### apps/web (Next.js App Router)
 
 - Route groups by role home: `/(app)/reception`, `/(app)/assistant`, `/(app)/billing`, `/(app)/doctor`, `/(app)/nursing`, `/(app)/pharmacy`, `/(app)/lab`, `/(app)/usg`, `/(app)/admin`, `/(app)/reports`.
-- `/display/queue` — TV display, no login, shows token numbers only (no patient names by default; setting allows first name + initial). Authenticated by a long random display key in the URL stored in `setting`.
+- `/display/queue` — TV display, no login, shows token numbers only (no patient names by default; setting allows first name + initial). Authenticated by a long random display key in the URL; `setting` stores only its SHA-256 (REG-05), and every poll sends the key in a header.
 - `/print/[template]/[id]` — server-rendered print pages using `packages/print` templates.
 - tRPC router at `/api/trpc`, split by module (`patient`, `visit`, `queue`, `clinical`, `billing`, `pharmacy`, ...).
 - Server Components for read-heavy pages; client components for fast-entry forms.

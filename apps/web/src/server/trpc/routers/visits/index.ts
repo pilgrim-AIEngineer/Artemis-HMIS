@@ -4,7 +4,9 @@ import {
   IdempotencyConflictError,
   issueToken,
   previewVisit,
+  readSetting,
   VisitInputError,
+  type Tx,
 } from '@hmis/db';
 import { consultationRule, doctorProfile, encounter } from '@hmis/db/schema';
 import { cancelVisitSchema, createVisitSchema, uuidSchema, visitPreviewSchema } from '@hmis/shared';
@@ -51,6 +53,16 @@ export async function mapped<T>(run: () => Promise<T>): Promise<T> {
   }
 }
 
+async function sheetAtReception(
+  tx: Tx,
+  facilityId: string,
+  tokenNo: number | null,
+): Promise<boolean> {
+  return (
+    tokenNo !== null && (await readSetting(tx, facilityId, 'opd.sheetPrintAt')) === 'reception'
+  );
+}
+
 export const visitsRouter = router({
   /** Doctors reception can book: active, with a consultation fee rule (docs/10 §4). */
   doctors: create.query(({ ctx }) =>
@@ -85,40 +97,39 @@ export const visitsRouter = router({
       mapped(() => ctx.tx((tx) => previewVisit(tx, ctx.auth.facilityId, input, ctx.now()))),
     ),
 
-  create: create
-    .input(createVisitSchema)
-    .mutation(({ ctx, input }) =>
-      mapped(() =>
-        ctx.tx((tx) =>
-          createVisit(
-            tx,
-            { facilityId: ctx.auth.facilityId, userId: ctx.auth.userId },
-            input,
-            ctx.now(),
-          ),
-        ),
-      ),
+  /** `printSheet`: the token is out and `opd.sheetPrintAt` = `reception`, so print the OPD sheet. */
+  create: create.input(createVisitSchema).mutation(({ ctx, input }) =>
+    mapped(() =>
+      ctx.tx(async (tx) => {
+        const v = await createVisit(
+          tx,
+          { facilityId: ctx.auth.facilityId, userId: ctx.auth.userId },
+          input,
+          ctx.now(),
+        );
+        return { ...v, printSheet: await sheetAtReception(tx, ctx.auth.facilityId, v.tokenNo) };
+      }),
     ),
+  ),
 
   /**
    * Gives the token of a visit whose fee is not collected through the system yet (until BIL-01
    * issues it on payment). Recorded as `manual_fee_pending` on the token.
    */
-  issueToken: collect
-    .input(z.object({ encounterId: uuidSchema }))
-    .mutation(({ ctx, input }) =>
-      mapped(() =>
-        ctx.tx((tx) =>
-          issueToken(
-            tx,
-            { facilityId: ctx.auth.facilityId, userId: ctx.auth.userId },
-            input.encounterId,
-            'manual_fee_pending',
-            ctx.now(),
-          ),
-        ),
-      ),
+  issueToken: collect.input(z.object({ encounterId: uuidSchema })).mutation(({ ctx, input }) =>
+    mapped(() =>
+      ctx.tx(async (tx) => {
+        const t = await issueToken(
+          tx,
+          { facilityId: ctx.auth.facilityId, userId: ctx.auth.userId },
+          input.encounterId,
+          'manual_fee_pending',
+          ctx.now(),
+        );
+        return { ...t, printSheet: await sheetAtReception(tx, ctx.auth.facilityId, t.tokenNo) };
+      }),
     ),
+  ),
 
   cancel: cancel
     .input(cancelVisitSchema)

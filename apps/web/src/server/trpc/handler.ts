@@ -20,7 +20,7 @@ export function createTrpcHandler(overrides: Partial<Pick<Context, 'db' | 'now'>
       endpoint: '/api/trpc',
       req,
       router: appRouter,
-      // Client sends queries as POST so patient search terms never land in URLs/logs (rule 15).
+      // Queries are sent as POST (see the client link) so their input never lands in a URL.
       allowMethodOverride: true,
       createContext: (opts) => ({ ...createContext(opts), ...overrides }),
       onError({ error, path }) {
