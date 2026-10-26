@@ -11,6 +11,7 @@
  * `computeBill`; the DB re-checks every invariant (migration 0015).
  */
 import {
+  allocateDiscounts,
   billHeaderTotals,
   checkTenders,
   computeGstLine,
@@ -31,16 +32,21 @@ import {
   type Tender,
 } from '@hmis/shared';
 import { and, asc, desc, eq, ilike, max, ne, or, sql } from 'drizzle-orm';
+import { alias } from 'drizzle-orm/pg-core';
 import { uuidv7 } from 'uuidv7';
 import {
   appUser,
+  approval,
   bill,
+  billDiscount,
   billLine,
+  creditNote,
   doctorProfile,
   encounter,
   opdToken,
   patient,
   payment,
+  reasonCode,
   service,
 } from '../schema';
 import type { Db } from './client';
@@ -51,8 +57,8 @@ import { readSettings } from './settings';
 import type { Tx } from './tx';
 import { issueToken, type Actor } from './visits';
 
-type Queryable = Db | Tx;
-type BillRow = typeof bill.$inferSelect;
+export type Queryable = Db | Tx;
+export type BillRow = typeof bill.$inferSelect;
 
 export type BillingErrorKey =
   | 'billing.billNotFound'
@@ -69,7 +75,23 @@ export type BillingErrorKey =
   | 'billing.nothingDue'
   | 'billing.overpayment'
   | 'billing.upiRefRequired'
-  | 'billing.finalizeNotAllowed';
+  | 'billing.finalizeNotAllowed'
+  | 'billing.notFinal'
+  | 'billing.discountNotFound'
+  | 'billing.discountZero'
+  | 'billing.reasonNotFound'
+  | 'billing.reasonTextRequired'
+  | 'billing.approvalRequired'
+  | 'billing.approverLimit'
+  | 'billing.discountNotAllowed'
+  | 'billing.nothingToCredit'
+  | 'billing.creditTooLarge'
+  | 'billing.refundRequired'
+  | 'billing.refundMismatch'
+  | 'billing.refundExceedsPaid'
+  | 'billing.refundNotDue'
+  | 'billing.refundNotAllowed'
+  | 'billing.hasPayments';
 
 /** Input / state errors the router turns into i18n keys (docs/02 §7). */
 export class BillingInputError extends Error {
@@ -100,7 +122,7 @@ async function lockEncounter(tx: Tx, facilityId: string, encounterId: string) {
 }
 
 /** Locks encounter then bill (fixed order, see the file comment). */
-async function lockBill(tx: Tx, facilityId: string, billId: string): Promise<BillRow> {
+export async function lockBill(tx: Tx, facilityId: string, billId: string): Promise<BillRow> {
   const [peek] = await tx
     .select({ encounterId: bill.encounterId })
     .from(bill)
@@ -112,7 +134,7 @@ async function lockBill(tx: Tx, facilityId: string, billId: string): Promise<Bil
   return row;
 }
 
-const requireDraft = (b: BillRow) => {
+export const requireDraft = (b: BillRow) => {
   if (b.status === 'cancelled') throw new BillingInputError('billing.billCancelled');
   if (b.status !== 'draft') throw new BillingInputError('billing.notDraft');
 };
@@ -121,11 +143,13 @@ const requireDraft = (b: BillRow) => {
  * Rewrites the header of a draft from its active lines (docs/04 §15.1) and returns it. A draft
  * that already holds payments may not drop below them (refunds are BIL-04).
  */
-async function recomputeBill(tx: Tx, b: BillRow): Promise<BillRow> {
-  const lines = await tx
+export async function recomputeBill(tx: Tx, b: BillRow): Promise<BillRow> {
+  const stored = await tx
     .select({
+      id: billLine.id,
       unitRatePaise: billLine.unitRatePaise,
       qty: billLine.qty,
+      amountPaise: billLine.amountPaise,
       discountPaise: billLine.discountPaise,
       gstRateBp: billLine.gstRateBp,
       isExempt: billLine.isExempt,
@@ -133,6 +157,43 @@ async function recomputeBill(tx: Tx, b: BillRow): Promise<BillRow> {
     })
     .from(billLine)
     .where(and(eq(billLine.billId, b.id), eq(billLine.status, 'active')));
+  const discounts = await tx
+    .select({ billLineId: billDiscount.billLineId, amountPaise: billDiscount.amountPaise })
+    .from(billDiscount)
+    .where(and(eq(billDiscount.billId, b.id), eq(billDiscount.status, 'active')));
+  // BIL-03: the approved discounts decide every line's discount (capped when lines were removed).
+  const lineDiscounts = new Map<string, bigint>();
+  let billLevel = 0n;
+  for (const d of discounts) {
+    if (d.billLineId) lineDiscounts.set(d.billLineId, d.amountPaise);
+    else billLevel = d.amountPaise;
+  }
+  const { perLine } = allocateDiscounts(stored, lineDiscounts, billLevel);
+  const lines = [];
+  for (const l of stored) {
+    const discountPaise = perLine.get(l.id) ?? 0n;
+    if (discountPaise !== l.discountPaise) {
+      const g = computeGstLine({
+        ratePaise: l.unitRatePaise,
+        qtyMilli: quantityToMilli(l.qty),
+        discountPaise,
+        gstRateBp: l.gstRateBp,
+        isExempt: l.isExempt,
+        hsnSac: l.sacHsn,
+      });
+      await tx
+        .update(billLine)
+        .set({
+          discountPaise,
+          taxablePaise: g.taxablePaise,
+          cgstPaise: g.cgstPaise,
+          sgstPaise: g.sgstPaise,
+          patientSharePaise: g.totalPaise,
+        })
+        .where(eq(billLine.id, l.id));
+    }
+    lines.push({ ...l, discountPaise });
+  }
   const cfg = await readSettings(tx, b.facilityId, ['billing.roundToRupee']);
   const t = billHeaderTotals(lines, { roundToRupee: cfg['billing.roundToRupee'] });
   if (t.patientSharePaise < b.paidPaise) throw new BillingInputError('billing.belowPaid');
@@ -148,7 +209,7 @@ async function recomputeBill(tx: Tx, b: BillRow): Promise<BillRow> {
       netPaise: t.netPaise,
       payerSharePaise: t.payerSharePaise,
       patientSharePaise: t.patientSharePaise,
-      balancePaise: t.patientSharePaise - b.paidPaise,
+      balancePaise: t.patientSharePaise - b.creditedPaise - b.paidPaise,
     })
     .where(eq(bill.id, b.id))
     .returning();
@@ -342,7 +403,7 @@ export async function createOpdBill(
   );
 }
 
-const idemBase = (actor: Actor) => ({ facilityId: actor.facilityId, userId: actor.userId });
+export const idemBase = (actor: Actor) => ({ facilityId: actor.facilityId, userId: actor.userId });
 
 export interface BillMutationResult {
   billId: string;
@@ -351,7 +412,7 @@ export interface BillMutationResult {
   balancePaise: string;
 }
 
-const mutationResult = (b: BillRow, lineId: string | null): BillMutationResult => ({
+export const mutationResult = (b: BillRow, lineId: string | null): BillMutationResult => ({
   billId: b.id,
   lineId,
   netPaise: b.netPaise.toString(),
@@ -591,7 +652,7 @@ export async function collectPayment(
       const paid = b.paidPaise + check.totalPaise;
       const [after] = await tx
         .update(bill)
-        .set({ paidPaise: paid, balancePaise: b.patientSharePaise - paid })
+        .set({ paidPaise: paid, balancePaise: b.patientSharePaise - b.creditedPaise - paid })
         .where(eq(bill.id, b.id))
         .returning();
       let billNumber = b.number;
@@ -613,7 +674,7 @@ export async function collectPayment(
         billStatus,
         totalPaise: check.totalPaise.toString(),
         paidPaise: paid.toString(),
-        balancePaise: (b.patientSharePaise - paid).toString(),
+        balancePaise: (b.patientSharePaise - b.creditedPaise - paid).toString(),
         encounterId: b.encounterId,
         tokenNo: token?.tokenNo ?? null,
         tokenDate: token?.tokenDate ?? null,
@@ -670,6 +731,8 @@ export interface PaymentView {
   id: string;
   collectionId: string;
   number: string;
+  /** `refund` rows are negative (BIL-04). */
+  kind: string;
   mode: PaymentMode;
   amountPaise: bigint;
   upiRef: string | null;
@@ -677,6 +740,32 @@ export interface PaymentView {
   receivedAt: Date;
   receivedByName: string | null;
   status: string;
+}
+
+export interface CreditNoteView {
+  id: string;
+  number: string;
+  amountPaise: bigint;
+  issuedAt: Date;
+  issuedByName: string | null;
+  reasonLabel: string;
+  reasonLabelHi: string | null;
+  reasonText: string | null;
+  cancelsBill: boolean;
+}
+
+export interface DiscountView {
+  id: string;
+  /** Null = the whole bill. */
+  lineId: string | null;
+  mode: string;
+  percentBp: number | null;
+  amountPaise: bigint;
+  reasonLabel: string;
+  reasonLabelHi: string | null;
+  reasonText: string | null;
+  /** Set when a supervisor approved it. */
+  approvedByName: string | null;
 }
 
 export interface BillView {
@@ -708,10 +797,14 @@ export interface BillView {
   roundOffPaise: bigint;
   netPaise: bigint;
   patientSharePaise: bigint;
+  creditedPaise: bigint;
   paidPaise: bigint;
   balancePaise: bigint;
+  cancelNote: string | null;
   lines: BillLineView[];
   payments: PaymentView[];
+  creditNotes: CreditNoteView[];
+  discounts: DiscountView[];
 }
 
 export async function getBillView(
@@ -768,6 +861,7 @@ export async function getBillView(
       id: payment.id,
       collectionId: payment.collectionId,
       number: payment.number,
+      kind: payment.kind,
       mode: payment.mode,
       amountPaise: payment.amountPaise,
       upiRef: payment.upiRef,
@@ -780,6 +874,42 @@ export async function getBillView(
     .leftJoin(appUser, eq(appUser.id, payment.receivedBy))
     .where(eq(payment.billId, billId))
     .orderBy(asc(payment.receivedAt), asc(payment.id));
+  const notes = await q
+    .select({
+      id: creditNote.id,
+      number: creditNote.number,
+      amountPaise: creditNote.amountPaise,
+      issuedAt: creditNote.issuedAt,
+      issuedByName: appUser.fullName,
+      reasonLabel: reasonCode.label,
+      reasonLabelHi: reasonCode.labelHi,
+      reasonText: creditNote.reasonText,
+      cancelsBill: creditNote.cancelsBill,
+    })
+    .from(creditNote)
+    .innerJoin(reasonCode, eq(reasonCode.id, creditNote.reasonCodeId))
+    .leftJoin(appUser, eq(appUser.id, creditNote.issuedBy))
+    .where(eq(creditNote.billId, billId))
+    .orderBy(asc(creditNote.issuedAt), asc(creditNote.id));
+  const approver = alias(appUser, 'approver');
+  const discounts = await q
+    .select({
+      id: billDiscount.id,
+      lineId: billDiscount.billLineId,
+      mode: billDiscount.mode,
+      percentBp: billDiscount.percentBp,
+      amountPaise: billDiscount.amountPaise,
+      reasonLabel: reasonCode.label,
+      reasonLabelHi: reasonCode.labelHi,
+      reasonText: billDiscount.reasonText,
+      approvedByName: approver.fullName,
+    })
+    .from(billDiscount)
+    .innerJoin(reasonCode, eq(reasonCode.id, billDiscount.reasonCodeId))
+    .leftJoin(approval, eq(approval.id, billDiscount.approvalId))
+    .leftJoin(approver, eq(approver.id, approval.approverId))
+    .where(and(eq(billDiscount.billId, billId), eq(billDiscount.status, 'active')))
+    .orderBy(asc(billDiscount.createdAt), asc(billDiscount.id));
   const b = row.b;
   return {
     id: b.id,
@@ -802,10 +932,14 @@ export async function getBillView(
     roundOffPaise: b.roundOffPaise,
     netPaise: b.netPaise,
     patientSharePaise: b.patientSharePaise,
+    creditedPaise: b.creditedPaise,
     paidPaise: b.paidPaise,
     balancePaise: b.balancePaise,
+    cancelNote: b.cancelNote,
     lines,
     payments: payments.map((p) => ({ ...p, mode: p.mode as PaymentMode })),
+    creditNotes: notes,
+    discounts,
   };
 }
 
@@ -881,6 +1015,8 @@ export async function pendingBills(
 export interface ReceiptData {
   collectionId: string;
   number: string;
+  /** `refund`: the amounts are negative and the print is a refund voucher (BIL-04). */
+  kind: 'payment' | 'refund';
   receivedAt: Date;
   receivedByName: string | null;
   totalPaise: bigint;
@@ -963,6 +1099,7 @@ export async function loadReceipt(
   return {
     collectionId,
     number: first.p.number,
+    kind: first.p.kind === 'refund' ? 'refund' : 'payment',
     receivedAt: first.p.receivedAt,
     receivedByName: first.receivedByName,
     totalPaise: rows.reduce((s, r) => s + r.p.amountPaise, 0n),
