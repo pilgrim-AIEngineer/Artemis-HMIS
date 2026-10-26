@@ -41,7 +41,7 @@ finish() { # finish SNAPSHOT_ID SNAPSHOT_TIME FILES_COUNT TABLES_JSON
 }
 
 # 1. Newest database snapshot.
-snap_json=$(restic snapshots --json --tag hmis --path /backup/staging 2>"$work/err" | jq -c 'sort_by(.time) | last // empty')
+snap_json=$(restic snapshots --no-lock --json --tag hmis --path /backup/staging 2>"$work/err" | jq -c 'sort_by(.time) | last // empty')
 if [ -z "$snap_json" ]; then
   add "snapshot" false "no snapshot found in the repository: $(head -c 200 "$work/err" | tr '\n' ' ')"
   finish
@@ -51,14 +51,14 @@ snap_time=$(jq -r '.time' <<<"$snap_json")
 add "snapshot" true "$snap_id from $snap_time"
 
 # 2. Repository integrity (metadata + a 5% sample of the data).
-if restic check --read-data-subset=5% >"$work/check.out" 2>&1; then
+if restic check --no-lock --read-data-subset=5% >"$work/check.out" 2>&1; then
   add "restic_check" true "repository consistent"
 else
   add "restic_check" false "$(tail -n 3 "$work/check.out" | tr '\n' ' ' | cut -c1-200)"
 fi
 
 # 3. Restore the database snapshot (and the latest files snapshot, if any).
-if ! restic restore "$(jq -r '.id' <<<"$snap_json")" --target "$work/restore" >/dev/null 2>"$work/err"; then
+if ! restic restore --no-lock "$(jq -r '.id' <<<"$snap_json")" --target "$work/restore" >/dev/null 2>"$work/err"; then
   add "restore" false "restic restore failed: $(head -c 200 "$work/err" | tr '\n' ' ')"
   finish "$snap_id" "$snap_time"
 fi
@@ -70,9 +70,9 @@ stage=$work/restore/backup/staging
 add "restore" true "dump $(stat -c %s "$stage/hmis.dump") bytes"
 
 files_count=0
-files_snap=$(restic snapshots --json --tag hmis --path /data/files 2>/dev/null | jq -r 'sort_by(.time) | last | .id // empty')
+files_snap=$(restic snapshots --no-lock --json --tag hmis --path /data/files 2>/dev/null | jq -r 'sort_by(.time) | last | .id // empty')
 if [ -n "$files_snap" ]; then
-  if restic restore "$files_snap" --target "$work/restore-files" --include /data/files >/dev/null 2>"$work/err"; then
+  if restic restore --no-lock "$files_snap" --target "$work/restore-files" --include /data/files >/dev/null 2>"$work/err"; then
     files_count=$(find "$work/restore-files/data/files" -type f 2>/dev/null | wc -l)
     add "files" true "$files_count files restored"
   else

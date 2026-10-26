@@ -69,3 +69,10 @@ Pre-printed blank OPD sheets, downtime receipt book (DT-series numbers), downtim
 - [ ] Parallel run 3 days without blocking issue
 - [ ] Downtime kit in place
 - [ ] Data processing agreement signed with the hospital
+
+## 8. Implementation notes (OPS-01, as built)
+
+- **Backups use restic for everything** (database dump and `/data/files`), not pgBackRest. The `backup` container runs `pg_dump -Fc` plus `pg_dumpall --globals-only` (roles and grants) hourly (`BACKUP_DB_EVERY_MIN`) and a nightly full run at `BACKUP_AT` (02:00) that also copies `/data/files`. Targets: `local` (`/backup/restic`, second SSD), `usb` (`BACKUP_USB_ENABLED=1`, disk labelled `HMIS-BACKUP` with a `.hmis-backup-disk` marker made by `usb-init.sh`), `s3` (`BACKUP_S3_REPOSITORY`, `AWS_*`). All are encrypted with `BACKUP_PASSPHRASE`. The RPO is therefore up to one hour until WAL archiving/standby arrives with OPS-02 (target in §3: 15 min).
+- Status is written to `/backup/status/status.json`; `/api/health` (`checks.backup`, `checks.disk`, `checks.queue`, `alerts`) and the `ops.backupCheck` (hourly) / `ops.healthPing` (5 min) jobs read it. Only a dead database makes `/api/health` answer 503; `?strict=1` also fails on open alerts. Alerts go to `OPS_ALERT_WEBHOOK_URL` and/or Telegram, repeated at most every `OPS_ALERT_REPEAT_HOURS`; `HEALTHCHECK_PING_URL` is pinged (and `/fail` on critical alerts).
+- Scripts (`infra/scripts`): `install.sh` (`--dry-run` supported), `update.sh vYYYY.MM.DD.n`, `backup-check.sh`, `restore-drill.sh --repo DIR|s3:URL`, `usb-init.sh`. Monthly drill: keep the JSON result it writes.
+- Not covered yet: WhatsApp alerts to the vendor, replication/standby, NUT and USB auto-mount are written but need verification on the real hardware, training instance (`training.hmis.local`), "What's new" changelog, creating the first admin from the release images.

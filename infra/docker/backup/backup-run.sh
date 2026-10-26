@@ -22,6 +22,9 @@ STAGING=$BACKUP_DIR/staging
 STATUS_DIR=$BACKUP_DIR/status
 STATUS_FILE=$STATUS_DIR/status.json
 LOCK_WAIT=${BACKUP_LOCK_WAIT:-900}
+# Seconds: reaching a repository / one restic run per target (a timeout is a failed target).
+PROBE_TIMEOUT=${BACKUP_PROBE_TIMEOUT:-60}
+TARGET_TIMEOUT=${BACKUP_TARGET_TIMEOUT:-7200}
 KEEP_ARGS=(--keep-hourly "${BACKUP_KEEP_HOURLY:-48}" --keep-daily "${BACKUP_KEEP_DAILY:-14}"
   --keep-weekly "${BACKUP_KEEP_WEEKLY:-8}" --keep-monthly "${BACKUP_KEEP_MONTHLY:-12}")
 # Business tables whose counts the restore drill compares (append-only in this product: rule 4).
@@ -179,8 +182,10 @@ backup_target() { # sets $err and $snap
   export RESTIC_REPOSITORY=$repo
   err=
   snap=
-  if ! restic cat config >/dev/null 2>"$STAGING/restic.err"; then
-    if ! restic init >/dev/null 2>"$STAGING/restic.err"; then
+  # restic retries an unreachable backend for ~15 min; bound every call so an offline internet
+  # connection cannot hold the run lock (update.sh waits on it) or delay the next scheduled run.
+  if ! timeout "$PROBE_TIMEOUT" restic cat config >/dev/null 2>"$STAGING/restic.err"; then
+    if ! timeout "$PROBE_TIMEOUT" restic init >/dev/null 2>"$STAGING/restic.err"; then
       err="repository init failed: $(sanitize <"$STAGING/restic.err")"
       return 1
     fi
@@ -189,16 +194,16 @@ backup_target() { # sets $err and $snap
   if [ "$kind" = full ] && [ -d "$FILES_DIR" ]; then paths+=("$FILES_DIR"); fi
   local tags=(--tag hmis --tag "$kind")
   [ -n "$tag" ] && tags+=(--tag "$tag")
-  if ! out=$(restic backup --json --host hmis "${tags[@]}" "${paths[@]}" 2>"$STAGING/restic.err"); then
+  if ! out=$(timeout "$TARGET_TIMEOUT" restic backup --json --host hmis "${tags[@]}" "${paths[@]}" 2>"$STAGING/restic.err"); then
     err="restic backup failed: $(sanitize <"$STAGING/restic.err")"
     return 1
   fi
   snap=$(printf '%s\n' "$out" | jq -r 'select(.message_type == "summary") | .snapshot_id // empty' 2>/dev/null | tail -n1)
   # Weekly housekeeping on full runs: retention + metadata integrity check (non-fatal, except check).
   if [ "$kind" = full ] && [ "$(date +%w)" = 0 ]; then
-    restic forget --prune --tag hmis "${KEEP_ARGS[@]}" >/dev/null 2>"$STAGING/restic.err" \
+    timeout "$TARGET_TIMEOUT" restic forget --prune --tag hmis "${KEEP_ARGS[@]}" >/dev/null 2>"$STAGING/restic.err" \
       || log "retention failed on $name: $(sanitize <"$STAGING/restic.err")"
-    if ! restic check >/dev/null 2>"$STAGING/restic.err"; then
+    if ! timeout "$TARGET_TIMEOUT" restic check >/dev/null 2>"$STAGING/restic.err"; then
       err="restic check failed: $(sanitize <"$STAGING/restic.err")"
       return 1
     fi
