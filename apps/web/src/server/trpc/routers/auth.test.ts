@@ -45,7 +45,7 @@ describe('login (FND-02)', () => {
     });
     expect(res.next).toBe('home');
     const cookies = ctx.resHeaders!.getSetCookie();
-    const sess = cookies.find((c) => c.startsWith('hmis_session='))!;
+    const sess = cookies.find((c) => c.startsWith('__Host-hmis_session='))!;
     expect(sess).toMatch(/; HttpOnly/);
     expect(sess).toMatch(/; Secure/);
     expect(sess).toMatch(/; SameSite=Lax/);
@@ -61,7 +61,7 @@ describe('login (FND-02)', () => {
     expect(m?.permissions).toContain('patient.create');
     // Only the hash is stored.
     const rows = await f.db.select().from(session).where(eq(session.userId, f.users.reception.id));
-    expect(rows.some((r) => r.tokenHash === br.cookies.get('hmis_session'))).toBe(false);
+    expect(rows.some((r) => r.tokenHash === br.cookies.get('__Host-hmis_session'))).toBe(false);
   });
 
   it('is case-insensitive on the username and returns null for no session', async () => {
@@ -111,21 +111,21 @@ describe('login (FND-02)', () => {
   it('a new login in the same browser ends the previous session', async () => {
     const br = f.browser();
     await br.login(f.users.nurse.username);
-    const first = br.cookies.get('hmis_session')!;
+    const first = br.cookies.get('__Host-hmis_session')!;
     await br.login(f.users.reception.username);
     const old = f.browser();
-    old.cookies.set('hmis_session', first);
+    old.cookies.set('__Host-hmis_session', first);
     expect(await me(old)).toBeNull();
   });
 
   it('logout (switch user) revokes the session and clears the cookie', async () => {
     const br = f.browser();
     await br.login(f.users.nurse.username);
-    const token = br.cookies.get('hmis_session')!;
+    const token = br.cookies.get('__Host-hmis_session')!;
     await br.call((c) => c.auth.logout());
-    expect(br.cookies.has('hmis_session')).toBe(false);
+    expect(br.cookies.has('__Host-hmis_session')).toBe(false);
     const replay = f.browser();
-    replay.cookies.set('hmis_session', token);
+    replay.cookies.set('__Host-hmis_session', token);
     expect((await trpcError(replay.call((c) => c.auth.heartbeat()))).message).toBe(
       'errors.auth.required',
     );
@@ -208,7 +208,7 @@ describe('session lifetime: idle lock → PIN, absolute expiry', () => {
     }
     const fifth = await trpcError(br.call((c) => c.auth.unlockWithPin({ pin: '9753' })));
     expect(fifth.message).toBe('errors.auth.pinLockedOut');
-    expect(br.cookies.has('hmis_session')).toBe(false);
+    expect(br.cookies.has('__Host-hmis_session')).toBe(false);
     // Full sign-in still works (separate lockout), but the PIN stays blocked.
     await br.login(f.users.nurse.username);
     await br.call((c) => c.auth.lock());
@@ -351,7 +351,7 @@ describe('TOTP for owner/admin remote access', () => {
     br.clientIp = REMOTE_IP;
     const err = await trpcError(br.login(f.users.owner.username));
     expect(err.message).toBe('errors.auth.totpNotEnrolled');
-    expect(br.cookies.has('hmis_session')).toBe(false);
+    expect(br.cookies.has('__Host-hmis_session')).toBe(false);
   });
 
   it('treats an unknown client address as remote', async () => {
@@ -425,7 +425,7 @@ describe('TOTP for owner/admin remote access', () => {
       await trpcError(br.call((c) => c.auth.verifyTotp({ code: '111111' })));
     const fifth = await trpcError(br.call((c) => c.auth.verifyTotp({ code: '111111' })));
     expect(fifth.message).toBe('errors.auth.lockedOut');
-    expect(br.cookies.has('hmis_session')).toBe(false);
+    expect(br.cookies.has('__Host-hmis_session')).toBe(false);
     await clearLock(f.users.owner.id);
   });
 });

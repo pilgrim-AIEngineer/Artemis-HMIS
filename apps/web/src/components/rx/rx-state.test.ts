@@ -1,6 +1,8 @@
 import { parseRxShorthand, rxDraftPayloadSchema, saveRxSchema } from '@hmis/shared';
 import { describe, expect, it } from 'vitest';
 import {
+  clearAllLocalDrafts,
+  draftStorageKey,
   emptyState,
   fromDraft,
   hasContent,
@@ -123,5 +125,23 @@ describe('transcription screen state (OPD-02)', () => {
     expect(pickDraft(local, server, new Date('2026-10-26T05:00:05.000Z'))?.from).toBe('local');
     expect(pickDraft(local, server, new Date('2026-10-26T05:01:00.000Z'))).toBeNull();
     expect(pickDraft(null, null, null)).toBeNull();
+  });
+});
+
+describe('browser storage on a shared workstation (ASVS 8.2.2)', () => {
+  it('sign-out removes every Rx draft and nothing else', () => {
+    const data = new Map<string, string>([
+      [draftStorageKey('0190a000-0000-7000-8000-00000000000a'), '{"payload":1}'],
+      [draftStorageKey('0190a000-0000-7000-8000-00000000000b'), '{"payload":2}'],
+      ['hmis.lastDoctor', 'doctor-1'],
+    ]);
+    clearAllLocalDrafts({
+      get length() {
+        return data.size;
+      },
+      key: (i) => [...data.keys()][i] ?? null,
+      removeItem: (k) => void data.delete(k),
+    });
+    expect([...data.keys()]).toEqual(['hmis.lastDoctor']);
   });
 });

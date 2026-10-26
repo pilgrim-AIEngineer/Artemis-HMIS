@@ -81,7 +81,7 @@ describe('unauthenticated calls are rejected', () => {
 
   it('a forged or unknown session cookie is the same as none', async () => {
     const anon = f.browser();
-    anon.cookies.set('hmis_session', 'forged-token');
+    anon.cookies.set('__Host-hmis_session', 'forged-token');
     const err = await trpcError(anon.call((c) => c.admin.listUsers()));
     expect(err.code).toBe('UNAUTHORIZED');
   });

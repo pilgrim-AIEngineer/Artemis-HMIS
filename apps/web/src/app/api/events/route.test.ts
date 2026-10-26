@@ -47,7 +47,7 @@ describe('GET /api/events', () => {
   it('needs a session: 401 without one, 403 without a queue permission', async () => {
     expect((await GET(request(null))).status).toBe(401);
     const forged = f.browser();
-    forged.cookies.set('hmis_session', 'forged');
+    forged.cookies.set('__Host-hmis_session', 'forged');
     expect((await GET(request(forged))).status).toBe(401);
     const none = await login(f.users.noRoles.username);
     expect((await GET(request(none))).status).toBe(403);

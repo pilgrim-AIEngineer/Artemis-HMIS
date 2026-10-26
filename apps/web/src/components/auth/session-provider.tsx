@@ -13,6 +13,7 @@ import {
 } from 'react';
 import type { MeView } from '@/server/trpc/routers/auth';
 import { AUTH_EVENT, useTRPC, type AuthEventDetail } from '@/trpc/client';
+import { clearAllLocalDrafts } from '@/components/rx/rx-state';
 import { LockScreen } from './lock-screen';
 
 /** Activity pings to the server at most this often (the server decides idle from them). */
@@ -72,6 +73,7 @@ export function SessionProvider({ initial, children }: { initial: MeView; childr
   const switchUser = useCallback(() => {
     logout.mutate(undefined, {
       onSettled: () => {
+        clearAllLocalDrafts(window.localStorage);
         queryClient.clear();
         router.replace('/login');
         router.refresh();
@@ -122,6 +124,7 @@ export function SessionProvider({ initial, children }: { initial: MeView; childr
         setLocked(true);
       }
       if (detail === 'signed-out') {
+        clearAllLocalDrafts(window.localStorage);
         queryClient.clear();
         router.replace('/login?notice=signedOut');
       }
