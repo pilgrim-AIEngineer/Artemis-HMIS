@@ -1,6 +1,5 @@
 import {
   addBillLine,
-  ApprovalError,
   applyDiscount,
   billableServices,
   BillingInputError,
@@ -19,11 +18,11 @@ import {
   readSetting,
   readSettings,
   removeBillLine,
-  verifyApproverPin,
   VisitInputError,
   voidDraftBill,
   type Db,
 } from '@hmis/db';
+import { ApprovalError, verifyApproverPin } from '@hmis/db/approvals';
 import { reasonCode } from '@hmis/db/schema';
 import {
   addBillLineSchema,

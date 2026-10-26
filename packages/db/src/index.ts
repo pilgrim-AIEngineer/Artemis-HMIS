@@ -13,6 +13,5 @@ export * from './settings';
 export * from './tx';
 export * from './queue';
 export * from './visits';
-export * from './approvals';
 export * from './billing';
 export * from './billing-adjustments';
