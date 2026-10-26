@@ -3,7 +3,7 @@
  * and the template's data from the database and assembles a `PrintDocument`. Import from
  * `@hmis/print/server`; the client-safe pieces are in `@hmis/print`.
  */
-import { readSettings, type Db, type Tx } from '@hmis/db';
+import { loadReceipt, readSettings, type Db, type Tx } from '@hmis/db';
 import {
   doctorProfile,
   encounter,
@@ -22,11 +22,13 @@ import { SampleDocument } from './templates/sample';
 import { ageSex, mobileLast4 } from './templates/format';
 import { OpdSheet, type OpdSheetData } from './templates/opd-sheet';
 import { PatientSticker, UhidCard, type PatientLabelData } from './templates/patient-labels';
+import { Receipt, type ReceiptPrintData } from './templates/receipt';
 import {
   findTemplateMeta,
   OPD_SHEET_TEMPLATE,
   PATIENT_STICKER_TEMPLATE,
   PRINT_TEMPLATE_METAS,
+  RECEIPT_TEMPLATE,
   UHID_CARD_TEMPLATE,
 } from './templates/meta';
 import type { PrintDocument, PrintHeaderData, PrintMeta, PrintTemplateMeta } from './types';
@@ -210,8 +212,35 @@ const uhidCard = impl<PatientLabelData>({
   qr: (data) => data.uhid,
 });
 
+/** `/print/receipt/<collection id>`: the receipt of one payment (all modes of a split). */
+const receipt = impl<ReceiptPrintData>({
+  meta: metaOf(RECEIPT_TEMPLATE),
+  async load({ db, facilityId, entityId }) {
+    const r = await loadReceipt(db, facilityId, entityId);
+    if (!r) return null;
+    return {
+      number: r.number,
+      receivedAt: r.receivedAt,
+      receivedBy: r.receivedByName,
+      status: r.status,
+      totalPaise: r.totalPaise,
+      tenders: r.tenders,
+      patient: {
+        name: r.patient.fullName,
+        nameHi: r.patient.nameHi,
+        ageSex: ageSex(r.patient.dob, r.patient.sex, r.receivedAt),
+        uhid: r.patient.uhid,
+      },
+      encounterNumber: r.encounterNumber,
+      doctorName: r.doctorName,
+      bill: r.bill,
+    };
+  },
+  body: (data) => <Receipt data={data} />,
+});
+
 const IMPLS = new Map<string, TemplateImpl<unknown>>(
-  [...sampleTemplates, opdSheet, patientSticker, uhidCard].map((t) => [t.meta.key, t]),
+  [...sampleTemplates, opdSheet, patientSticker, uhidCard, receipt].map((t) => [t.meta.key, t]),
 );
 
 /** Facility profile + `print.header` + `ui.accentColor`, shaped for the header component. */

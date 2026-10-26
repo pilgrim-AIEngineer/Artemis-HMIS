@@ -2,6 +2,10 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import {
   allocatePaise,
+  cleanRupeeText,
+  groupRupeeText,
+  paiseToRupeeText,
+  parseRupeeText,
   applyPercentBp,
   bpToPercent,
   divRound,
@@ -344,5 +348,27 @@ describe('roundOffToRupee', () => {
         expect(r >= 0n ? r : -r).toBeLessThanOrEqual(50n);
       }),
     );
+  });
+});
+
+describe('money field text', () => {
+  it('cleans, parses and groups what staff type', () => {
+    expect(cleanRupeeText('₹ 1,25,000.5')).toBe('125000.5');
+    expect(cleanRupeeText('12a')).toBeNull();
+    expect(cleanRupeeText('1.234')).toBeNull();
+    expect(cleanRupeeText('1.2.3')).toBeNull();
+    expect(parseRupeeText('1,250')).toBe(125_000n);
+    expect(parseRupeeText('1250.5')).toBe(125_050n);
+    expect(parseRupeeText('12.')).toBe(1_200n);
+    expect(parseRupeeText('.5')).toBe(50n);
+    expect(parseRupeeText('')).toBeNull();
+    expect(parseRupeeText('.')).toBeNull();
+    expect(parseRupeeText('abc')).toBeNull();
+    expect(groupRupeeText('125000.5')).toBe('1,25,000.5');
+    expect(groupRupeeText('0012')).toBe('12');
+    expect(groupRupeeText('.5')).toBe('0.5');
+    expect(groupRupeeText('')).toBe('');
+    expect(paiseToRupeeText(125_000n)).toBe('1,250');
+    expect(paiseToRupeeText(125_050n)).toBe('1,250.50');
   });
 });
