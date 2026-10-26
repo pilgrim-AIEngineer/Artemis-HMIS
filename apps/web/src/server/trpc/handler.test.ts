@@ -82,4 +82,19 @@ describe('tRPC HTTP handler', () => {
     expect(body.error.json.message).toBe('errors.auth.totpNotEnrolled');
     expect((await login(f.users.owner.username)).status).toBe(200);
   });
+  it('serves query procedures over POST so patient search terms stay out of the URL', async () => {
+    const signedIn = await login(f.users.reception.username);
+    const token = signedIn.headers
+      .getSetCookie()
+      .find((c) => c.startsWith('hmis_session='))!
+      .split(';')[0]!;
+    const res = await handler(
+      new Request(`${base}/patients.search`, {
+        method: 'POST',
+        headers: { ...sameOrigin, cookie: `${token}; hmis_csrf=${CSRF}` },
+        body: JSON.stringify({ json: { q: '9876543210' } }),
+      }),
+    );
+    expect(res.status).toBe(200);
+  });
 });
