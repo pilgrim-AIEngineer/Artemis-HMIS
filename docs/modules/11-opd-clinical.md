@@ -95,6 +95,13 @@ Each row: Drug | Dose | Frequency | Timing | Duration | Qty (auto) | Instruction
 
 Patient timeline lists encounters newest first with: date, doctor, visit type, vitals summary, Rx items, orders + status, bills (amount, paid), documents (sheet photos, reports). Restricted encounters hidden per `03`.
 
+### Built (OPD-07)
+
+- Screen `/reception/patients/<id>/timeline` (button "Timeline" on the patient page), API `timeline.list` / `timeline.types`, both behind `patient.view`. One card per visit (doctor, type, vitals summary), current prescription (rows), order (status), final or cancelled bill (amount, paid, due; drafts are not listed), ANC visit, vaccine dose and document (a sheet photo opens through `/api/documents/rx-scan/<id>`), newest first, 20 per page (max 50) with an opaque cursor `(instant, id)`; filter chips by kind.
+- Each kind needs its own permission on top of `patient.view` (`TIMELINE_TYPE_PERMISSIONS`): visits none; Rx and documents `rx.view`/`rx.transcribe`/`rx.verify`; orders `order.create`/`order.cancel`; bills `billing.bill.create`/`billing.bill.finalize`/`billing.payment.collect`; ANC `clinical.anc.edit`; vaccines `clinical.paeds.edit`. A kind that is not allowed is not queried; asking for it returns nothing.
+- Restricted data is excluded for everybody, `patient.view.restricted` holders too (the timeline is a general view, `docs/03 §5`): every item hanging off an `encounter.is_restricted` visit is left out, nothing is read from schema `restricted`, a pregnancy closed as MTP adds no item, and documents come only from an allow-list (the patient, or an unrestricted visit) with `form_f_signed` excluded. Superseded Rx and cancelled ANC/vaccine rows are not listed.
+- Not built yet (their tables do not exist): lab results, WhatsApp message log, IPD stays, external ABDM records.
+
 ## 3. Gynae: ANC card (OPD-05)
 
 ### 3.1 Pregnancy record
