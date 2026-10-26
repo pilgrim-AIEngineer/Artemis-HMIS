@@ -15,7 +15,9 @@
     "./seed": "./seed/masters.ts",
     "./seed/demo": "./seed/demo/index.ts",
     "./files": "./src/files.ts",
-    "./import": "./src/import.ts"
+    "./import": "./src/import.ts",
+    "./templates": "./seed/templates/generate.ts",
+    "./templates/spec": "./seed/templates/spec.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

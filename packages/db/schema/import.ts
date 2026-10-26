@@ -68,7 +68,8 @@ export const importRow = pgTable(
     raw: jsonb().$type<string[]>().notNull(),
     status: text().notNull().default('ok'),
     /** `[{ field, code, level: 'error' | 'warning' }]` */
-    issues: jsonb().$type<{ field: string; code: string; level: 'error' | 'warning' }[]>()
+    issues: jsonb()
+      .$type<{ field: string; code: string; level: 'error' | 'warning' }[]>()
       .notNull()
       .default([]),
     /** A few display fields for the preview table (name, mobile, rate …). */

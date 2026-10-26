@@ -72,7 +72,11 @@ describe('header detection and mapping', () => {
   });
 
   it('maps a duplicate target only once', () => {
-    expect(autoMap('patients', ['Name', 'Patient Name', 'Mobile'])).toEqual(['full_name', null, 'mobile']);
+    expect(autoMap('patients', ['Name', 'Patient Name', 'Mobile'])).toEqual([
+      'full_name',
+      null,
+      'mobile',
+    ]);
   });
 
   it('maps template keys and Hindi headers', () => {
@@ -82,22 +86,26 @@ describe('header detection and mapping', () => {
       'full_name',
       'mobile',
     ]);
-    expect(autoMap('services_rates', ['service_code', 'Particulars', 'Rate (Rs)', 'W.E.F'])).toEqual([
-      'service_code',
-      'service_name',
-      'rate_inr',
-      'effective_from',
-    ]);
+    expect(
+      autoMap('services_rates', ['service_code', 'Particulars', 'Rate (Rs)', 'W.E.F']),
+    ).toEqual(['service_code', 'service_name', 'rate_inr', 'effective_from']);
   });
 
   it('refuses files without a recognisable header or without rows', () => {
-    expect(() => stageGrid('patients', [['foo', 'bar'], ['1', '2']])).toThrow(ImportFileError);
+    expect(() =>
+      stageGrid('patients', [
+        ['foo', 'bar'],
+        ['1', '2'],
+      ]),
+    ).toThrow(ImportFileError);
     expect(() => stageGrid('patients', [['name', 'mobile']])).toThrow(/empty/);
     expect(() => stageGrid('patients', [])).toThrow(/empty/);
   });
 
   it('mappedRow drops blanks and placeholders', () => {
-    expect(mappedRow(['Sunita', ' N/A ', '-', 'x'], ['first_name', 'mobile', 'district', 'state'])).toEqual({
+    expect(
+      mappedRow(['Sunita', ' N/A ', '-', 'x'], ['first_name', 'mobile', 'district', 'state']),
+    ).toEqual({
       first_name: 'Sunita',
     });
   });
@@ -105,9 +113,9 @@ describe('header detection and mapping', () => {
 
 describe('cell parsers', () => {
   it('parses sex in English and Hindi', () => {
-    expect(['F', 'female', ' Female ', 'महिला', 'M', 'Male', 'पुरुष', 'T'].map(parseSexCell)).toEqual([
-      'F', 'F', 'F', 'F', 'M', 'M', 'M', 'O',
-    ]);
+    expect(
+      ['F', 'female', ' Female ', 'महिला', 'M', 'Male', 'पुरुष', 'T'].map(parseSexCell),
+    ).toEqual(['F', 'F', 'F', 'F', 'M', 'M', 'M', 'O']);
     expect(parseSexCell('?')).toBeNull();
     expect(parseSexCell('')).toBeNull();
   });
@@ -133,17 +141,34 @@ describe('cell parsers', () => {
   });
 
   it('parses ages', () => {
-    expect(['28', '28 yrs', '28Y', '28 Years 3 M', '28.5', '6 months', '6m', '15 days', '121', 'abc'].map(parseAgeCell)).toEqual([
-      '28', '28', '28', '28', '28', '6m', '6m', '15d', null, null,
-    ]);
+    expect(
+      [
+        '28',
+        '28 yrs',
+        '28Y',
+        '28 Years 3 M',
+        '28.5',
+        '6 months',
+        '6m',
+        '15 days',
+        '121',
+        'abc',
+      ].map(parseAgeCell),
+    ).toEqual(['28', '28', '28', '28', '28', '6m', '6m', '15d', null, null]);
   });
 
   it('parses mobiles: +91, spaces, floats, two numbers, landlines', () => {
     expect(parseMobileCell('+91 98765-43210')).toMatchObject({ mobile: '9876543210', bad: false });
     expect(parseMobileCell('098765 43210')).toMatchObject({ mobile: '9876543210' });
     expect(parseMobileCell('9876543210.0')).toMatchObject({ mobile: '9876543210' });
-    expect(parseMobileCell('9876543210 / 9123456780')).toMatchObject({ mobile: '9876543210', alt: '9123456780' });
-    expect(parseMobileCell('9876543210 9123456780')).toMatchObject({ mobile: '9876543210', alt: '9123456780' });
+    expect(parseMobileCell('9876543210 / 9123456780')).toMatchObject({
+      mobile: '9876543210',
+      alt: '9123456780',
+    });
+    expect(parseMobileCell('9876543210 9123456780')).toMatchObject({
+      mobile: '9876543210',
+      alt: '9123456780',
+    });
     expect(parseMobileCell('0522-2345678')).toMatchObject({ mobile: null, bad: true });
     expect(parseMobileCell('5876543210')).toMatchObject({ bad: true });
     expect(parseMobileCell('9.87654E+09')).toMatchObject({ bad: true });
@@ -151,16 +176,22 @@ describe('cell parsers', () => {
   });
 
   it('parses guardians written as W/o, D/o, S/o', () => {
-    expect(parseGuardianCell('W/o ramesh verma')).toEqual({ name: 'Ramesh Verma', relation: 'husband' });
+    expect(parseGuardianCell('W/o ramesh verma')).toEqual({
+      name: 'Ramesh Verma',
+      relation: 'husband',
+    });
     expect(parseGuardianCell('w/o. Ramesh')).toEqual({ name: 'Ramesh', relation: 'husband' });
-    expect(parseGuardianCell('D/o Shri Mohan Lal')).toEqual({ name: 'Mohan Lal', relation: 'father' });
+    expect(parseGuardianCell('D/o Shri Mohan Lal')).toEqual({
+      name: 'Mohan Lal',
+      relation: 'father',
+    });
     expect(parseGuardianCell('Ramesh')).toEqual({ name: 'Ramesh', relation: null });
   });
 
   it('normalises blood groups', () => {
-    expect(['B+', 'b positive', 'O -ve', 'AB+ve', 'A neg', 'B', 'X+'].map(parseBloodGroup)).toEqual([
-      'B+', 'B+', 'O-', 'AB+', 'A-', null, null,
-    ]);
+    expect(['B+', 'b positive', 'O -ve', 'AB+ve', 'A neg', 'B', 'X+'].map(parseBloodGroup)).toEqual(
+      ['B+', 'B+', 'O-', 'AB+', 'A-', null, null],
+    );
   });
 
   it('parses rupees exactly, never rounding real money', () => {
@@ -177,7 +208,14 @@ describe('cell parsers', () => {
 
   it('parses GST percent to basis points', () => {
     expect(['0', '5', '5%', '12.5', 'Exempt', 'nil', '101', 'x'].map(parseGstPercentCell)).toEqual([
-      0, 500, 500, 1250, 0, 0, null, null,
+      0,
+      500,
+      500,
+      1250,
+      0,
+      0,
+      null,
+      null,
     ]);
   });
 });
@@ -213,9 +251,21 @@ describe('patient rows', () => {
   });
 
   it('prefers DOB, and falls back to age when the DOB is unreadable', () => {
-    const a = patient({ first_name: 'A', sex: 'F', dob: '01/07/1994', age_years: '99', mobile: '9876543210' });
+    const a = patient({
+      first_name: 'A',
+      sex: 'F',
+      dob: '01/07/1994',
+      age_years: '99',
+      mobile: '9876543210',
+    });
     expect(a.ok && a.value.input.dob).toBe('1994-07-01');
-    const b = patient({ first_name: 'A', sex: 'F', dob: '??/??', age_years: '30', mobile: '9876543210' });
+    const b = patient({
+      first_name: 'A',
+      sex: 'F',
+      dob: '??/??',
+      age_years: '30',
+      mobile: '9876543210',
+    });
     expect(b.ok && b.value.input.age).toBe('30');
     expect(b.ok && b.warnings.map((w) => w.code)).toEqual(['dobIgnored']);
   });
@@ -227,8 +277,12 @@ describe('patient rows', () => {
   });
 
   it('rejects future and impossible dates of birth', () => {
-    expect(issueCodes(patient({ first_name: 'A', sex: 'F', dob: '2030-01-01', mobile: '9876543210' }))).toEqual(['dobOutOfRange']);
-    expect(issueCodes(patient({ first_name: 'A', sex: 'F', dob: '31/02/2000', mobile: '9876543210' }))).toEqual(['dobInvalid']);
+    expect(
+      issueCodes(patient({ first_name: 'A', sex: 'F', dob: '2030-01-01', mobile: '9876543210' })),
+    ).toEqual(['dobOutOfRange']);
+    expect(
+      issueCodes(patient({ first_name: 'A', sex: 'F', dob: '31/02/2000', mobile: '9876543210' })),
+    ).toEqual(['dobInvalid']);
   });
 
   it('needs a mobile unless the option allows importing without', () => {
@@ -240,19 +294,45 @@ describe('patient rows', () => {
   });
 
   it('drops optional junk with a warning instead of failing the row', () => {
-    const r = patient({ first_name: 'A', sex: 'F', age_years: '30', mobile: '9876543210', pincode: '1234', blood_group: 'zz', guardian_relation: 'neighbour' });
+    const r = patient({
+      first_name: 'A',
+      sex: 'F',
+      age_years: '30',
+      mobile: '9876543210',
+      pincode: '1234',
+      blood_group: 'zz',
+      guardian_relation: 'neighbour',
+    });
     expect(r.ok).toBe(true);
-    expect(r.ok && r.warnings.map((w) => w.code).sort()).toEqual(['bloodGroupIgnored', 'pincodeIgnored', 'relationIgnored']);
+    expect(r.ok && r.warnings.map((w) => w.code).sort()).toEqual([
+      'bloodGroupIgnored',
+      'pincodeIgnored',
+      'relationIgnored',
+    ]);
   });
 
   it('keeps the second mobile as alternate', () => {
-    const r = patient({ first_name: 'A', sex: 'F', age_years: '30', mobile: '9876543210 / 9123456780' });
+    const r = patient({
+      first_name: 'A',
+      sex: 'F',
+      age_years: '30',
+      mobile: '9876543210 / 9123456780',
+    });
     expect(r.ok && r.value.input.altMobile).toBe('9123456780');
   });
 
   it('title-cases a lone name column and respects separate name columns', () => {
-    const r = patient({ first_name: 'RAJ', last_name: 'kumar singh', sex: 'M', age_years: '40', mobile: '9876543210' });
-    expect(r.ok && [r.value.input.firstName, r.value.input.lastName]).toEqual(['Raj', 'Kumar Singh']);
+    const r = patient({
+      first_name: 'RAJ',
+      last_name: 'kumar singh',
+      sex: 'M',
+      age_years: '40',
+      mobile: '9876543210',
+    });
+    expect(r.ok && [r.value.input.firstName, r.value.input.lastName]).toEqual([
+      'Raj',
+      'Kumar Singh',
+    ]);
   });
 });
 
@@ -283,10 +363,20 @@ describe('rate rows', () => {
   });
 
   it('reports all problems', () => {
-    const r = validateRateRow({ service_code: '!', category: 'magic', rate_inr: '12.345', room_category: 'ICU' }, DEFAULT_RATE_OPTIONS, TODAY);
+    const r = validateRateRow(
+      { service_code: '!', category: 'magic', rate_inr: '12.345', room_category: 'ICU' },
+      DEFAULT_RATE_OPTIONS,
+      TODAY,
+    );
     expect(r.ok).toBe(false);
     expect(!r.ok && r.errors.map((e) => e.code)).toEqual([
-      'codeInvalid', 'serviceNameRequired', 'categoryInvalid', 'tariffRequired', 'roomCategoryUnsupported', 'rateInvalid', 'dateRequired',
+      'codeInvalid',
+      'serviceNameRequired',
+      'categoryInvalid',
+      'tariffRequired',
+      'roomCategoryUnsupported',
+      'rateInvalid',
+      'dateRequired',
     ]);
   });
 
@@ -299,9 +389,17 @@ describe('rate rows', () => {
   });
 
   it('rejects absurd effective dates and invalid SAC / GST', () => {
-    expect(!validateRateRow({ ...good, effective_from: '01/04/1999' }, DEFAULT_RATE_OPTIONS, TODAY).ok).toBe(true);
-    expect(!validateRateRow({ ...good, effective_from: '01/04/2028' }, DEFAULT_RATE_OPTIONS, TODAY).ok).toBe(true);
-    const r = validateRateRow({ ...good, sac_code: '99', gst_rate_percent: 'abc' }, DEFAULT_RATE_OPTIONS, TODAY);
+    expect(
+      !validateRateRow({ ...good, effective_from: '01/04/1999' }, DEFAULT_RATE_OPTIONS, TODAY).ok,
+    ).toBe(true);
+    expect(
+      !validateRateRow({ ...good, effective_from: '01/04/2028' }, DEFAULT_RATE_OPTIONS, TODAY).ok,
+    ).toBe(true);
+    const r = validateRateRow(
+      { ...good, sac_code: '99', gst_rate_percent: 'abc' },
+      DEFAULT_RATE_OPTIONS,
+      TODAY,
+    );
     expect(!r.ok && r.errors.map((e) => e.code)).toEqual(['sacInvalid', 'gstInvalid']);
   });
 
@@ -314,7 +412,14 @@ describe('error report', () => {
   it('keeps the original columns after the row number, status and problems', () => {
     const rows = buildErrorReport(
       ['Name', 'Mobile'],
-      [{ sourceRow: 7, raw: ['Geeta', '123'], status: 'error', issues: [{ field: 'mobile', code: 'mobileInvalid' }] }],
+      [
+        {
+          sourceRow: 7,
+          raw: ['Geeta', '123'],
+          status: 'error',
+          issues: [{ field: 'mobile', code: 'mobileInvalid' }],
+        },
+      ],
       { row: 'Row', status: 'Status', problems: 'Problems', statuses: { error: 'Error' } },
       (i) => `${i.field}:${i.code}`,
     );

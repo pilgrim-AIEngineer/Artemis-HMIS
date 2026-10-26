@@ -24,7 +24,7 @@ function cellText(v: ExcelJS.CellValue): string {
   }
   if (typeof v === 'object') {
     if ('richText' in v) return v.richText.map((r) => r.text).join('');
-    if ('result' in v) return v.result === undefined ? '' : cellText(v.result as ExcelJS.CellValue);
+    if ('result' in v) return v.result === undefined ? '' : cellText(v.result);
     if ('text' in v) return String(v.text);
     return ''; // error cells (#N/A …)
   }

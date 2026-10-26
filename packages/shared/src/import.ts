@@ -24,7 +24,7 @@ import {
   createPatientSchema,
   GUARDIAN_RELATIONS,
   MOBILE_OWNER_RELATIONS,
-  PATIENT_SEXES,
+  type PATIENT_SEXES,
   resolveDob,
   titleCaseName,
   type CreatePatient,
@@ -90,7 +90,7 @@ export function decodeCsvBytes(bytes: Uint8Array): string {
     return new TextDecoder('utf-16be').decode(bytes.subarray(2));
   }
   try {
-    return new TextDecoder('utf-8', { fatal: true }).decode(bytes).replace(/^﻿/, '');
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes).replace(/^\uFEFF/, '');
   } catch {
     // Excel "CSV (Comma delimited)" on Windows is Windows-1252.
     return new TextDecoder('windows-1252').decode(bytes);
@@ -99,7 +99,10 @@ export function decodeCsvBytes(bytes: Uint8Array): string {
 
 /** Picks the delimiter that splits the first non-empty lines most consistently. */
 function sniffDelimiter(text: string): string {
-  const sample = text.split(/\r\n|\n|\r/).filter((l) => l.trim() !== '').slice(0, 10);
+  const sample = text
+    .split(/\r\n|\n|\r/)
+    .filter((l) => l.trim() !== '')
+    .slice(0, 10);
   let best = ',';
   let bestCount = 0;
   for (const d of [',', ';', '\t', '|']) {
@@ -171,7 +174,14 @@ const alias = (key: string, ...names: string[]): [string, string][] =>
   [key, ...names].map((n) => [normaliseHeader(n), key]);
 
 const PATIENT_ALIASES = new Map<string, string>([
-  ...alias('old_uhid', 'old reg no', 'old registration no', 'reg no', 'registration number', 'uhid'),
+  ...alias(
+    'old_uhid',
+    'old reg no',
+    'old registration no',
+    'reg no',
+    'registration number',
+    'uhid',
+  ),
   ...alias('old_uhid', 'opd no', 'opd number', 'old id', 'patient id', 'regn no', 'reg. no.'),
   ...alias('first_name', 'firstname', 'first', 'given name'),
   ...alias('middle_name', 'middlename', 'middle'),
@@ -205,8 +215,26 @@ const RATE_ALIASES = new Map<string, string>([
   ...alias('gst_rate_percent', 'gst', 'gst %', 'gst rate', 'tax %'),
   ...alias('tariff_name', 'tariff', 'rate card', 'price list', 'payer'),
   ...alias('room_category', 'room', 'room type', 'ward'),
-  ...alias('rate_inr', 'rate', 'price', 'amount', 'charges', 'charge', 'fee', 'rate (rs)', 'rate ₹'),
-  ...alias('effective_from', 'effective', 'effective date', 'w.e.f', 'wef', 'from date', 'with effect from'),
+  ...alias(
+    'rate_inr',
+    'rate',
+    'price',
+    'amount',
+    'charges',
+    'charge',
+    'fee',
+    'rate (rs)',
+    'rate ₹',
+  ),
+  ...alias(
+    'effective_from',
+    'effective',
+    'effective date',
+    'w.e.f',
+    'wef',
+    'from date',
+    'with effect from',
+  ),
 ]);
 
 const ALIASES: Record<ImportKind, Map<string, string>> = {
@@ -338,8 +366,8 @@ const PLACEHOLDERS = new Set(['-', '--', '---', 'na', 'n/a', 'nil', 'null', 'non
 export function cleanText(s: string): string {
   const t = s
     .normalize('NFC')
-    .replace(/[​-‍⁠﻿]/g, '')
-    .replace(/[\s ]+/g, ' ')
+    .replace(/[\u200b-\u200d\u2060\ufeff]/g, '')
+    .replace(/[\s\u00a0]+/g, ' ')
     .trim();
   return PLACEHOLDERS.has(t.toLowerCase()) ? '' : t;
 }
@@ -409,7 +437,12 @@ export function parseDateCell(raw: string, today: CalendarDate): CalendarDate | 
 export function parseAgeCell(raw: string): string | null {
   const s = cleanText(raw).toLowerCase();
   let m: RegExpExecArray | null;
-  if ((m = /^(\d{1,3})(?:\.\d+)?\s*(?:y|yr|yrs|year|years|वर्ष|साल)?(?:\s*\d{1,2}\s*(?:m|mon|mth|months?))?$/.exec(s))) {
+  if (
+    (m =
+      /^(\d{1,3})(?:\.\d+)?\s*(?:y|yr|yrs|year|years|वर्ष|साल)?(?:\s*\d{1,2}\s*(?:m|mon|mth|months?))?$/.exec(
+        s,
+      ))
+  ) {
     return parseAgeInput(m[1]!) ? m[1]! : null;
   }
   if ((m = /^(\d{1,4})\s*(?:m|mon|mth|months?|महीने?)$/.exec(s))) {
@@ -426,7 +459,11 @@ export function parseAgeCell(raw: string): string | null {
  * floats); a second number after `/ , ; &` or "or" becomes the alternate. `bad` is true when text
  * was there but no valid mobile could be read.
  */
-export function parseMobileCell(raw: string): { mobile: string | null; alt: string | null; bad: boolean } {
+export function parseMobileCell(raw: string): {
+  mobile: string | null;
+  alt: string | null;
+  bad: boolean;
+} {
   const s = cleanText(raw);
   if (!s) return { mobile: null, alt: null, bad: false };
   const valid: string[] = [];
@@ -438,7 +475,9 @@ export function parseMobileCell(raw: string): { mobile: string | null; alt: stri
   }
   // "98765 43210" split on nothing; but "9876543210 9123456789" (space separated) is two numbers.
   if (valid.length === 0) {
-    const spaced = s.match(/(?:\+?91[\s-]?)?[6-9]\d{9}/g)?.map((x) => x.replace(/\D/g, '').slice(-10));
+    const spaced = s
+      .match(/(?:\+?91[\s-]?)?[6-9]\d{9}/g)
+      ?.map((x) => x.replace(/\D/g, '').slice(-10));
     for (const d of spaced ?? []) if (!valid.includes(d)) valid.push(d);
   }
   return { mobile: valid[0] ?? null, alt: valid[1] ?? null, bad: valid.length === 0 };
@@ -451,7 +490,9 @@ export function parseBloodGroup(raw: string): (typeof BLOOD_GROUPS)[number] | nu
   if (!m?.[2]) return null;
   const sign = /^(\+|pos|ve\+)/i.test(m[2]) ? '+' : '-';
   const g = `${m[1]!.toUpperCase()}${sign}`;
-  return (BLOOD_GROUPS as readonly string[]).includes(g) ? (g as (typeof BLOOD_GROUPS)[number]) : null;
+  return (BLOOD_GROUPS as readonly string[]).includes(g)
+    ? (g as (typeof BLOOD_GROUPS)[number])
+    : null;
 }
 
 const GUARDIAN_PREFIXES: [RegExp, (typeof GUARDIAN_RELATIONS)[number]][] = [
@@ -498,7 +539,8 @@ export interface ParsedPatientRow {
 }
 
 export type RowResult<T> =
-  { ok: true; value: T; warnings: RowIssue[] } | { ok: false; errors: RowIssue[]; warnings: RowIssue[] };
+  | { ok: true; value: T; warnings: RowIssue[] }
+  | { ok: false; errors: RowIssue[]; warnings: RowIssue[] };
 
 /** Splits "Sunita Devi Verma" into first / middle / last (first word, last word, rest between). */
 function splitFullName(full: string) {
@@ -554,7 +596,7 @@ export function validatePatientRow(
   if (age && !resolveDob({ age }, today)) err('age_years', 'ageInvalid');
 
   const m = parseMobileCell(cells.mobile ?? '');
-  let mobile: string | undefined = m.mobile ?? undefined;
+  const mobile: string | undefined = m.mobile ?? undefined;
   let noMobileReason: string | undefined;
   if (m.bad) err('mobile', 'mobileInvalid');
   else if (!mobile) {
@@ -612,7 +654,7 @@ export function validatePatientRow(
       const field = String(issue.path[0] ?? 'row');
       if (!seen.has(field)) {
         seen.add(field);
-        err(SCHEMA_FIELD_TO_COLUMN[field] ?? field, 'invalid');
+        err(SCHEMA_FIELD_TO_COLUMN[field] ?? 'row', 'invalid');
       }
     }
     return { ok: false, errors, warnings };
@@ -630,6 +672,14 @@ const SCHEMA_FIELD_TO_COLUMN: Record<string, string> = {
   addressLine: 'address_line',
   localityName: 'locality',
   age: 'age_years',
+  bloodGroup: 'blood_group',
+  relationToMobileOwner: 'relation_to_mobile_owner',
+  guardianRelation: 'guardian_relation',
+  district: 'district',
+  state: 'state',
+  pincode: 'pincode',
+  sex: 'sex',
+  dob: 'dob',
 };
 
 // ---------------------------------------------------------------- rate rows
@@ -691,7 +741,11 @@ const UNIT_ALIASES: Record<string, (typeof SERVICE_UNITS)[number]> = {
   nos: 'per_unit',
 };
 
-const slug = (s: string) => cleanText(s).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+const slug = (s: string) =>
+  cleanText(s)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_|_$/g, '');
 
 /** Rupee text → paise. `₹ 1,200/-`, `Rs. 500`, `499.5`; more than two decimals is an error. */
 export function parseRupeesCell(raw: string): Paise | null {
@@ -750,10 +804,9 @@ export function validateRateRow(
   let unit: ParsedRateRow['unit'] = null;
   if (cells.unit) {
     const u = slug(cells.unit).replace(/^per_/, '');
-    unit =
-      (SERVICE_UNITS as readonly string[]).includes(`per_${u}`)
-        ? (`per_${u}` as (typeof SERVICE_UNITS)[number])
-        : (UNIT_ALIASES[u] ?? null);
+    unit = (SERVICE_UNITS as readonly string[]).includes(`per_${u}`)
+      ? (`per_${u}` as (typeof SERVICE_UNITS)[number])
+      : (UNIT_ALIASES[u] ?? null);
     if (!unit) err('unit', 'unitInvalid');
   }
 

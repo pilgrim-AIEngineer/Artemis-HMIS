@@ -94,6 +94,7 @@ export const ROUTE_GROUP_DEFS: Record<RouteGroup, RouteGroupDef> = {
       'admin.settings.manage',
       'admin.masters.manage',
       'admin.tariff.manage',
+      'admin.import.run',
       'admin.audit.view',
     ],
   },

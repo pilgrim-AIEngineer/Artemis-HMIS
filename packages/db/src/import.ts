@@ -44,7 +44,6 @@ import {
   department,
   importBatch,
   importRow,
-  patient,
   patientIdentifier,
   service,
   serviceRate,
@@ -203,7 +202,8 @@ async function writeVerdicts(tx: Tx, rows: RowRecord[], verdicts: Verdict[]) {
 /** (Re-)classifies every row of a batch still in the dry-run stage and refreshes the counts. */
 async function classifyBatch(tx: Tx, facilityId: string, batchId: string, now: Date) {
   const batch = await loadBatch(tx, facilityId, batchId);
-  if (batch.stage !== 'dry_run' || batch.status !== 'active') throw new ImportError('import.notEditable');
+  if (batch.stage !== 'dry_run' || batch.status !== 'active')
+    throw new ImportError('import.notEditable');
   const rows = await tx
     .select()
     .from(importRow)
@@ -247,7 +247,11 @@ async function classifyPatients(
 
   // Numbers from the old register that earlier imports already brought in.
   const parsed = rows.map((r) =>
-    validatePatientRow(mappedRow(r.raw, mapping), { allowMissingMobile: options.allowMissingMobile }, today),
+    validatePatientRow(
+      mappedRow(r.raw, mapping),
+      { allowMissingMobile: options.allowMissingMobile },
+      today,
+    ),
   );
   const oldNos = [
     ...new Set(parsed.flatMap((p) => (p.ok && p.value.oldUhid ? [p.value.oldUhid] : []))),
@@ -294,7 +298,7 @@ async function classifyPatients(
 
     const key = p.oldUhid?.toLowerCase();
     if (key && imported.has(key)) {
-      out.push(dup('alreadyImported', imported.get(key)!));
+      out.push(dup('alreadyImported', imported.get(key)));
       continue;
     }
     if (key && seenOldNo.has(key)) {
@@ -309,7 +313,11 @@ async function classifyPatients(
     if (p.input.mobile) {
       const mine = earlier.get(p.input.mobile) ?? [];
       if (
-        mine.some((e) => trigramSimilarity(e.phonetic, phonetic) >= minSim && dobWithinYears(e.dob, dob, tolerance))
+        mine.some(
+          (e) =>
+            trigramSimilarity(e.phonetic, phonetic) >= minSim &&
+            dobWithinYears(e.dob, dob, tolerance),
+        )
       ) {
         verdict = dup('duplicateInFile');
       } else {
@@ -356,7 +364,13 @@ async function loadRateRefs(tx: Tx, facilityId: string, codes: string[]): Promis
       .select()
       .from(service)
       .where(
-        and(eq(service.facilityId, facilityId), inArray(sql`lower(${service.code})`, part.map((c) => c.toLowerCase()))),
+        and(
+          eq(service.facilityId, facilityId),
+          inArray(
+            sql`lower(${service.code})`,
+            part.map((c) => c.toLowerCase()),
+          ),
+        ),
       );
     for (const s of found) services.set(s.code.toLowerCase(), s);
   }
@@ -368,15 +382,21 @@ async function loadRateRefs(tx: Tx, facilityId: string, codes: string[]): Promis
 }
 
 /** Which service fields the file would change (names of columns, for the preview). */
-function serviceChanges(row: ParsedRateRow, cur: typeof service.$inferSelect, deptId: string | null) {
+function serviceChanges(
+  row: ParsedRateRow,
+  cur: typeof service.$inferSelect,
+  deptId: string | null,
+) {
   const changed: string[] = [];
   if (row.serviceName !== cur.name) changed.push('service_name');
-  if (row.serviceNameHi !== null && row.serviceNameHi !== cur.nameHi) changed.push('service_name_hi');
+  if (row.serviceNameHi !== null && row.serviceNameHi !== cur.nameHi)
+    changed.push('service_name_hi');
   if (row.category !== cur.category) changed.push('category');
   if (deptId !== null && deptId !== cur.departmentId) changed.push('department_code');
   if (row.unit !== null && row.unit !== cur.unit) changed.push('unit');
   if (row.sacCode !== null && row.sacCode !== cur.sacCode) changed.push('sac_code');
-  if (row.gstRateBp !== null && row.gstRateBp !== cur.defaultGstRateBp) changed.push('gst_rate_percent');
+  if (row.gstRateBp !== null && row.gstRateBp !== cur.defaultGstRateBp)
+    changed.push('gst_rate_percent');
   return changed;
 }
 
@@ -391,7 +411,11 @@ async function classifyRates(
   today: ReturnType<typeof istToday>,
 ): Promise<Verdict[]> {
   const parsed = rows.map((r) =>
-    validateRateRow(mappedRow(r.raw, mapping), { defaultEffectiveFrom: options.defaultEffectiveFrom }, today),
+    validateRateRow(
+      mappedRow(r.raw, mapping),
+      { defaultEffectiveFrom: options.defaultEffectiveFrom },
+      today,
+    ),
   );
   const codes = [...new Set(parsed.flatMap((p) => (p.ok ? [p.value.serviceCode] : [])))];
   const refs = await loadRateRefs(tx, facilityId, codes);
@@ -423,8 +447,11 @@ async function classifyRates(
 
     const tariffId = refs.tariffs.get(nameKey(r.tariffName));
     if (!tariffId) errors.push({ field: 'tariff_name', code: 'tariffNotFound' });
-    const deptId = r.departmentCode ? (refs.departments.get(r.departmentCode.toLowerCase()) ?? null) : null;
-    if (r.departmentCode && !deptId) errors.push({ field: 'department_code', code: 'departmentNotFound' });
+    const deptId = r.departmentCode
+      ? (refs.departments.get(r.departmentCode.toLowerCase()) ?? null)
+      : null;
+    if (r.departmentCode && !deptId)
+      errors.push({ field: 'department_code', code: 'departmentNotFound' });
 
     // The first row of a code defines the service; later rows of the same code must agree.
     const first = firstOfCode.get(r.serviceCode);
@@ -439,7 +466,8 @@ async function classifyRates(
     }
 
     const existing = refs.services.get(r.serviceCode.toLowerCase());
-    if (existing && existing.status !== 'active') errors.push({ field: 'service_code', code: 'serviceCancelled' });
+    if (existing && existing.status !== 'active')
+      errors.push({ field: 'service_code', code: 'serviceCancelled' });
     let changes: string[] = [];
     if (existing && existing.status === 'active') changes = serviceChanges(r, existing, deptId);
     preview.service = !existing ? 'new' : changes.length ? `update: ${changes.join(', ')}` : 'same';
@@ -451,7 +479,12 @@ async function classifyRates(
     } else seenKey.set(dupKey, r.ratePaise);
 
     if (errors.length) {
-      out.push({ status: 'error', issues: [...asIssues(errors, 'error'), ...issues], preview, duplicateOfId: null });
+      out.push({
+        status: 'error',
+        issues: [...asIssues(errors, 'error'), ...issues],
+        preview,
+        duplicateOfId: null,
+      });
       continue;
     }
     if (prior !== undefined) {
@@ -522,12 +555,14 @@ export interface RemapInput {
 export async function remapImportBatch(ctx: ImportContext, input: RemapInput, now: Date) {
   return withTx(ctx, async (tx) => {
     const batch = await loadBatch(tx, ctx.facilityId, input.batchId, true);
-    if (batch.stage !== 'dry_run' || batch.status !== 'active') throw new ImportError('import.notEditable');
+    if (batch.stage !== 'dry_run' || batch.status !== 'active')
+      throw new ImportError('import.notEditable');
     const set: Partial<typeof importBatch.$inferInsert> = {};
     if (input.mapping) {
-      const targets = IMPORT_TARGETS[batch.kind as ImportKind] as readonly string[];
+      const targets = IMPORT_TARGETS[batch.kind as ImportKind];
       const used = new Set<string>();
-      if (input.mapping.length !== batch.headers.length) throw new ImportError('import.mappingInvalid');
+      if (input.mapping.length !== batch.headers.length)
+        throw new ImportError('import.mappingInvalid');
       for (const t of input.mapping) {
         if (t === null) continue;
         if (!targets.includes(t) || used.has(t)) throw new ImportError('import.mappingInvalid');
@@ -535,8 +570,10 @@ export async function remapImportBatch(ctx: ImportContext, input: RemapInput, no
       }
       set.mapping = input.mapping;
     }
-    if (input.options !== undefined) set.options = parseOptions({ ...batch.options, ...(input.options as object) });
-    if (Object.keys(set).length) await tx.update(importBatch).set(set).where(eq(importBatch.id, batch.id));
+    if (input.options !== undefined)
+      set.options = parseOptions({ ...batch.options, ...(input.options as object) });
+    if (Object.keys(set).length)
+      await tx.update(importBatch).set(set).where(eq(importBatch.id, batch.id));
     await classifyBatch(tx, ctx.facilityId, batch.id, now);
     return loadBatch(tx, ctx.facilityId, batch.id);
   });
@@ -552,7 +589,9 @@ export interface CommitProgress {
 }
 
 const OVERRIDABLE = sql.join(
-  OVERRIDABLE_DUPLICATE_CODES.map((c) => sql`${importRow.issues} @> ${JSON.stringify([{ code: c }])}::jsonb`),
+  OVERRIDABLE_DUPLICATE_CODES.map(
+    (c) => sql`${importRow.issues} @> ${JSON.stringify([{ code: c }])}::jsonb`,
+  ),
   sql` or `,
 );
 
@@ -591,7 +630,10 @@ async function commitPatientRow(
     tx,
     facilityId,
     asDuplicate
-      ? { ...res.value.input, duplicateOverride: { reason: 'Imported from file (MIG-01); possible duplicate' } }
+      ? {
+          ...res.value.input,
+          duplicateOverride: { reason: 'Imported from file (MIG-01); possible duplicate' },
+        }
       : res.value.input,
     now,
   );
@@ -599,7 +641,10 @@ async function commitPatientRow(
     // Someone registered a look-alike after the dry run.
     return {
       status: 'duplicate',
-      issues: [...row.issues.filter((i) => i.level === 'warning'), { field: 'row', code: 'duplicateExisting', level: 'warning' }],
+      issues: [
+        ...row.issues.filter((i) => i.level === 'warning'),
+        { field: 'row', code: 'duplicateExisting', level: 'warning' },
+      ],
       duplicateOfId: out.matches[0]!.id,
     };
   }
@@ -632,8 +677,13 @@ async function commitRateRow(
   const r = res.value;
   const refs = await loadRateRefs(tx, facilityId, [r.serviceCode]);
   const tariffId = refs.tariffs.get(nameKey(r.tariffName));
-  const deptId = r.departmentCode ? (refs.departments.get(r.departmentCode.toLowerCase()) ?? null) : null;
-  const fail = (field: string, code: string): Outcome => ({ status: 'failed', issues: [{ field, code, level: 'error' }] });
+  const deptId = r.departmentCode
+    ? (refs.departments.get(r.departmentCode.toLowerCase()) ?? null)
+    : null;
+  const fail = (field: string, code: string): Outcome => ({
+    status: 'failed',
+    issues: [{ field, code, level: 'error' }],
+  });
   if (!tariffId) return fail('tariff_name', 'tariffNotFound');
   if (r.departmentCode && !deptId) return fail('department_code', 'departmentNotFound');
 
@@ -655,7 +705,9 @@ async function commitRateRow(
           ...(deptId !== null ? { departmentId: deptId } : {}),
           ...(r.unit !== null ? { unit: r.unit } : {}),
           ...(r.sacCode !== null ? { sacCode: r.sacCode } : {}),
-          ...(r.gstRateBp !== null ? { defaultGstRateBp: r.gstRateBp, isExempt: r.gstRateBp === 0 } : {}),
+          ...(r.gstRateBp !== null
+            ? { defaultGstRateBp: r.gstRateBp, isExempt: r.gstRateBp === 0 }
+            : {}),
         })
         .where(eq(service.id, existing.id));
     }
@@ -690,6 +742,20 @@ async function commitRateRow(
     if (err instanceof MasterRefError) return fail('tariff_name', 'tariffNotFound');
     throw err;
   }
+}
+
+/** How many rows a commit would write right now (shown on the Import button). */
+export async function countPendingImportRows(tx: Tx, facilityId: string, batch: BatchRecord) {
+  const [row] = await tx
+    .select({ n: sql<number>`count(*)::int` })
+    .from(importRow)
+    .where(
+      and(
+        eq(importRow.facilityId, facilityId),
+        pendingWhere(batch.id, parseOptions(batch.options)),
+      ),
+    );
+  return row?.n ?? 0;
 }
 
 /**
@@ -727,7 +793,10 @@ export async function commitImportStep(
         );
       } catch {
         // No SQL text or patient data from the driver goes to the screen or the logs.
-        outcome = { status: 'failed', issues: [{ field: 'row', code: 'saveFailed', level: 'error' }] };
+        outcome = {
+          status: 'failed',
+          issues: [{ field: 'row', code: 'saveFailed', level: 'error' }],
+        };
       }
       await tx
         .update(importRow)
@@ -771,7 +840,8 @@ export async function commitImportBatch(
 export async function cancelImportBatch(ctx: ImportContext, batchId: string, reason: string) {
   await withTx(ctx, async (tx) => {
     const batch = await loadBatch(tx, ctx.facilityId, batchId, true);
-    if (batch.stage !== 'dry_run' || batch.status !== 'active') throw new ImportError('import.notEditable');
+    if (batch.stage !== 'dry_run' || batch.status !== 'active')
+      throw new ImportError('import.notEditable');
     await tx
       .update(importBatch)
       .set({
