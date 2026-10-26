@@ -1,6 +1,7 @@
 import { createCallerFactory, router } from './init';
 import { adminRouter } from './routers/admin';
 import { authRouter } from './routers/auth';
+import { billingRouter } from './routers/billing';
 import { healthRouter } from './routers/health';
 import { mastersRouter } from './routers/masters';
 import { patientsRouter } from './routers/patients';
@@ -17,6 +18,7 @@ export const appRouter = router({
   print: printRouter,
   visit: visitsRouter,
   queue: queueRouter,
+  billing: billingRouter,
 });
 
 export type AppRouter = typeof appRouter;

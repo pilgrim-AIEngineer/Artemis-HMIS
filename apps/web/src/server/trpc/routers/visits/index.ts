@@ -30,6 +30,7 @@ const CONFLICT = new Set<string>([
   'visit.tokenAlreadyIssued',
   'visit.notOpen',
   'visit.notCancellable',
+  'visit.billHasPayments',
   'queue.invalidTransition',
   'queue.nothingWaiting',
   'queue.notPending',
