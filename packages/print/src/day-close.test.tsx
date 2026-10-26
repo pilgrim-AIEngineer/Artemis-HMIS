@@ -26,13 +26,9 @@ beforeAll(async () => {
   ]) {
     const v = await fx.visit({ patientId: await fx.newPatient() }, at);
     await fx.run((tx) =>
-      collectPayment(
-        tx,
-        fx.actor(),
-        { billId: v.billId, tenders, idempotencyKey: uuidv7() },
-        at,
-        { mayFinalize: true },
-      ),
+      collectPayment(tx, fx.actor(), { billId: v.billId, tenders, idempotencyKey: uuidv7() }, at, {
+        mayFinalize: true,
+      }),
     );
   }
   userCloseId = (

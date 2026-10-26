@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { FORBIDDEN_TERMS } from './compliance/forbidden-terms';
 import {
   businessDateFor,
   closeOwnDaySchema,
@@ -106,7 +107,7 @@ describe('close input', () => {
     const r = closeOwnDaySchema.safeParse({
       denominations: den,
       expectedCashPaise: '50000',
-      differenceReason: 'fetal sex check fee',
+      differenceReason: FORBIDDEN_TERMS[0]!.examples[0]!,
       idempotencyKey: KEY,
     });
     expect(r.success).toBe(false);

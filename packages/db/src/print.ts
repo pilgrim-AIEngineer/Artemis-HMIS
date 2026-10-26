@@ -17,7 +17,8 @@ export interface PrintTarget {
   family?: readonly string[];
 }
 
-const familyOf = (t: PrintTarget): string[] => [...new Set([t.template, ...(t.family ?? [])])].sort();
+const familyOf = (t: PrintTarget): string[] =>
+  [...new Set([t.template, ...(t.family ?? [])])].sort();
 
 /** The copy number the next print of this document gets (1 = original, >1 = DUPLICATE). */
 export async function nextCopyNo(q: Queryable, t: PrintTarget): Promise<number> {
