@@ -4,6 +4,7 @@ export * from './day-close';
 export * from './display';
 export * from './env';
 export * from './health';
+export * from './ops-health';
 export * from './idempotency';
 export * from './masters';
 export * from './number-series';

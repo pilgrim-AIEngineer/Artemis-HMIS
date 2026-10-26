@@ -23,6 +23,10 @@ describe('health.check', () => {
     expect(healthStatusSchema.parse(res)).toEqual(res);
     expect(res.status).toBe('ok');
     expect(res.checks.db.ok).toBe(true);
+    // OPS-01: no backup volume in tests => an alert, but never a degraded status.
+    expect(res.checks.backup.state).toBe('missing');
+    expect(res.alerts.map((a) => a.code)).toContain('backup.missing');
+    expect(res.checks.queue).toMatchObject({ ok: true, backlog: 0 });
   });
 
   it('reports degraded (not an error) when the database is unreachable', async () => {
@@ -31,6 +35,8 @@ describe('health.check', () => {
       const res = await createCaller(testContext({ db: () => dead })).health.check();
       expect(res.status).toBe('degraded');
       expect(res.checks.db).toEqual({ ok: false, latencyMs: null });
+      expect(res.checks.queue).toBeNull();
+      expect(res.alerts[0]?.code).toBe('db.down');
     } finally {
       await dead.$client.end();
     }
