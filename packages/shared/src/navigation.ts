@@ -58,7 +58,7 @@ export const ROUTE_GROUP_DEFS: Record<RouteGroup, RouteGroupDef> = {
   nursing: {
     group: 'nursing',
     href: '/nursing',
-    anyOf: ['nursing.chart', 'nursing.mar', 'ipd.transfer', 'newborn.register'],
+    anyOf: ['vitals.record', 'nursing.chart', 'nursing.mar', 'ipd.transfer', 'newborn.register'],
   },
   pharmacy: {
     group: 'pharmacy',

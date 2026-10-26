@@ -141,6 +141,20 @@
       "when": 1792982907679,
       "tag": "0019_day_close_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792986170292,
+      "tag": "0020_vitals",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792986171108,
+      "tag": "0021_vitals_audit",
+      "breakpoints": true
     }
   ]
 }

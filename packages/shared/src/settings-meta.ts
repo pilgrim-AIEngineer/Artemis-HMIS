@@ -50,6 +50,7 @@ export const SETTING_GROUPS = [
   'newborn',
   'rx',
   'print',
+  'vitals',
   'usg',
   'pcpndt',
   'pmjay',

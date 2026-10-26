@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { POLL_MS, SAFETY_POLL_MS, startLiveEvents } from './live-events';
 
 /**
- * Live updates for the queue screens: opens `/api/events` and refreshes every `queue.*` query on
+ * Live updates for the queue screens: opens `/api/events` and refreshes every `queue.*` and `vitals.*` query on
  * each server event. Returns `live` and the `refetchInterval` to give the board query: 5 s while
  * there is no stream (the polling fallback), a slow safety poll while there is one.
  */
@@ -18,7 +18,10 @@ export function useLiveQueue(): { live: boolean; refetchInterval: number } {
         new EventSource('/api/events') as unknown as ReturnType<
           Parameters<typeof startLiveEvents>[0]['open']
         >,
-      onChange: () => void queryClient.invalidateQueries({ queryKey: [['queue']] }),
+      onChange: () => {
+        void queryClient.invalidateQueries({ queryKey: [['queue']] });
+        void queryClient.invalidateQueries({ queryKey: [['vitals']] });
+      },
       onStatus: setLive,
     });
     return stop;

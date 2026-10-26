@@ -28,6 +28,9 @@ const TEMPLATE_CSS = `
 .sheet-vital-label { font-weight: 700; }
 .sheet-vital-box { display: inline-block; min-width: 9mm; height: 5mm; border-bottom: 0.75pt solid #000; padding: 0 0.5mm; text-align: center; }
 .sheet-vital-unit { font-size: 0.7em; }
+.sheet-vital-more .sheet-vital-box { min-width: 7mm; }
+.sheet-vital-key { font-size: 0.7em; margin-left: auto; }
+.sheet-alert { border: 1.25pt solid #000; padding: 1mm 1.5mm; margin: 0; }
 .sheet-context { border: 0.75pt solid #000; padding: 1mm 1.5mm; display: grid; gap: 1mm; }
 .sheet-blank-line { display: inline-block; min-width: 40mm; border-bottom: 0.5pt solid #000; height: 3.5mm; vertical-align: bottom; }
 .sheet-blank-line.short { min-width: 12mm; }

@@ -307,7 +307,8 @@
         "auth": "Sign-in and security",
         "whatsapp": "WhatsApp",
         "features": "Optional modules",
-        "ui": "Screens"
+        "ui": "Screens",
+        "vitals": "Vitals"
       },
       "options": {
         "reception": "Reception",
@@ -531,6 +532,16 @@
           "duplicateAgeToleranceYears": {
             "label": "Duplicate check: age difference (years)",
             "hint": "Existing and new patient must be this many years apart at most for the duplicate prompt."
+          }
+        },
+        "vitals": {
+          "thresholds": {
+            "label": "Vitals alert limits",
+            "hint": "Advanced. When a reading is flagged amber or red (BP, SpO2, temperature, pulse, sugar), as JSON. Starting values from the spec; the doctors should confirm them before go-live."
+          },
+          "heightPromptDays": {
+            "label": "Ask for height again after (days)",
+            "hint": "The vitals desk asks for the height when it has not been measured for this many days."
           }
         }
       }
@@ -970,7 +981,15 @@
     },
     "forbiddenText": "This text contains a word that cannot be used here. Please rephrase.",
     "utr": "The UTR must be 6 to 22 digits.",
-    "date": "Choose a valid date."
+    "date": "Choose a valid date.",
+    "vitals": {
+      "implausible": "This value cannot be right. Please check it.",
+      "bpBoth": "Enter both the upper and the lower BP.",
+      "bpOrder": "The lower BP must be less than the upper BP.",
+      "notForGroup": "This reading is not taken for this patient.",
+      "atLeastOne": "Enter at least one reading.",
+      "number": "Enter a number (whole numbers only for this field)."
+    }
   },
   "mobile": {
     "invalid": "Enter a 10-digit mobile number starting with 6, 7, 8 or 9."
@@ -1105,6 +1124,11 @@
       "alreadyReconciled": "This day is already reconciled and cannot be changed.",
       "reasonRequired": "The totals do not match. Write the reason.",
       "futureDate": "You cannot reconcile a day that has not happened yet."
+    },
+    "vitals": {
+      "notAllowed": "Vitals cannot be taken for this visit now. It may be cancelled or already with the doctor’s team.",
+      "groupMismatch": "This form does not fit the patient’s age. Choose the right form.",
+      "invalid": "A reading is not possible. Please check the values."
     }
   },
   "nav": {
@@ -1138,7 +1162,9 @@
       "hint": "Patients waiting, prescriptions to verify, discharge"
     },
     "nursing": {
-      "hint": "Bed board, charts and medicine rounds"
+      "hint": "Bed board, charts and medicine rounds",
+      "vitalsTitle": "Vitals desk",
+      "vitalsHint": "Take vitals of waiting patients and print the OPD sheet"
     },
     "pharmacy": {
       "hint": "Medicine sales, purchase and stock"
@@ -1420,7 +1446,9 @@
       "paeds_vaccination": "Vaccination"
     },
     "vitalsDone": "Vitals done",
-    "printSheet": "Print OPD sheet"
+    "printSheet": "Print OPD sheet",
+    "enterVitals": "Enter vitals",
+    "editVitals": "Correct vitals"
   },
   "visit": {
     "title": "New visit",
@@ -1738,5 +1766,91 @@
     "confirmUpiTitle": "Complete UPI reconciliation for {date}?",
     "confirmUpiHelp": "System total {system}, difference {difference}. A completed day cannot be changed.",
     "confirmUpi": "Yes, complete"
+  },
+  "vitals": {
+    "deskTitle": "Vitals desk",
+    "deskHint": "Patients waiting for vitals come first. Tap one to enter the readings.",
+    "waitingTitle": "Waiting for vitals",
+    "doneTitle": "Measured today",
+    "nobodyWaiting": "Nobody is waiting for vitals.",
+    "enter": "Enter vitals",
+    "edit": "Correct vitals",
+    "outOfRange": "Out of range",
+    "loadFailed": "The list could not be loaded. Check the connection; it will try again.",
+    "loading": "Loading…",
+    "mobile": "Mobile",
+    "pregnantTag": "Pregnant",
+    "formFor": "Form for",
+    "groups": {
+      "adult": "Adult",
+      "pregnant": "Pregnant",
+      "child": "Child"
+    },
+    "closed": "This visit is no longer open for vitals.",
+    "correction": "Vitals were already taken. Saving now replaces them; the earlier reading stays in the record.",
+    "fields": {
+      "bp": "Blood pressure",
+      "bpSys": "Upper (systolic)",
+      "bpDia": "Lower (diastolic)",
+      "pulse": "Pulse",
+      "tempF": "Temperature",
+      "spo2": "SpO2",
+      "rr": "Breathing rate",
+      "weightKg": "Weight",
+      "heightCm": "Height / length",
+      "headCircCm": "Head circumference",
+      "muacCm": "Mid-arm circumference (MUAC)",
+      "rbsMgdl": "Random sugar (RBS)",
+      "fundalHeightCm": "Fundal height",
+      "fhr": "Heart rate of the baby (FHR)",
+      "oedema": "Swelling (oedema)",
+      "urineAlbumin": "Urine albumin",
+      "urineSugar": "Urine sugar"
+    },
+    "grades": {
+      "none": "None"
+    },
+    "heightDue": "Height has not been measured in the last year. Please measure it today.",
+    "heightLast": "Last: {cm} cm on {date}.",
+    "heightUse": "Use {cm} cm",
+    "flags": {
+      "bp_high": {
+        "amber": "BP is high",
+        "red": "BP is very high"
+      },
+      "spo2_low": {
+        "amber": "SpO2 is low",
+        "red": "SpO2 is very low"
+      },
+      "temp_high": {
+        "amber": "Fever"
+      },
+      "pulse_low": {
+        "amber": "Pulse is slow"
+      },
+      "pulse_high": {
+        "amber": "Pulse is fast"
+      },
+      "rbs_high": {
+        "amber": "Sugar is high"
+      },
+      "raised_bp_pregnancy": {
+        "alert": "Raised BP in pregnancy: tell the doctor"
+      }
+    },
+    "padShow": "Show number pad",
+    "padHide": "Hide number pad",
+    "pad": {
+      "label": "Number pad",
+      "backspace": "Delete last digit",
+      "point": "Decimal point",
+      "next": "Next"
+    },
+    "save": "Save vitals",
+    "cancel": "Back to list",
+    "saved": "Vitals saved for token {no}",
+    "allInRange": "All readings are in the normal range.",
+    "printSheet": "Print OPD sheet",
+    "nextPatient": "Next patient"
   }
 }

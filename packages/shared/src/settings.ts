@@ -5,6 +5,11 @@ import { cidrSchema, DEFAULT_LAN_CIDRS } from './network';
 import { NUMBER_SERIES_CONFIG_SETTING, numberSeriesConfigSchema } from './number-series';
 import { ROLE_KEYS, type RoleKey } from './permissions';
 import { PRIORITY_CLASSES } from './visits';
+import {
+  DEFAULT_HEIGHT_PROMPT_DAYS,
+  DEFAULT_VITALS_THRESHOLDS,
+  vitalsThresholdsSchema,
+} from './vitals';
 
 /**
  * Settings registry (docs/01 §7). One entry per `setting.key`: a zod schema plus the default used
@@ -98,6 +103,11 @@ export const SETTINGS = {
    * stored, so neither `setting` reads nor `audit_log` ever reveal the key; null = no link yet.
    */
   'queue.displayKey': def(displayKeyHashSchema.nullable(), null),
+
+  // --- Vitals (docs/11 §1): clinical seeds the owner reviews before go-live
+  'vitals.thresholds': def(vitalsThresholdsSchema, DEFAULT_VITALS_THRESHOLDS),
+  /** Ask for height again when the last measurement is at least this many days old. */
+  'vitals.heightPromptDays': def(z.number().int().min(30).max(3650), DEFAULT_HEIGHT_PROMPT_DAYS),
 
   // --- Registration (docs/10 §3)
   /** Duplicate check: phonetic name similarity (percent) at or above which a patient on the same mobile is a possible duplicate. */

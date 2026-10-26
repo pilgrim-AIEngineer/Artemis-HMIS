@@ -4,7 +4,7 @@
  */
 import { encounter, opdToken, patient, setting } from '@hmis/db/schema';
 import { IST, setupOpdFixture, type OpdFixture } from '@hmis/db/testing/opd';
-import { issueToken, writeSetting } from '@hmis/db';
+import { issueToken, recordVitals, writeSetting } from '@hmis/db';
 import { DEFAULT_QUICK_ORDERS, parseVisitQr } from '@hmis/shared';
 import { eq } from 'drizzle-orm';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -92,6 +92,76 @@ describe('OPD sheet (REG-06)', () => {
     for (const o of DEFAULT_QUICK_ORDERS) expect(html).toContain(o);
     expect(html).toContain('Next visit');
     expect(html).toContain('Doctor&#x27;s signature');
+  });
+
+  it('prints the saved vitals with out-of-range marks, extras and the pregnancy alert (OPD-01)', async () => {
+    const p = await fx.newPatient();
+    const when = IST('2028-05-06T09:30:00');
+    const v = await fx.visit({ patientId: p, doctorId: fx.doctorA }, when);
+    const tok = await fx.run((tx) =>
+      issueToken(tx, fx.actor(), v.encounterId, 'manual_fee_pending', when),
+    );
+    await fx.run((tx) =>
+      recordVitals(
+        tx,
+        fx.actor(),
+        {
+          tokenId: tok.tokenId,
+          group: 'pregnant',
+          values: {
+            bpSys: 150,
+            bpDia: 96,
+            pulse: 88,
+            tempF: 98.6,
+            spo2: 97,
+            weightKg: 62.5,
+            heightCm: 158,
+            fundalHeightCm: 28,
+            fhr: 144,
+            oedema: 'plus1',
+          },
+        },
+        when,
+      ),
+    );
+    const html = renderToStaticMarkup(
+      <PrintPage doc={(await prepare(OPD_SHEET_TEMPLATE, v.encounterId))!} />,
+    );
+    const boxes = [...html.matchAll(/class="sheet-vital-box"[^>]*>([^<]*)</g)].map((m) => m[1]);
+    expect(boxes.slice(0, 5)).toEqual(['150/96*', '88', '62.5', '98.6', '97']);
+    expect(html).toContain('data-flag="amber"'); // BP box
+    for (const extra of ['158 cm', '28 cm', '144/min', 'Fundal ht', 'FHR', 'Oedema']) {
+      expect(html).toContain(extra);
+    }
+    expect(html).toContain('class="sheet-vital-key"');
+    expect(html).toContain('data-testid="sheet-alert"');
+    expect(html).toContain('Raised BP in pregnancy');
+    expect(html).toContain('गर्भावस्था में उच्च रक्तचाप');
+  });
+
+  it('prints in-range vitals without marks or alerts, temperature in °F', async () => {
+    const p = await fx.newPatient();
+    const when = IST('2028-05-07T09:30:00');
+    const v = await fx.visit({ patientId: p, doctorId: fx.doctorA }, when);
+    const tok = await fx.run((tx) =>
+      issueToken(tx, fx.actor(), v.encounterId, 'manual_fee_pending', when),
+    );
+    await fx.run((tx) =>
+      recordVitals(
+        tx,
+        fx.actor(),
+        { tokenId: tok.tokenId, group: 'adult', values: { bpSys: 118, bpDia: 76, tempF: 99.1 } },
+        when,
+      ),
+    );
+    const html = renderToStaticMarkup(
+      <PrintPage doc={(await prepare(OPD_SHEET_TEMPLATE, v.encounterId))!} />,
+    );
+    const boxes = [...html.matchAll(/class="sheet-vital-box"[^>]*>([^<]*)</g)].map((m) => m[1]);
+    expect(boxes.slice(0, 5)).toEqual(['118/76', '', '', '99.1', '']);
+    expect(html).not.toContain('data-flag');
+    expect(html).not.toContain('data-testid="sheet-alert"');
+    expect(html).not.toContain('class="sheet-vital-key"');
   });
 
   it('uses the doctor’s own quick-order list when configured, capped to 20', async () => {

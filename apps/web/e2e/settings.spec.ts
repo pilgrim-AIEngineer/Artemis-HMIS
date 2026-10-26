@@ -9,8 +9,12 @@ import { signInReady } from './helpers';
 test('menu shows only the work areas the role may open', async ({ page }) => {
   await signInReady(page, E2E_USERS.reception);
   const nav = page.getByRole('navigation', { name: 'Main menu' });
-  // Reception also bills (docs/03 §3). It is a bilingual-label role (docs/05 §1.8): "हिंदी / English".
-  await expect(nav.getByRole('link')).toHaveText(['रिसेप्शन / Reception', 'बिलिंग / Billing']);
+  // Reception also bills (docs/03 §3) and may take vitals (OPD-01). It is a bilingual-label role (docs/05 §1.8): "हिंदी / English".
+  await expect(nav.getByRole('link')).toHaveText([
+    'रिसेप्शन / Reception',
+    'बिलिंग / Billing',
+    'नर्सिंग / Nursing',
+  ]);
   await expect(page.getByRole('link', { name: /Administration|प्रशासन/ })).toHaveCount(0);
 
   // The server refuses even when the menu is bypassed.

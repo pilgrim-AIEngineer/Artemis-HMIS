@@ -19,6 +19,14 @@ Screen: vitals desk list (tokens `waiting`, oldest first, priority on top) → s
 - Implausible values blocked with message (e.g., weight 650 kg, BP dia > sys).
 - Save → token state `vitals_done`, optional sheet print.
 
+Built (OPD-01):
+
+- Desk at `/nursing/vitals` (list) and `/nursing/vitals/<token id>` (form); permission `vitals.record`. The queue cards link to it ("Enter vitals"); the older "Vitals done" button still moves a token without readings.
+- The assistant picks the adult or pregnant form (an ANC visit, or a pregnant-form reading in the last 300 days, makes pregnant the default). Until the ANC pregnancy record (OPD-05) exists there is no "active pregnancy" to read; the pregnant form is open to any non-male patient of 10 years or more. Under 18 the child form is the default.
+- Thresholds are the setting `vitals.thresholds` (defaults above); the yearly height prompt is `vitals.heightPromptDays` (365). Children are judged on temperature and SpO2 only; no paediatric BP / pulse bands are invented.
+- Temperature is stored in °C with two decimals so that the °F typed comes back unchanged on the sheet. A correction inserts a new row and marks the earlier one `superseded`; both stay on record.
+- "Raised BP in pregnancy" is a flag with level `alert` in `vitals.flags`; it shows on the form, the saved panel, the desk list and the OPD sheet. A separate patient-alert record arrives with OPD-05.
+
 ## 2. Rx transcription by assistant (OPD-02, OPD-03, OPD-04)
 
 ### 2.1 Entry points

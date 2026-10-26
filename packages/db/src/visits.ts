@@ -59,7 +59,10 @@ export type VisitErrorKey =
   | 'queue.nothingWaiting'
   | 'queue.sameDoctor'
   | 'queue.notToday'
-  | 'queue.notPending';
+  | 'queue.notPending'
+  | 'vitals.notAllowed'
+  | 'vitals.groupMismatch'
+  | 'vitals.invalid';
 
 /** Input / state errors the router turns into i18n keys (docs/02 §7). */
 export class VisitInputError extends Error {
