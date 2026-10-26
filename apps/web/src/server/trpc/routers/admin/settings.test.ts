@@ -1,7 +1,7 @@
 /** FND-06: facility profile and settings procedures (permission, validation, audit, isolation). */
 import { readSetting } from '@hmis/db';
-import { auditLog, facility } from '@hmis/db/schema';
-import { EDITABLE_SETTING_KEYS, GENERIC_SETTING_KEYS } from '@hmis/shared';
+import { accessLog, auditLog, facility } from '@hmis/db/schema';
+import { EDITABLE_SETTING_KEYS, FORBIDDEN_TERMS, GENERIC_SETTING_KEYS } from '@hmis/shared';
 import { and, desc, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
 import {
@@ -201,5 +201,25 @@ describe('facility profile (FND-06)', () => {
     const [b] = await f.db.select().from(facility).where(eq(facility.id, f.b.facilityId));
     expect(a!.name).toBe('Sunrise Women’s Hospital');
     expect(b!.name).toBe('Other Hospital');
+  });
+});
+
+describe('forbidden-term guard on settings (issue #71, D-10)', () => {
+  it('rejects forbidden footer text, stores nothing and logs without the text', async () => {
+    const phrase = FORBIDDEN_TERMS.find((t) => t.tier === 'always')!.examples[0]!;
+    const err = await trpcError(
+      admin.call((c) =>
+        c.admin.updateSetting({ key: 'print.header', value: { footerNoteEn: phrase } }),
+      ),
+    );
+    expect(err.code).toBe('BAD_REQUEST');
+    const stored = await readSetting(f.db, f.a.facilityId, 'print.header');
+    expect(JSON.stringify(stored)).not.toContain(phrase);
+    const logs = await f.t.owner
+      .select()
+      .from(accessLog)
+      .where(eq(accessLog.entity, 'forbidden_term_rejection'));
+    expect(logs.some((l) => l.purpose === 'input_rejected:admin.updateSetting')).toBe(true);
+    expect(JSON.stringify(logs)).not.toContain(phrase);
   });
 });
