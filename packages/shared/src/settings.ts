@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { accentColorSchema } from './accent';
-import { displayKeyHashSchema } from './display';
+import { DEFAULT_QUICK_ORDER_SERVICES, displayKeyHashSchema } from './display';
+import { rxPhrasesOverrideSchema } from './rx-hindi';
 import { cidrSchema, DEFAULT_LAN_CIDRS } from './network';
 import { NUMBER_SERIES_CONFIG_SETTING, numberSeriesConfigSchema } from './number-series';
 import { ROLE_KEYS, type RoleKey } from './permissions';
@@ -80,7 +81,31 @@ export const SETTINGS = {
   'opd.followUpRulesByDoctor': def(z.record(uuid, followUpRuleSchema), {}),
   'opd.sheetPrintAt': def(z.enum(['reception', 'vitals']), 'vitals'), // Q11
   'opd.quickOrders': def(z.record(uuid, z.array(z.string().min(1).max(80)).max(30)), {}),
+  /** Quick-tick label → billing service codes it orders (docs/11 §2.4). */
+  'opd.quickOrderServices': def(
+    z.record(z.string().min(1).max(80), z.array(z.string().min(1).max(40)).max(10)),
+    structuredClone(DEFAULT_QUICK_ORDER_SERVICES) as Record<string, string[]>,
+  ),
   'opd.notesRequired': def(z.boolean(), false),
+  /** Complaint chips of the Notes tab (docs/11 §2.5); wording for the doctors to review. */
+  'opd.complaintChips': def(z.array(z.string().trim().min(1).max(80)).max(40), [
+    'Fever',
+    'Pain abdomen',
+    'White discharge',
+    'Irregular periods',
+    'Bleeding PV',
+    'Burning urination',
+    'Vomiting',
+    'Cough / cold',
+    'Headache',
+    'Weakness',
+  ]),
+  /** Advice chips of the Notes tab (docs/11 §2.5 examples). */
+  'opd.adviceChips': def(z.array(z.string().trim().min(1).max(120)).max(40), [
+    'Plenty of fluids',
+    'Iron-rich diet',
+    'Report immediately if bleeding, leaking or decreased movements of the baby',
+  ]),
   'queue.showNameOnDisplay': def(z.boolean(), false),
   'queue.issueTokenBeforePayment': def(z.boolean(), false),
   /** Order of the priority classes above normal tokens, one per line (docs/10 §5). */
@@ -151,7 +176,10 @@ export const SETTINGS = {
   // --- Clinical / compliance
   'rx.verifyMode': def(z.enum(['off', 'sample', 'all']), 'sample'), // Q15
   'rx.verifySamplePercent': def(z.number().int().min(1).max(100), 10),
-  'rx.requirePhoto': def(z.boolean(), false),
+  /** docs/11 §2.2: a transcription cannot be saved without the photo of the paper Rx. */
+  'rx.requirePhoto': def(z.boolean(), true),
+  /** Rewording of the Hindi instruction phrases (OPD-03); unset keys keep the default. */
+  'rx.hindiPhrases': def(rxPhrasesOverrideSchema, {}),
   'print.rxCopy': def(z.boolean(), false), // Q16
   'print.header': def(printHeaderSchema, printHeaderSchema.parse({})),
   'usg.reportFooter': def(z.string().max(2000), ''),

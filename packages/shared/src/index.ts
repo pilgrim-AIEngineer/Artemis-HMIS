@@ -27,3 +27,6 @@ export * from './transliterate';
 export * from './visits';
 export * from './vitals';
 export * from './words';
+export * from './rx';
+export * from './rx-hindi';
+export * from './rx-shorthand';

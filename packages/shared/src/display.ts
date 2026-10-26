@@ -107,6 +107,28 @@ export const DEFAULT_QUICK_ORDERS: readonly string[] = [
   'TVS',
 ];
 
+/**
+ * Which billing services each quick-tick label stands for (setting `opd.quickOrderServices`), by
+ * service code, so the Orders tab of Rx transcription ticks the same names as the paper sheet
+ * (docs/11 §2.4). Defaults point at the seeded masters (docs/33); a label without an entry is
+ * matched by service code, short code or name.
+ */
+export const DEFAULT_QUICK_ORDER_SERVICES: Readonly<Record<string, readonly string[]>> = {
+  CBC: ['LAB-CBC'],
+  Hb: ['LAB-HB'],
+  'Blood group': ['LAB-ABO-RH'],
+  'Urine R/M': ['LAB-URINE-RM'],
+  'HIV / HBsAg / VDRL': ['LAB-HIV', 'LAB-HBSAG', 'LAB-VDRL'],
+  TSH: ['LAB-TSH'],
+  RBS: ['LAB-RBS'],
+  GTT: ['LAB-OGTT'],
+  'Obstetric USG': ['USG-OB-EARLY'],
+  'NT scan': ['USG-NT'],
+  'Anomaly scan': ['USG-ANOMALY'],
+  'Follicular study': ['USG-FOLLICULAR'],
+  TVS: ['USG-PELVIS-TVS'],
+};
+
 /** At most this many tick boxes fit on the A5 sheet (docs/10 §7: "max ~20"). */
 export const MAX_QUICK_ORDERS_ON_SHEET = 20;
 
