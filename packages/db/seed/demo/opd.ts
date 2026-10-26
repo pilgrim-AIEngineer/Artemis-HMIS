@@ -2,6 +2,7 @@ import { addDays, istDateString, parseIsoDate, toIsoDate } from '@hmis/shared';
 import { and, eq, sql } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
 import { consultationRule, encounter, patient } from '../../schema';
+import { collectPayment } from '../../src/billing';
 import { advanceToken } from '../../src/queue';
 import { createVisit, issueToken, VisitInputError } from '../../src/visits';
 import type { DemoStep } from '.';
@@ -14,7 +15,7 @@ const VISITS_PER_DAY = [10, 18] as const;
  * 30 days of synthetic OPD (docs/02 §9): a few visits a day per doctor with a fee rule, through
  * `createVisit`, so visit numbers, follow-up logic, fees and tokens are the real ones. Every
  * token is walked to `done` with plausible times. Runs once; the hospital's own data never gets
- * these (demo only). Draft bills join when BIL-01 lands.
+ * these (demo only). Fees are collected through `collectPayment` (BIL-02).
  */
 export const demoOpd: DemoStep = {
   name: 'opd',
@@ -71,8 +72,27 @@ export const demoOpd: DemoStep = {
         });
         if (!v) continue;
         visits += 1;
-        if (!v.tokenId)
+        // The fee is paid at the counter (mostly cash, some UPI): the payment finalises the
+        // bill and releases the token, as at the real desk. Unpriced visits get a manual token.
+        if (!v.tokenId && BigInt(v.feePaise) > 0n) {
+          await collectPayment(
+            tx,
+            actor,
+            {
+              billId: v.billId,
+              tenders: [
+                rng() < 0.3
+                  ? { mode: 'upi', amountPaise: v.feePaise, upiRef: String(int(rng, 1000, 999999)) }
+                  : { mode: 'cash', amountPaise: v.feePaise },
+              ],
+              idempotencyKey: uuidv7(),
+            },
+            at(minute + 1),
+            { mayFinalize: true },
+          );
+        } else if (!v.tokenId) {
           await issueToken(tx, actor, v.encounterId, 'manual_fee_pending', at(minute));
+        }
         const tokenId =
           v.tokenId ??
           (

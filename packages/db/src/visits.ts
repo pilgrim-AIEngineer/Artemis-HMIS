@@ -2,7 +2,7 @@
  * OPD visit creation (REG-03, docs/10 §4): visit type suggestion, follow-up validity, consultation
  * fee from the payer's tariff, the `encounter` row with its fee snapshot, and the token when the
  * fee allows it (docs/10 §4 step 3). All inside the caller's transaction (`withTx`), so the visit
- * number, the encounter and the token commit together. Draft bill creation joins in BIL-01.
+ * number, the encounter, its draft bill (BIL-01) and the token commit together.
  */
 import {
   evaluateFollowUp,
@@ -34,6 +34,7 @@ import {
   queueEvent,
   service,
 } from '../schema';
+import { createOpdBillForVisit } from './billing';
 import { runIdempotent } from './idempotency';
 import { getRate, pickTariff } from './masters';
 import { allocateDailyToken, allocateNumber } from './number-series';
@@ -52,6 +53,7 @@ export type VisitErrorKey =
   | 'visit.notCancellable'
   | 'visit.tokenAlreadyIssued'
   | 'visit.notOpen'
+  | 'visit.billHasPayments'
   | 'queue.tokenNotFound'
   | 'queue.invalidTransition'
   | 'queue.nothingWaiting'
@@ -394,6 +396,8 @@ export interface CreatedVisit {
   tokenNo: number | null;
   tokenDate: string | null;
   tokenIssueBasis: TokenIssueBasis | null;
+  /** The visit's draft OPD bill (BIL-01), with the consultation line when the fee is priced. */
+  billId: string;
 }
 
 /**
@@ -449,6 +453,19 @@ export async function createVisit(
         consultationFeePaise: fee.ratePaise,
         feeBasis: fee.basis,
       });
+      const billId = await createOpdBillForVisit(
+        tx,
+        actor,
+        {
+          id: encounterId,
+          patientId: input.patientId,
+          payerId: preview.payerId,
+          tariffId: preview.tariffId,
+          doctorId: input.doctorId,
+          visitDate: istDateString(now),
+        },
+        fee.basis === 'tariff' && fee.serviceId ? { serviceId: fee.serviceId } : null,
+      );
 
       const cfg = await readSettings(tx, actor.facilityId, ['queue.issueTokenBeforePayment']);
       const feeKnown = fee.basis === 'tariff' || fee.basis === 'free_follow_up';
@@ -470,6 +487,7 @@ export async function createVisit(
         tokenNo: token?.tokenNo ?? null,
         tokenDate: token?.tokenDate ?? null,
         tokenIssueBasis: basis,
+        billId,
       };
     },
   );

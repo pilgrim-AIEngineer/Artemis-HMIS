@@ -30,6 +30,7 @@ import {
   patient,
   queueEvent,
 } from '../schema';
+import { cancelBillsOfVisit } from './billing';
 import type { Db } from './client';
 import { allocateDailyToken } from './number-series';
 import { readSetting } from './settings';
@@ -355,8 +356,8 @@ export async function transfer(
 }
 
 /**
- * Cancels a visit that has not been seen yet, with its token. Money already collected is handled
- * by the billing PRs (credit note / refund); until the bill exists there is nothing to reverse.
+ * Cancels a visit that has not been seen yet, with its token and its draft bill. A bill with
+ * money on it blocks the cancellation until BIL-04 adds credit notes and refunds.
  */
 export async function cancelVisit(
   tx: Tx,
@@ -381,6 +382,9 @@ export async function cancelVisit(
       }
       throw e;
     });
+  }
+  if ((await cancelBillsOfVisit(tx, actor, encounterId, reason, now)) === 'has_money') {
+    throw new VisitInputError('visit.billHasPayments');
   }
   await tx
     .update(encounter)
