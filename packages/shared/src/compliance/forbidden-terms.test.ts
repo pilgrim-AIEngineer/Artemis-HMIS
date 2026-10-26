@@ -94,7 +94,25 @@ describe('scope', () => {
     ['apps/worker/src/prompts/summary.md', 'strict'],
     ['apps/web/src/ai/discharge.prompt.txt', 'strict'],
     ['packages/db/schema/newborn.ts', 'always'],
-    ['packages/db/schema/patient.ts', 'always'],
+    ['packages/db/schema/patient.ts', 'strict'],
+    ['packages/db/migrations/0099_x.sql', 'strict'],
+    ['infra/scripts/fix.sql', 'strict'],
+    ['packages/db/seed/masters/drugs.json', 'strict'],
+    ['packages/print/src/receipt.tsx', 'strict'],
+    ['packages/print/src/anc-sheet.tsx', 'strict'],
+    ['apps/web/src/anc/notes.ts', 'strict'],
+    ['apps/web/src/antenatal/a.ts', 'strict'],
+    ['apps/web/src/pregnancy/a.ts', 'strict'],
+    ['apps/web/src/obstetrics/a.ts', 'strict'],
+    ['apps/web/src/ultrasound/a.ts', 'strict'],
+    ['apps/web/src/scan-room/a.ts', 'strict'],
+    ['apps/web/src/mtp/a.ts', 'strict'],
+    ['apps/web/src/labour/a.ts', 'strict'],
+    ['apps/web/src/form_f/a.ts', 'strict'],
+    ['packages/db/migrations/0100_newborn.sql', 'strict'],
+    ['apps/web/src/newborn/a.ts', 'always'],
+    ['apps/web/src/vaccination/a.ts', 'always'],
+    ['apps/web/src/billing/a.ts', 'always'],
     ['apps/web/messages/hi.json', 'always'],
   ])('%s → %s', (file, scope) => {
     expect(scopeFor(file)).toBe(scope);
@@ -114,7 +132,11 @@ describe('scanRepo', () => {
     // strict scope: any term fails
     write('packages/db/schema/usg.ts', `export const label = '${strictExample}';\n`);
     // always scope: unambiguous term fails, strict-only term passes
-    write('packages/db/schema/patient.ts', `// ok: ${strictExample}\n// bad: ${alwaysExample}\n`);
+    write('apps/web/src/billing/notes.ts', `// ok: ${strictExample}\n// bad: ${alwaysExample}\n`);
+    // D-5: migrations, ANC-named print files and ANC paths are strict too
+    write('packages/db/migrations/9999_x.sql', `-- ${strictExample}\n`);
+    write('packages/print/src/anc-sheet.tsx', `// ${strictExample}\n`);
+    write('apps/web/src/anc/notes.ts', `// ${strictExample}\n`);
     // newborn: strict-only term is normal data
     write('packages/db/schema/newborn.ts', `export const sexLabel = '${strictExample}';\n`);
     // i18n: general keys allow strict-only words, usg/formF namespaces do not,
@@ -148,9 +170,12 @@ describe('scanRepo', () => {
         'apps/web/messages/hi.json#common.bad#pn01',
         'apps/web/messages/hi.json#common.bad#pn16',
         'apps/web/messages/hi.json#usg.field#pn15',
-        'packages/db/schema/patient.ts#2#pn01',
-        'packages/db/schema/patient.ts#2#pn16',
+        'apps/web/src/billing/notes.ts#2#pn01',
+        'apps/web/src/billing/notes.ts#2#pn16',
         'packages/db/schema/usg.ts#1#pn15',
+        'packages/db/migrations/9999_x.sql#1#pn15',
+        'packages/print/src/anc-sheet.tsx#1#pn15',
+        'apps/web/src/anc/notes.ts#1#pn15',
         `packages/print/src/${alwaysExample.replace(' ', '-')}.tsx#path#pn01`,
         `packages/print/src/${alwaysExample.replace(' ', '-')}.tsx#path#pn16`,
       ].sort(),

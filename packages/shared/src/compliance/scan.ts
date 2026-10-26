@@ -73,11 +73,36 @@ export interface ScanFinding extends ForbiddenHit {
   scope: ForbiddenTier;
 }
 
+/**
+ * D-5(b): directories that are strict in full, whatever the file is called.
+ * `*.sql` anywhere is strict too.
+ */
+export const STRICT_DIR_GLOBS = [
+  'packages/db/schema/**',
+  'packages/db/migrations/**',
+  'packages/db/seed/**',
+  'packages/print/**',
+  '**/*.sql',
+] as const;
+
+/** D-5(b): any path segment starting with one of these is strict. */
+export const STRICT_SEGMENT =
+  /^(anc|antenatal|pregnan|obstet|usg|ultrasound|sonograph|scan|form[-_]?f|mtp|labour)/i;
+
+/** D-5(c): born-baby paths stay on the `always` tier (never overrides prompts). */
+export const BORN_BABY_SEGMENT = /^(newborn|birth|death|vaccin|paed|pediatric)/i;
+
 const strictMatcher = picomatch([...STRICT_SCOPE_GLOBS], { dot: true, nocase: true });
+const strictDirMatcher = picomatch([...STRICT_DIR_GLOBS], { dot: true, nocase: true });
 const i18nMatcher = picomatch(I18N_GLOBS, { dot: true });
 
 export function scopeFor(relPath: string): ForbiddenTier {
-  return strictMatcher(relPath) ? 'strict' : 'always';
+  if (strictMatcher(relPath)) return 'strict';
+  const segments = relPath.split('/');
+  if (segments.some((s) => BORN_BABY_SEGMENT.test(s))) return 'always';
+  return strictDirMatcher(relPath) || segments.some((s) => STRICT_SEGMENT.test(s))
+    ? 'strict'
+    : 'always';
 }
 
 export function listFiles(root: string, roots: readonly string[] = SCAN_ROOTS): string[] {
