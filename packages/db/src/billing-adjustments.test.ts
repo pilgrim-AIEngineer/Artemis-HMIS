@@ -1090,7 +1090,7 @@ describe('report hooks (BIL-03, BIL-04)', () => {
     );
     expect(row).toMatchObject({
       scope: 'bill',
-      givenByName: 'Test User',
+      givenByName: 'Test cashier',
       reasonLabel: 'Poor patient',
       approvalMethod: 'pin',
       status: 'active',
