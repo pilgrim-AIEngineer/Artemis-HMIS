@@ -208,6 +208,7 @@ export function DayCloseScreen() {
                         fields.current[i] = el;
                       }}
                       inputMode="numeric"
+                      autoFocus={i === 0}
                       autoComplete="off"
                       aria-label={t('countOf', { value: v })}
                       data-testid={`count-${v}`}
@@ -255,7 +256,7 @@ export function DayCloseScreen() {
         </h2>
         <dl className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-1 text-lg">
           <dt>{t('expectedCash')}</dt>
-          <dd className="text-right tabular-nums" data-testid="expected-cash">
+          <dd className="text-right tabular-nums" data-testid="expected-cash-line">
             {formatINR(expected)}
           </dd>
           <dt className="font-semibold">{t('countedCash')}</dt>
