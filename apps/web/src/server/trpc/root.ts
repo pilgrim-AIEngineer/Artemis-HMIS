@@ -5,6 +5,7 @@ import { authRouter } from './routers/auth';
 import { billingRouter } from './routers/billing';
 import { dayCloseRouter } from './routers/billing/day-close';
 import { healthRouter } from './routers/health';
+import { importerRouter } from './routers/importer';
 import { mastersRouter } from './routers/masters';
 import { paedsRouter } from './routers/paeds';
 import { patientsRouter } from './routers/patients';
@@ -33,6 +34,7 @@ export const appRouter = router({
   billing: billingRouter,
   dayClose: dayCloseRouter,
   reports: reportsRouter,
+  importer: importerRouter,
 });
 
 export type AppRouter = typeof appRouter;

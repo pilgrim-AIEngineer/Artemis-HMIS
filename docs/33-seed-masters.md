@@ -63,4 +63,4 @@ OPD quick-tick list per doctor; Rx templates per doctor; discharge summary forma
 
 ## 9. Excel import templates (provide in `packages/db/seed/templates/`)
 
-`patients.xlsx`, `services_rates.xlsx`, `doctors.xlsx`, `drugs.xlsx`, `lab_tests.xlsx`, `packages.xlsx`, `stock_opening.xlsx` (P2A), `pmjay_hbp_rates.xlsx` (P2B). Each importer: dry-run with error report, then commit in one transaction.
+`patients.xlsx`, `services_rates.xlsx`, `doctors.xlsx`, `drugs.xlsx`, `lab_tests.xlsx`, `packages.xlsx`, `stock_opening.xlsx` (P2A), `pmjay_hbp_rates.xlsx` (P2B). Each importer: dry-run with error report, then commit. MIG-01 commits in batches of 200 rows (one transaction each, resumable) instead of one transaction: a single long transaction would hold the UHID series row and block the registration counter (AGENTS.md rule 11). See `modules/10` §13.

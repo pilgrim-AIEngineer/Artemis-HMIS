@@ -38,6 +38,19 @@ export const MOBILE_OWNER_RELATIONS = [
 export const MARITAL_STATUSES = ['single', 'married', 'widowed', 'divorced', 'separated'] as const;
 export const BLOOD_GROUPS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'] as const;
 
+/** `patient_identifier.type` (docs/04 §3). Never store a full Aadhaar number. */
+export const PATIENT_IDENTIFIER_TYPES = [
+  'abha_number',
+  'abha_address',
+  'aadhaar_masked',
+  'pmjay_id',
+  'insurance_member_id',
+  'employee_id',
+  'other',
+] as const;
+/** Label of the identifier that carries a number from the old register / software (MIG-01). */
+export const OLD_REG_NO_LABEL = 'Old reg no';
+
 export const SEARCH_LIMIT = 20;
 
 // ---------------------------------------------------------------- names

@@ -229,6 +229,14 @@ export interface DuplicateQuery {
   dob: string;
 }
 
+export type DuplicateSettings = Awaited<ReturnType<typeof duplicateSettings>>;
+
+export const duplicateSettings = (tx: Tx, facilityId: string) =>
+  readSettings(tx, facilityId, [
+    'registration.duplicateMinSimilarityPct',
+    'registration.duplicateAgeToleranceYears',
+  ]);
+
 /**
  * docs/10 §3: same mobile (or alternate mobile) AND phonetic name similarity ≥ the configured
  * threshold (default 0.6) AND age within the configured tolerance (default ±2 years).
@@ -239,11 +247,10 @@ export async function findDuplicates(
   facilityId: string,
   q: DuplicateQuery,
   limit = 5,
+  /** Preloaded settings (`duplicateSettings`), for callers checking many rows (MIG-01). */
+  settings?: DuplicateSettings,
 ): Promise<PatientMatch[]> {
-  const cfg = await readSettings(tx, facilityId, [
-    'registration.duplicateMinSimilarityPct',
-    'registration.duplicateAgeToleranceYears',
-  ]);
+  const cfg = settings ?? (await duplicateSettings(tx, facilityId));
   const phonetic = nameSearchKeys(joinName(q)).phonetic;
   if (!phonetic) return [];
   const min = cfg['registration.duplicateMinSimilarityPct'] / 100;

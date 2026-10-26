@@ -14,7 +14,10 @@
     "./testing/opd": "./testing/opd.ts",
     "./seed": "./seed/masters.ts",
     "./seed/demo": "./seed/demo/index.ts",
-    "./files": "./src/files.ts"
+    "./files": "./src/files.ts",
+    "./import": "./src/import.ts",
+    "./templates": "./seed/templates/generate.ts",
+    "./templates/spec": "./seed/templates/spec.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -27,6 +30,7 @@
     "@hmis/shared": "workspace:*",
     "@node-rs/argon2": "2.2.2",
     "drizzle-orm": "0.45.4",
+    "exceljs": "^4.4.0",
     "pg": "8.23.1",
     "uuidv7": "1.2.1",
     "zod": "4.6.7"
@@ -35,7 +39,6 @@
     "@testcontainers/postgresql": "12.2.1",
     "@types/pg": "^8.23.1",
     "drizzle-kit": "0.31.11",
-    "exceljs": "^4.4.0",
     "testcontainers": "12.2.1"
   }
 }

@@ -18,6 +18,7 @@ import {
   UserRoundPlus,
   Users,
   ChartColumn,
+  FileUp,
 } from 'lucide-react';
 import Link from 'next/link';
 import type { Permission, RouteGroup } from '@hmis/shared';
@@ -45,7 +46,15 @@ export const GROUP_ICONS: Record<RouteGroup, LucideIcon> = {
 export interface AdminTileDef {
   href: string;
   key:
-    'users' | 'roles' | 'workstations' | 'facility' | 'settings' | 'print' | 'masters' | 'display';
+    | 'users'
+    | 'roles'
+    | 'workstations'
+    | 'facility'
+    | 'settings'
+    | 'print'
+    | 'masters'
+    | 'import'
+    | 'display';
   icon: LucideIcon;
   /** Visible to a user holding any of these. */
   permission: Permission | readonly Permission[];
@@ -74,6 +83,7 @@ export const ADMIN_TILES: AdminTileDef[] = [
     icon: Database,
     permission: ['admin.masters.manage', 'admin.tariff.manage'],
   },
+  { href: '/admin/import', key: 'import', icon: FileUp, permission: 'admin.import.run' },
   { href: '/admin/display', key: 'display', icon: Tv, permission: 'queue.display.manage' },
   {
     href: '/admin/workstations',
