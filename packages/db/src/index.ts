@@ -1,5 +1,6 @@
 export * from './app-role';
 export * from './client';
+export * from './day-close';
 export * from './display';
 export * from './env';
 export * from './health';

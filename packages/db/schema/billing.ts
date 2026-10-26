@@ -41,6 +41,7 @@ import { auditColumns, cancelChecks, cancelColumns, idColumn, sqlIn } from './co
 import { doctorProfile, payer, reasonCode, service, serviceRate, tariff } from './masters';
 import { patient } from './patient';
 import { appUser, facilityRef, workstation } from './platform';
+import { dayClose } from './day-close';
 import { encounter } from './visit';
 
 const money = () =>
@@ -252,6 +253,15 @@ export const payment = pgTable(
     receivedAt: timestamp({ withTimezone: true }).notNull(),
     workstationId: uuid().references(() => workstation.id),
     status: text().notNull().default('valid'),
+    /**
+     * IST business day the money belongs to (BIL-06): the day of `received_at`, or the day after
+     * the last facility close when that day is already closed. Set by trigger on insert.
+     */
+    businessDate: date({ mode: 'string' })
+      .notNull()
+      .default(sql`current_date`),
+    /** The user close that counted this payment; once set the payment is locked (BIL-06). */
+    dayCloseId: uuid().references((): AnyPgColumn => dayClose.id),
     /** The client-generated key of the submit that created the row (rule 9). */
     idempotencyKey: uuid().notNull(),
     /** Refunds only: the approval on record (docs/04 §15.8), the credit note and the reason. */
@@ -267,6 +277,11 @@ export const payment = pgTable(
     index('payment_bill_idx').on(t.billId),
     index('payment_collection_idx').on(t.collectionId),
     index('payment_facility_day_idx').on(t.facilityId, t.receivedAt),
+    index('payment_business_date_idx').on(t.facilityId, t.businessDate),
+    index('payment_open_by_user_idx')
+      .on(t.receivedBy)
+      .where(sql`${t.dayCloseId} is null`),
+    index('payment_day_close_idx').on(t.dayCloseId),
     check('payment_kind', sqlIn(t.kind, PAYMENT_KINDS)),
     check('payment_mode', sqlIn(t.mode, PAYMENT_MODES)),
     check('payment_status', sqlIn(t.status, PAYMENT_STATUSES)),
