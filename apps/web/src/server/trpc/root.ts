@@ -11,6 +11,7 @@ import { patientsRouter } from './routers/patients';
 import { printRouter } from './routers/print';
 import { queueRouter } from './routers/queue';
 import { rxRouter } from './routers/rx';
+import { timelineRouter } from './routers/timeline';
 import { visitsRouter } from './routers/visits';
 import { vitalsRouter } from './routers/vitals';
 
@@ -27,6 +28,7 @@ export const appRouter = router({
   anc: ancRouter,
   paeds: paedsRouter,
   rx: rxRouter,
+  timeline: timelineRouter,
   billing: billingRouter,
   dayClose: dayCloseRouter,
 });
