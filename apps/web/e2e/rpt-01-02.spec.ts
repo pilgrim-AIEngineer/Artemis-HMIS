@@ -19,7 +19,7 @@ test('collection report shows the receipt, exports CSV and prints without contro
     first: desktop ? 'Rekha' : 'Mina',
     last: 'Reporttest',
     age: '29',
-    mobile: desktop ? '9415300071' : '9415300072',
+    mobile: `9${String(Date.now()).slice(-9)}`,
   });
   await page.getByRole('link', { name: 'New visit' }).click();
   await page.getByRole('button', { name: /Dr\. Sunita Verma/ }).click();
@@ -34,6 +34,12 @@ test('collection report shows the receipt, exports CSV and prints without contro
   await page.context().clearCookies();
   await signInReady(page, E2E_USERS.admin);
   await page.goto('/reports/collection');
+  // Another spec may have closed the facility for today; a payment taken after that close belongs
+  // to the next business day (BIL-06), so look at today and tomorrow.
+  const tomorrow = new Date(Date.now() + 86_400_000).toLocaleDateString('en-CA', {
+    timeZone: 'Asia/Kolkata',
+  });
+  await page.getByTestId('report-to').fill(tomorrow);
   await expect(page.getByTestId('tile-net')).toBeVisible();
   const receipts = page.getByTestId('collection-receipts');
   await expect(receipts).toContainText(receipt);
