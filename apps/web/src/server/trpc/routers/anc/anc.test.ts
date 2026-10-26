@@ -1,4 +1,5 @@
 import { patient } from '@hmis/db/schema';
+import { FORBIDDEN_TERMS } from '@hmis/shared';
 import { seedOpdData, type OpdFixture } from '@hmis/db/testing/opd';
 import { eq } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
@@ -9,6 +10,9 @@ import {
   type AuthFixture,
   type TestBrowser,
 } from '../../../../../test/auth-fixture';
+
+/** A forbidden phrase taken from the checker's own examples, so no source file spells it out. */
+const forbidden = (id: string) => FORBIDDEN_TERMS.find((t) => t.id === id)!.examples[0]!;
 
 let f: AuthFixture;
 let opd: Omit<OpdFixture, 't' | 'f'>;
@@ -129,9 +133,9 @@ describe('ANC procedures (OPD-05, AGENTS.md rule 6)', () => {
 
   it('refuses free text that carries a forbidden term (rule 7, D-10)', async () => {
     const patientId = await woman();
-    const err = await trpcError(create(patientId, { notes: 'sex of the fetus please' }));
+    const err = await trpcError(create(patientId, { notes: `${forbidden('pn03')} please` }));
     expect(err.code).toBe('BAD_REQUEST');
-    expect(err.message).not.toMatch(/sex of the fetus/i);
+    expect(err.message).not.toContain(forbidden('pn03'));
     const { pregnancyId } = await create(patientId);
     const err2 = await trpcError(
       who.assistant.call((c) =>
@@ -139,7 +143,7 @@ describe('ANC procedures (OPD-05, AGENTS.md rule 6)', () => {
           pregnancyId,
           bloodGroupRh: null,
           plurality: 'single',
-          manualRisks: [{ code: 'other', text: 'baby gender' }],
+          manualRisks: [{ code: 'other', text: forbidden('pn09') }],
           notes: null,
         }),
       ),

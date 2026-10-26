@@ -1,4 +1,5 @@
 import {
+  FORBIDDEN_TERMS,
   closePregnancySchema,
   confirmDatingSchema,
   createPregnancySchema,
@@ -64,6 +65,9 @@ const markScheduleItem = (tx: Tx0, a: A0, i: unknown, now: Date) =>
   markRaw(tx, a, markScheduleSchema.parse(i), now);
 const closePregnancy = (tx: Tx0, a: A0, i: unknown, now: Date) =>
   closeRaw(tx, a, closePregnancySchema.parse(i), now);
+
+/** A forbidden phrase taken from the checker's own examples, so no source file spells it out. */
+const forbidden = (id: string) => FORBIDDEN_TERMS.find((t) => t.id === id)!.examples[0]!;
 
 let fx: OpdFixture;
 const NOW = IST('2026-10-26T10:00:00'); // today = 2026-10-26
@@ -528,7 +532,7 @@ describe('ANC visits, risk flags and the high-risk alert (docs/11 §3.2–3.3)',
 
   it('rejects free text that carries a forbidden term, and a BP with the diastolic above the systolic', async () => {
     const { pregnancyId } = await start();
-    const bad = await errKey(visit(pregnancyId, { remarks: 'fetal sex requested' }));
+    const bad = await errKey(visit(pregnancyId, { remarks: `${forbidden('pn01')} requested` }));
     expect(bad).toMatch(/ZodError|forbidden/i);
     expect(await errKey(visit(pregnancyId, { bpSys: 80, bpDia: 90 }))).toMatch(/ZodError|bpOrder/);
   });
