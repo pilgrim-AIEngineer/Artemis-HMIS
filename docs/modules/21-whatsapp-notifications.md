@@ -37,3 +37,11 @@ WhatsApp Business Platform via one provider adapter: Meta Cloud API directly, or
 ## 5. Internal notifications
 
 In-app toasts/alerts (SSE) for: critical lab value, critical vitals, Rx verification pending, deposit low, Form F/MTP/birth report due, backup failure (admin), day close pending at 10 pm.
+
+## 6. Implementation notes (MSG-01)
+
+- `packages/shared/src/messaging.ts`: template registry (en/hi, variable order), retry/backoff, quiet hours, mobile normalisation. Provider template names are `hmis_<kind>_<lang>` and must be created and approved in Meta; `message_template.is_approved` gates real sending (the `fake` provider ignores it).
+- `packages/db/src/messaging.ts`: `enqueueMessage` (settings, consent per D-9, 24 h de-duplication, quiet hours) and the worker's claim/result steps. Statuses add `sending` and `skipped_no_consent` to docs/04 §13.
+- Worker: `outbox.whatsapp` runs every minute; `reminder.daily` at 19:00 IST queues tomorrow 10:00 follow-up, ANC and vaccine reminders. Settings: `whatsapp.enabled`, `.provider` (`meta` | `fake`), `.sendReceipts`, `.followUpLeadDays` (1), `.ancLeadDays` (2), `.monthlyCap` (0 = none).
+- Meta credentials come from the server environment only: `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`. Without them messages stay queued.
+- Meta has no idempotency key: a worker that dies between the provider call and saving `sent` re-sends after the 15 minute claim timeout (at-least-once). The fake adapter de-duplicates on the outbox id, which the tests rely on.
