@@ -426,6 +426,8 @@ export const rxDraftPayloadSchema = z.object({
         instructionsEn: draftText(300),
         instructionsHi: draftText(300),
         sourceLine: draftText(200),
+        /** Words of the shorthand line the parser did not understand (shown in the instructions). */
+        extra: draftText(200),
       }),
     )
     .max(RX_MAX_ITEMS),
