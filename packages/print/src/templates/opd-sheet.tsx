@@ -1,7 +1,9 @@
 import { formatDateTime, MAX_QUICK_ORDERS_ON_SHEET } from '@hmis/shared';
 import { code128Svg } from '../barcode';
 import { L } from '../labels';
+import type { RiskCode } from '@hmis/shared';
 import type { Bilingual, PrintMeta } from '../types';
+import { RISK_LABELS } from './anc-card';
 
 import type { VitalKey } from './format';
 
@@ -39,6 +41,18 @@ export interface OpdSheetData {
   vitalsMore?: { label: Bilingual; value: string }[];
   /** Patient alerts for the doctor (docs/11 §1: Raised BP in pregnancy). */
   alerts?: 'raised_bp_pregnancy'[];
+  /** Active pregnancy block (docs/10 §8, OPD-05); absent for other patients. */
+  pregnancy?: {
+    gaLabel: string;
+    edd: string;
+    gpal: string;
+    risks: RiskCode[];
+    /** Newest first: date, BP, weight. */
+    lastVisits: { date: string; bp: string | null; weightKg: number | null }[];
+    testsDue: Bilingual[];
+    testsOverdue: Bilingual[];
+    td: 'done' | 'due' | 'overdue' | 'upcoming' | 'skipped';
+  };
   lastVisit: { date: string; doctor: string } | null;
   quickOrders: string[];
 }
@@ -145,6 +159,8 @@ export function OpdSheet({ data, meta }: { data: OpdSheetData; meta: PrintMeta }
         </p>
       )}
 
+      {data.pregnancy && <PregnancyBlock p={data.pregnancy} />}
+
       <div className="sheet-context">
         <p>
           <strong>{bi(L.allergies)}:</strong> <span className="sheet-blank-line" />
@@ -202,5 +218,56 @@ function Field({ label, value, strong }: { label: Bilingual; value: string; stro
       <span className="sheet-k">{label.en}</span>
       {strong ? <strong>{value}</strong> : value}
     </p>
+  );
+}
+
+const TD_WORDS = {
+  done: { hi: 'हो गया', en: 'done' },
+  due: { hi: 'अभी देय', en: 'due' },
+  overdue: { hi: 'देर', en: 'overdue' },
+  upcoming: { hi: 'आगे', en: 'later' },
+  skipped: { hi: 'छोड़ा', en: 'skipped' },
+} as const satisfies Record<string, Bilingual>;
+
+/** ANC context for the doctor (docs/10 §8): GA, EDD, G P A L, risks in bold, last visits, tests due, Td. */
+function PregnancyBlock({ p }: { p: NonNullable<OpdSheetData['pregnancy']> }) {
+  const names = (l: Bilingual[]) => l.map((x) => x.en).join(', ');
+  return (
+    <div className="sheet-preg" data-testid="sheet-pregnancy">
+      <p>
+        <strong>{bi({ hi: 'गर्भवती', en: 'Pregnant' })}:</strong> {p.gaLabel} · EDD {p.edd} ·{' '}
+        {p.gpal}
+      </p>
+      {p.risks.length > 0 && (
+        <p className="sheet-preg-risks" data-testid="sheet-risks">
+          <strong>{bi({ hi: 'जोखिम', en: 'Risk' })}:</strong>{' '}
+          {p.risks.map((r) => RISK_LABELS[r].en).join(', ')}
+        </p>
+      )}
+      {p.lastVisits.length > 0 && (
+        <p>
+          {p.lastVisits
+            .map((v) => `${v.date} ${v.bp ?? '—'}${v.weightKg === null ? '' : ` ${v.weightKg}kg`}`)
+            .join(' · ')}
+        </p>
+      )}
+      {(p.testsOverdue.length > 0 || p.testsDue.length > 0) && (
+        <p>
+          {p.testsOverdue.length > 0 && (
+            <span>
+              <strong>{bi(TD_WORDS.overdue)}:</strong> {names(p.testsOverdue)}.{' '}
+            </span>
+          )}
+          {p.testsDue.length > 0 && (
+            <span>
+              <strong>{bi(TD_WORDS.due)}:</strong> {names(p.testsDue)}.
+            </span>
+          )}
+        </p>
+      )}
+      <p>
+        Td: {TD_WORDS[p.td].en} / {TD_WORDS[p.td].hi}
+      </p>
+    </div>
   );
 }

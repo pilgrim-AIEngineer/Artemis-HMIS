@@ -20,6 +20,7 @@ export const RECEIPT_TEMPLATE = 'receipt';
 export const RECEIPT_A5_TEMPLATE = 'receipt-a5';
 export const DAY_CLOSE_TEMPLATE = 'day-close';
 export const FACILITY_CLOSE_TEMPLATE = 'facility-close';
+export const ANC_CARD_TEMPLATE = 'anc-card';
 
 /** REG-06: A5 sheet per visit; the entity is the encounter. */
 const OPD_SHEET: PrintTemplateMeta = {
@@ -90,6 +91,17 @@ const FACILITY_CLOSE: PrintTemplateMeta = {
   title: L.facilityCloseTitle,
 };
 
+/** OPD-05: antenatal card on A5; the entity is the pregnancy. */
+const ANC_CARD: PrintTemplateMeta = {
+  key: ANC_CARD_TEMPLATE,
+  paper: 'a5',
+  entity: 'pregnancy',
+  permission: 'clinical.anc.edit',
+  title: L.ancCardTitle,
+  chrome: 'compact',
+  markDuplicate: false,
+};
+
 /** All print templates, client-safe. Add real templates here and in `server.tsx`. */
 export const PRINT_TEMPLATE_METAS: readonly PrintTemplateMeta[] = [
   ...SAMPLE_METAS,
@@ -100,6 +112,7 @@ export const PRINT_TEMPLATE_METAS: readonly PrintTemplateMeta[] = [
   RECEIPT_A5,
   DAY_CLOSE,
   FACILITY_CLOSE,
+  ANC_CARD,
 ];
 
 export const findTemplateMeta = (key: string): PrintTemplateMeta | undefined =>

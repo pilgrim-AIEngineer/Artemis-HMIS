@@ -1381,8 +1381,8 @@ export interface AncSummary {
   risks: RiskFlag[];
   /** Last three visits, newest first: BP and weight (docs/10 §8). */
   lastVisits: { date: string; bp: string | null; weightKg: number | null }[];
-  testsDue: string[];
-  testsOverdue: string[];
+  testsDue: { label: string; labelHi: string }[];
+  testsOverdue: { label: string; labelHi: string }[];
   td: 'done' | 'due' | 'overdue' | 'upcoming' | 'skipped';
 }
 
@@ -1396,7 +1396,10 @@ export async function ancSummary(
   const id = await activePregnancyId(q, actor.facilityId, patientId);
   if (!id) return null;
   const v = await getPregnancyView(q, actor, id, now);
-  const open = (s: string) => v.schedule.filter((i) => i.state === s && i.kind !== 'supplement');
+  const open = (s: string) =>
+    v.schedule
+      .filter((i) => i.state === s && i.kind !== 'supplement')
+      .map((i) => ({ label: i.label, labelHi: i.labelHi }));
   const td = v.schedule.find((i) => i.code === 'td_1');
   return {
     pregnancyId: v.id,
@@ -1413,8 +1416,8 @@ export async function ancSummary(
         bp: x.bpSys !== null ? `${x.bpSys}/${x.bpDia}` : null,
         weightKg: x.weightKg,
       })),
-    testsDue: open('due').map((i) => i.code),
-    testsOverdue: open('overdue').map((i) => i.code),
+    testsDue: open('due'),
+    testsOverdue: open('overdue'),
     td: (td?.state === 'not_applicable' ? 'upcoming' : (td?.state ?? 'upcoming')) as AncSummary['td'],
   };
 }
