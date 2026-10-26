@@ -6,7 +6,7 @@
  * Synthetic data only.
  */
 import { rupeesToPaise, type RoleKey, type TenderInput } from '@hmis/shared';
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { randomBytes } from 'node:crypto';
 import { uuidv7 } from 'uuidv7';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
@@ -688,6 +688,25 @@ describe('cancelling a final bill with a credit note and refund (BIL-04)', () =>
     expect(ap).toMatchObject({ method: 'pin', approverId: admin.id, requestedBy: cashier.id });
     const [cn] = await fx.t.app.select().from(creditNote).where(eq(creditNote.billId, f.billId));
     expect(cn?.approvalId).toBe(ap?.id);
+  });
+
+  it('counts credits and refunds cumulatively per bill, so splitting cannot dodge the supervisor (#70)', async () => {
+    const f = await finalBill([big]); // ₹2,500 paid in cash
+    const part = (amountPaise: bigint, approverId: string | null = null) =>
+      cancelBy(cashier, f.billId, { amountPaise, refund: { mode: 'cash' } }, approverId);
+    await part(100_000n); // ₹1,000 — at the limit, alone
+    expect(await errorKey(part(100_000n))).toBe('billing.approvalRequired');
+    expect(await errorKey(part(1_000n))).toBe('billing.approvalRequired');
+    const r = await part(100_000n, admin.id);
+    expect(r.refundPaise).toBe('100000');
+    const [ap] = await fx.t.app
+      .select()
+      .from(approval)
+      .where(eq(approval.billId, f.billId))
+      .orderBy(desc(approval.createdAt))
+      .limit(1);
+    expect(ap).toMatchObject({ method: 'pin', approverId: admin.id });
+    expect(await errorKey(part(50_000n))).toBe('billing.approvalRequired');
   });
 
   it('lets the owner approve their own large cancellation (self)', async () => {
