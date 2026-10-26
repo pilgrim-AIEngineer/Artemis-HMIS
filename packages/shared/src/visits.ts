@@ -4,6 +4,7 @@
  * transactions; keeping them here makes the edge cases cheap to test.
  */
 import { z } from 'zod';
+import { noForbiddenTerms } from './compliance/forbidden-terms';
 import { addDays, compareDates, daysBetween, parseIsoDate } from './dates';
 import { VISIT_TYPES, type VisitType } from './masters';
 import { idempotencyKeySchema, uuidSchema } from './primitives';
@@ -237,7 +238,12 @@ export const createVisitSchema = z.object({
   /** Omitted: the suggestion (follow-up if valid, else new). */
   visitType: z.enum(VISIT_TYPES).optional(),
   priority: z.enum(QUEUE_PRIORITIES).default('normal'),
-  chiefComplaint: z.string().trim().max(200).optional(),
+  chiefComplaint: z
+    .string()
+    .trim()
+    .max(200)
+    .refine(...noForbiddenTerms('always'))
+    .optional(),
   /** The patient already has a visit with this doctor today; confirm a second one. */
   allowRepeatToday: z.boolean().default(false),
   idempotencyKey: idempotencyKeySchema,
@@ -258,7 +264,12 @@ export const tokenIdSchema = z.object({ tokenId: uuidSchema });
 export const callNextSchema = z.object({ doctorId: uuidSchema });
 export const noShowSchema = z.object({
   tokenId: uuidSchema,
-  reason: z.string().trim().min(3, 'validation.reason').max(200),
+  reason: z
+    .string()
+    .trim()
+    .min(3, 'validation.reason')
+    .max(200)
+    .refine(...noForbiddenTerms('always')),
 });
 export const transferSchema = z.object({ tokenId: uuidSchema, doctorId: uuidSchema });
 export const prioritySchema = z.object({
@@ -267,7 +278,12 @@ export const prioritySchema = z.object({
 });
 export const cancelVisitSchema = z.object({
   encounterId: uuidSchema,
-  reason: z.string().trim().min(3, 'validation.reason').max(200),
+  reason: z
+    .string()
+    .trim()
+    .min(3, 'validation.reason')
+    .max(200)
+    .refine(...noForbiddenTerms('always')),
 });
 
 /** Display order of priority classes (`queue.priorityOrder` setting). */

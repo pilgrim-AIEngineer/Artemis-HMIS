@@ -222,6 +222,19 @@ export function containsForbiddenTerm(text: string, options: { tier?: ForbiddenT
   return findForbiddenTerms(text, options).length > 0;
 }
 
+/** i18n key returned when free text carries a forbidden term; never echoes the text (rule 15). */
+export const FORBIDDEN_TERM_MESSAGE = 'validation.forbiddenTerm';
+
+/**
+ * zod `.refine` arguments for the runtime input guard (AGENTS.md rule 7, docs/30 §1, D-10).
+ * `always` for general free text; `strict` for USG/ANC/MTP/Form F contexts.
+ */
+export const noForbiddenTerms = (tier: ForbiddenTier = 'always') =>
+  [
+    (s: string) => !containsForbiddenTerm(s, { tier }),
+    { message: FORBIDDEN_TERM_MESSAGE },
+  ] as const;
+
 export function isAllowedKeyPath(keyPath: string): boolean {
   const strip = (p: string) => p.replaceAll('[]', '');
   const path = strip(keyPath);
