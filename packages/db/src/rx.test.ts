@@ -1,4 +1,9 @@
-import { rupeesToPaise, type SaveRxInput } from '@hmis/shared';
+import {
+  paedsRuleInputSchema,
+  recordGrowthSchema,
+  rupeesToPaise,
+  type SaveRxInput,
+} from '@hmis/shared';
 import { and, eq } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -14,6 +19,7 @@ import {
   drug,
   encounter,
   opdToken,
+  patient,
   prescription,
   prescriptionItem,
   reasonCode,
@@ -31,6 +37,7 @@ import {
   collectPayment,
 } from './billing';
 import { voidDraftBill } from './billing-adjustments';
+import { recordGrowth, upsertPaedsRule } from './paeds';
 import { setServiceRate } from './masters';
 import { markSeen, sendIn } from './queue';
 import {
@@ -873,5 +880,153 @@ describe('orders flow into billing (OPD-04, docs/12 §2)', () => {
       )
       .catch((e: Error) => e.message);
     expect(again).toBe('billing.notDraft');
+  });
+});
+
+describe('paediatric dose check (OPD-06, docs/11 §4.4)', () => {
+  // Invented numbers to exercise the code; real rules come from the paediatrician.
+  const withRule = async (mgPerKgMin: number, mgPerKgMax: number) => {
+    const [d] = await fx.t.app
+      .select({ g: drug.genericName })
+      .from(drug)
+      .where(eq(drug.id, ids.pcm650));
+    await fx.run((tx) =>
+      upsertPaedsRule(
+        tx,
+        fx.actor(),
+        {
+          ...paedsRuleInputSchema.parse({
+            genericName: d!.g!,
+            mgPerKgMin,
+            mgPerKgMax,
+            maxMgPerDose: 1000,
+            maxDosesPerDay: 4,
+          }),
+          approvedBy: 'Dr. Test',
+          approvedOn: '2028-01-01',
+        },
+        IST('2028-01-01T10:00:00'),
+      ),
+    );
+  };
+  const childVisit = async (at: Date, weightKg: number | null) => {
+    const pid = await fx.newPatient();
+    await fx.t.owner
+      .update(patient)
+      .set({ dob: '2024-03-01', sex: 'F' })
+      .where(eq(patient.id, pid));
+    if (weightKg !== null) {
+      await fx.run((tx) =>
+        recordGrowth(
+          tx,
+          fx.actor(),
+          recordGrowthSchema.parse({
+            idempotencyKey: uuidv7(),
+            patientId: pid,
+            measuredOn: at.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }),
+            weightKg,
+            lengthHeightCm: null,
+            headCircCm: null,
+          }),
+          at,
+        ),
+      );
+    }
+    const v = await seenVisit(at, pid);
+    const { documentId } = await scan(v.encounterId, at);
+    return { ...v, documentId };
+  };
+
+  it('a dose outside the weight range is warned about, saved as typed, and goes to the doctor', async () => {
+    await withRule(10, 15);
+    const at = nextDay()();
+    const v = await childVisit(at, 14);
+    const ctx = await fx.run((tx) => rxContext(tx, fx.f.facilityId, v.encounterId, at));
+    expect(ctx.paeds).toMatchObject({ weightKg: 14 });
+    expect(ctx.paeds!.rules).toHaveLength(1);
+    const r = await save(
+      {
+        encounterId: v.encounterId,
+        scanDocumentId: v.documentId,
+        items: [row({ doseText: '1 tab' })], // 650 mg against 140–210 mg
+        orders: [],
+        admission: { advised: false, expectedDate: null, note: null },
+        note: { complaints: [], advice: [] },
+        followUpDate: null,
+      },
+      at,
+    );
+    expect(r.warnings).toHaveLength(1);
+    expect(r.warnings[0]).toMatchObject({
+      code: 'paeds_dose',
+      row: 0,
+      paeds: { verdict: 'above', weightKg: 14, expectedMgMin: 140, expectedMgMax: 210 },
+    });
+    expect(r.needsVerification).toBe(true);
+    const [item] = await fx.t.app
+      .select()
+      .from(prescriptionItem)
+      .where(eq(prescriptionItem.prescriptionId, r.prescriptionId));
+    expect(item!.doseText).toBe('1 tab'); // never changed
+  });
+
+  it('a dose inside the range raises nothing', async () => {
+    await withRule(40, 50); // 560–700 mg at 14 kg
+    const at = nextDay()();
+    const v = await childVisit(at, 14);
+    const r = await save(
+      {
+        encounterId: v.encounterId,
+        scanDocumentId: v.documentId,
+        items: [row({ doseText: '1 tab' })],
+        orders: [],
+        admission: { advised: false, expectedDate: null, note: null },
+        note: { complaints: [], advice: [] },
+        followUpDate: null,
+      },
+      at,
+    );
+    expect(r.warnings).toEqual([]);
+  });
+
+  it('without a weight today the check says it could not run; an adult is never checked', async () => {
+    await withRule(10, 15);
+    const at = nextDay()();
+    const v = await childVisit(at, null);
+    const ctx = await fx.run((tx) => rxContext(tx, fx.f.facilityId, v.encounterId, at));
+    expect(ctx.paeds).toMatchObject({ weightKg: null });
+    const r = await save(
+      {
+        encounterId: v.encounterId,
+        scanDocumentId: v.documentId,
+        items: [row({ doseText: '1 tab' })],
+        orders: [],
+        admission: { advised: false, expectedDate: null, note: null },
+        note: { complaints: [], advice: [] },
+        followUpDate: null,
+      },
+      at,
+    );
+    expect(r.warnings.map((w) => w.code)).toEqual(['paeds_no_weight']);
+
+    const at2 = nextDay()();
+    const adult = await seenVisit(at2);
+    const { documentId } = await scan(adult.encounterId, at2);
+    expect(
+      (await fx.run((tx) => rxContext(tx, fx.f.facilityId, adult.encounterId, at2))).paeds,
+    ).toBeNull();
+    const r2 = await save(
+      {
+        encounterId: adult.encounterId,
+        scanDocumentId: documentId,
+        items: [row({ doseText: '1 tab' })],
+        orders: [],
+        admission: { advised: false, expectedDate: null, note: null },
+        note: { complaints: [], advice: [] },
+        followUpDate: null,
+      },
+      at2,
+    );
+    expect(r2.warnings).toEqual([]);
   });
 });

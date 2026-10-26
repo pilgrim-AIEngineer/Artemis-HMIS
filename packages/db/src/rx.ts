@@ -59,6 +59,7 @@ import {
 import { openDraftBill } from './billing';
 import type { Db } from './client';
 import { runIdempotent } from './idempotency';
+import { paedsRxContext, type PaedsRxContext } from './paeds';
 import { advanceToken } from './queue';
 import { readSettings } from './settings';
 import type { Tx } from './tx';
@@ -329,8 +330,10 @@ export interface RxContext {
     mobileLast4: string | null;
   };
   doctor: { id: string; displayName: string; displayNameHi: string | null };
-  /** Today's weight from the vitals desk (paediatric dose checks arrive with OPD-06). */
+  /** Today's weight from the vitals desk. */
   weightKg: number | null;
+  /** A child's weight today and the paediatrician's dose rules; null for an adult or with no rules (OPD-06). */
+  paeds: PaedsRxContext | null;
   /** The vitals desk used the pregnant form for this visit. */
   pregnantForm: boolean;
   current: SavedRx | null;
@@ -526,6 +529,7 @@ export async function rxContext(
   tx: Tx,
   facilityId: string,
   encounterId: string,
+  now: Date = new Date(),
 ): Promise<RxContext> {
   const e = await loadEncounter(tx, facilityId, encounterId);
   const [p] = await tx
@@ -621,6 +625,7 @@ export async function rxContext(
     },
     doctor: doc!,
     weightKg: v?.weightKg ? Number(v.weightKg) : null,
+    paeds: await paedsRxContext(tx, facilityId, e.patientId, now),
     pregnantForm: v?.group === 'pregnant',
     current: await currentRx(tx, e.id),
     orders: await ordersOfEncounter(tx, facilityId, e.id),
@@ -970,7 +975,12 @@ export async function saveRx(
       const drugIds = [...new Set(input.items.flatMap((i) => (i.drugId ? [i.drugId] : [])))];
       const drugs = drugIds.length
         ? await tx
-            .select({ id: drug.id, form: drug.form, genericName: drug.genericName })
+            .select({
+              id: drug.id,
+              form: drug.form,
+              genericName: drug.genericName,
+              strength: drug.strength,
+            })
             .from(drug)
             .where(
               and(
@@ -1000,11 +1010,14 @@ export async function saveRx(
           form,
           quantity,
           genericName: d?.genericName ?? null,
+          strength: d?.strength ?? null,
           instructionsHi: i.instructionsHi ?? (buildInstruction(i, 'hi', phrases) || null),
           instructionsEn: i.instructionsEn ?? (buildInstruction(i, 'en') || null),
         };
       });
-      const warnings = rxWarnings(items);
+      // A child's doses are checked against the paediatrician's weight rules (OPD-06); never changed.
+      const paeds = await paedsRxContext(tx, actor.facilityId, e.patientId, now);
+      const warnings = rxWarnings(items, paeds);
 
       // ---- orderable services
       const serviceIds = input.orders.map((o) => o.serviceId);

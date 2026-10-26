@@ -309,7 +309,9 @@
         "features": "Optional modules",
         "ui": "Screens",
         "vitals": "Vitals",
-        "anc": "Antenatal care (ANC)"
+        "anc": "Antenatal care (ANC)",
+        "paeds": "Paediatrics",
+        "immunisation": "Vaccination schedule"
       },
       "options": {
         "reception": "Reception",
@@ -322,7 +324,9 @@
         "separate": "Separate bill",
         "off": "Off",
         "sample": "Sample",
-        "all": "All"
+        "all": "All",
+        "IAP": "IAP",
+        "UIP": "UIP"
       },
       "items": {
         "opd": {
@@ -585,6 +589,30 @@
           "bookingGraceDays": {
             "label": "Days to do the booking tests",
             "hint": "Booking tests and Td-1 are due from the booking visit and show as overdue after this many days."
+          }
+        },
+        "paeds": {
+          "rulesSignedOff": {
+            "label": "Paediatric rules signed off by the paediatrician",
+            "hint": "Tick only after the hospital's paediatrician has reviewed the vaccination schedules, intervals, growth rules and dose rules. Until then the screens show 'pending sign-off'."
+          }
+        },
+        "immunisation": {
+          "defaultSchedule": {
+            "label": "Vaccination schedule for new children",
+            "hint": "IAP or UIP. One child can be switched to the other on the vaccination card. Open question Q14; the default is IAP."
+          },
+          "overdueGraceDays": {
+            "label": "Days after the due date before a vaccine shows as overdue",
+            "hint": "A vaccine is 'due now' from its due date and 'overdue' after this many days."
+          },
+          "earlyGraceDays": {
+            "label": "Days a vaccine may be given before its earliest date",
+            "hint": "A dose given earlier than this is flagged as too early."
+          },
+          "reminderLeadDays": {
+            "label": "WhatsApp reminder: days before the due date",
+            "hint": "The reminder goes out at 10 am, this many days before the vaccines are due, when the family has agreed."
           }
         }
       }
@@ -1219,6 +1247,21 @@
       "mtpForbidden": "You are not allowed to record this outcome.",
       "deliveryOutcomeNeeded": "Choose how the delivery happened.",
       "outcomeDateRange": "The outcome date must be between the start of the pregnancy and today."
+    },
+    "paeds": {
+      "patientNotFound": "Patient not found.",
+      "scheduleItemNotFound": "This dose is not on the schedule.",
+      "notInSchedule": "This dose is not on the schedule.",
+      "doseAlreadyGiven": "This dose is already recorded for the child.",
+      "givenBeforeBirth": "The date is before the child was born.",
+      "givenInFuture": "The date cannot be in the future.",
+      "batchExpired": "This batch had already expired on the day given. Check the batch and the dates.",
+      "timingWarning": "Please check the timing warnings and confirm to record.",
+      "doseNotFound": "This vaccine entry was not found or is already cancelled.",
+      "growthNotFound": "This measurement was not found or is already cancelled.",
+      "measuredRange": "The date must be between the child's birth and today.",
+      "ruleNotFound": "Dose rule not found.",
+      "encounterMismatch": "This visit does not belong to this patient."
     }
   },
   "nav": {
@@ -2126,7 +2169,18 @@
       "large_quantity": "Quantity is above 300. Please check.",
       "no_frequency": "How often is not filled in.",
       "no_duration": "For how many days is not filled in.",
-      "free_text_drug": "Not in the medicine list; added as typed."
+      "free_text_drug": "Not in the medicine list; added as typed.",
+      "paeds_dose": "Check the child's dose against the weight rule.",
+      "paeds_no_weight": "No weight recorded today, so this child's dose could not be checked.",
+      "paeds_below": "Expected {range} per dose for {kg} kg: this dose is lower. Please check the paper.",
+      "paeds_above": "Expected {range} per dose for {kg} kg: this dose is higher. Please check the paper.",
+      "paeds_over_max_dose": "Above the maximum for one dose. Expected {range} per dose for {kg} kg. Please check the paper.",
+      "paeds_too_many_doses": "More than {max} doses a day for a child of {kg} kg. Please check the paper.",
+      "paedsUnit": {
+        "ml": "ml",
+        "mg": "mg",
+        "unit": "units"
+      }
     },
     "kinds": {
       "lab": "Lab",
@@ -2395,6 +2449,177 @@
       "placenta_praevia": "Placenta praevia",
       "iugr": "Growth restriction (IUGR)",
       "other": "Other"
+    }
+  },
+  "paeds": {
+    "deskTitle": "Paediatrics: vaccines and growth",
+    "deskHint": "Open a child's vaccination card and growth chart. Children whose next vaccines are due soon are listed below.",
+    "assistantLink": "Vaccines and growth",
+    "search": "Find a child",
+    "searchHint": "Name, mobile number or UHID",
+    "noPatient": "No child found. Register the child at the reception first.",
+    "loadFailed": "Could not load. Check the connection and try again.",
+    "loading": "Loading…",
+    "pendingSignOff": {
+      "title": "Pending paediatrician sign-off.",
+      "body": "The vaccination schedules, intervals, growth rules and dose rules are drafts until the hospital's paediatrician has reviewed them and ticked the sign-off in Settings. The software calculates and reminds; it never decides what a child should be given."
+    },
+    "dueTitle": "Vaccines due soon",
+    "nobodyDue": "No child has vaccines due in the next 2 weeks.",
+    "openCard": "Open card",
+    "nextDue": "Next vaccines due",
+    "dueToday": "due today",
+    "dueIn": "{count, plural, one {due in # day} other {due in # days}}",
+    "overdueBy": "{count, plural, one {# day late} other {# days late}}",
+    "overdueCount": "{count, plural, one {# vaccine overdue} other {# vaccines overdue}}",
+    "mobile": "Mobile",
+    "growthEmpty": "Enter at least one measurement.",
+    "summary": {
+      "title": "Vaccination summary",
+      "schedule": "Schedule"
+    },
+    "schedule": {
+      "IAP": "IAP schedule",
+      "UIP": "UIP schedule",
+      "title": "Vaccines still to give ({name})",
+      "showOptional": "Show optional vaccines",
+      "nothingLeft": "Nothing left to give on this schedule.",
+      "optional": "optional",
+      "waitingFor": "after {code}",
+      "record": "Record",
+      "recordFor": "Record {name}",
+      "closedTitle": "{count, plural, one {# dose no longer applies} other {# doses no longer apply}}"
+    },
+    "col": {
+      "vaccine": "Vaccine",
+      "dueOn": "Due on",
+      "status": "Status",
+      "givenOn": "Given on",
+      "brand": "Brand",
+      "batch": "Batch",
+      "expiry": "Expiry",
+      "site": "Site"
+    },
+    "state": {
+      "upcoming": "Later",
+      "due": "Due now",
+      "overdue": "Overdue",
+      "given": "Given",
+      "not_applicable": "Not applicable"
+    },
+    "naReason": {
+      "age_exceeded": "too old for this dose",
+      "series_closed": "an earlier dose of the series can no longer be given",
+      "sex": "not for this patient"
+    },
+    "reminder": {
+      "title": "WhatsApp reminder",
+      "consent": "The family agrees to WhatsApp reminders (2 days before a vaccine is due)",
+      "consentYes": "The family agreed to WhatsApp reminders.",
+      "consentNo": "The family does not want WhatsApp reminders.",
+      "consentUnknown": "No WhatsApp decision recorded yet. Ask the family and tick the box.",
+      "noMobile": "No mobile number on this patient, so no reminder can be sent.",
+      "queued": "Reminder queued: {vaccines} due {due}; goes out on {send}.",
+      "none": "No reminder is queued: nothing is due ahead, or the next date is too near."
+    },
+    "dialog": {
+      "close": "Close",
+      "titleFor": "Record {name}",
+      "titleOther": "Record another vaccine",
+      "other": "Another vaccine",
+      "hint": "Write the batch and expiry from the vial. The date cannot be before birth or in the future.",
+      "vaccine": "Vaccine name",
+      "givenOn": "Date given",
+      "brand": "Brand (optional)",
+      "batch": "Batch number",
+      "expiry": "Expiry date",
+      "recentBatches": "Batches used before",
+      "site": "Site",
+      "route": "Route",
+      "confirmWarnings": "I have checked this; record it anyway",
+      "cancel": "Cancel",
+      "save": "Save dose"
+    },
+    "timing": {
+      "before_birth": "The date is before the child was born.",
+      "future_date": "The date is in the future.",
+      "already_given": "This dose is already recorded.",
+      "not_in_schedule": "This dose is not on the schedule.",
+      "too_early": "This is earlier than the schedule allows.",
+      "after_max_age": "The child is older than the schedule allows for this dose.",
+      "previous_dose_missing": "An earlier dose of this vaccine is not recorded."
+    },
+    "site": {
+      "left_thigh": "Left thigh",
+      "right_thigh": "Right thigh",
+      "left_arm": "Left arm",
+      "right_arm": "Right arm",
+      "oral": "Oral",
+      "intradermal_left_arm": "Left arm (skin)",
+      "other": "Other"
+    },
+    "route": {
+      "im": "Intramuscular (IM)",
+      "sc": "Subcutaneous (SC)",
+      "id": "Into the skin (ID)",
+      "oral": "By mouth"
+    },
+    "given": {
+      "title": "Vaccines given",
+      "none": "No vaccine recorded yet.",
+      "cancel": "Cancel",
+      "cancelFor": "Cancel {name}",
+      "reason": "Reason for cancelling",
+      "cancelConfirm": "Cancel this entry"
+    },
+    "print": {
+      "card": "Print vaccination card",
+      "certificate": "Print certificate",
+      "growth": "Print growth chart"
+    },
+    "growth": {
+      "title": "Growth",
+      "add": "Add a measurement",
+      "measuredOn": "Date",
+      "weight": "Weight",
+      "lengthHeight": "Length / height",
+      "head": "Head circumference",
+      "save": "Save measurement",
+      "limits": "Weight {w} kg, length or height {h} cm.",
+      "none": "No measurement yet.",
+      "col": {
+        "date": "Date",
+        "weight": "Weight (kg)",
+        "lengthHeight": "Length / height (cm)",
+        "head": "Head circ. (cm)"
+      },
+      "z": {
+        "wfa": "z: weight for age",
+        "lhfa": "z: length / height for age",
+        "hcfa": "z: head circ. for age",
+        "wfh": "z: weight for length / height"
+      },
+      "chart": {
+        "wfa": "Weight for age (kg)",
+        "lhfa": "Length / height for age (cm)",
+        "hcfa": "Head circumference for age (cm)",
+        "wfh": "Weight for length / height (kg)"
+      },
+      "axisAge": "Age",
+      "axisLength": "Length / height (cm)",
+      "unitYear": "y",
+      "unitMonth": "m",
+      "valuesOnlyAge": "Values only: the WHO charts cover 0 to 5 years.",
+      "valuesOnlySex": "Values only: the WHO standards need the sex to be male or female.",
+      "implausible": "A value is far outside the WHO range. Please check that it was typed correctly.",
+      "cancelFor": "Cancel the measurement of {date}",
+      "note": "WHO Child Growth Standards (2006). Lines: 0 = median, ±2 and ±3 standard deviations. A prompt for the doctor, not a diagnosis."
+    },
+    "band": {
+      "lt_neg3": "below −3",
+      "lt_neg2": "below −2",
+      "gt_pos2": "above +2",
+      "gt_pos3": "above +3"
     }
   }
 }

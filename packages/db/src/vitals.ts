@@ -34,6 +34,7 @@ import { uuidv7 } from 'uuidv7';
 import { doctorProfile, encounter, opdToken, patient, vitals } from '../schema';
 import type { Db } from './client';
 import { activePregnancyId, syncAncVisitFromVitals } from './anc';
+import { syncGrowthFromVitals } from './paeds';
 import { advanceToken } from './queue';
 import { readSetting, readSettings } from './settings';
 import type { Tx } from './tx';
@@ -439,6 +440,23 @@ export async function recordVitals(
     },
     now,
   );
+
+  // A child's weight, length / height and head circumference also fill that day's growth measurement (OPD-06).
+  if (input.group === 'child') {
+    await syncGrowthFromVitals(
+      tx,
+      { facilityId: actor.facilityId, userId: actor.userId },
+      {
+        patientId: enc!.patientId,
+        encounterId: token.encounterId,
+        measuredOn: istDateString(now),
+        weightKg: stored.weightKg,
+        lengthHeightCm: stored.heightCm,
+        headCircCm: stored.headCircCm,
+      },
+      now,
+    );
+  }
 
   const advanced = token.queueState === 'waiting';
   const moved = advanced

@@ -110,6 +110,33 @@ const TEMPLATE_CSS = `
 .anc-state { white-space: nowrap; text-align: right; }
 .anc-next { border: 1.25pt solid #000; padding: 1mm 1.5mm; }
 .anc-bring { font-size: 0.8em; }
+.vax-card, .vax-cert, .growth-sheet { display: flex; flex-direction: column; gap: 1.5mm; font-size: 0.88em; }
+.vax-title, .growth-title { text-align: center; font-weight: 700; font-size: 1.15em; }
+.vax-patient, .vax-box { border: 0.75pt solid #000; padding: 0.8mm 1.5mm; }
+.vax-box { break-inside: auto; }
+.vax-name, .growth-name { font-size: 1.05em; margin-bottom: 0.8mm; }
+.vax-h, .growth-h { display: block; font-size: 0.75em; font-weight: 700; margin-bottom: 0.6mm; }
+.vax-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6mm 1.5mm; }
+.vax-cell { min-width: 0; overflow-wrap: anywhere; }
+.vax-k { display: block; font-size: 0.65em; color: #333; line-height: 1.1; }
+.vax-table, .growth-table { width: 100%; border-collapse: collapse; font-size: 0.74em; }
+.vax-table thead, .growth-table thead { display: table-header-group; }
+.vax-table tr, .growth-table tr { break-inside: avoid; }
+.vax-table th, .vax-table td, .growth-table th, .growth-table td { border: 0.5pt solid #555; padding: 0.4mm 0.6mm; text-align: center; vertical-align: top; }
+.vax-table th, .growth-table th { font-size: 0.85em; line-height: 1.1; }
+.vax-table td.vax-left { text-align: left; }
+.vax-pending { list-style: none; margin: 0; padding: 0; columns: 2; column-gap: 4mm; font-size: 0.74em; line-height: 1.2; }
+.vax-pending li { display: flex; justify-content: space-between; gap: 1.5mm; border-bottom: 0.4pt dotted #777; break-inside: avoid; }
+.vax-pending li[data-overdue='true'] .vax-date { font-weight: 700; }
+.vax-date { white-space: nowrap; }
+.vax-next { border: 1.25pt solid #000; padding: 1mm 1.5mm; }
+.vax-bring, .growth-note { font-size: 0.8em; }
+.vax-cert-text { margin: 2mm 0; }
+.vax-sign { display: flex; gap: 12mm; margin-top: 14mm; }
+.vax-sign > div { flex: 1; }
+.vax-sign-box { border-top: 0.75pt solid #000; text-align: center; padding-top: 0.5mm; font-size: 0.8em; }
+.growth-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; }
+.growth-grid svg { width: 100%; height: auto; }
 .facility-close { display: flex; flex-direction: column; gap: 3mm; }
 .facility-close-h { margin: 2mm 0 0; font-size: 1.05em; }
 .facility-close-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }

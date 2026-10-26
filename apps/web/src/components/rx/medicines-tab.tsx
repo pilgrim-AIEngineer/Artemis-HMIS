@@ -19,6 +19,7 @@ import { keepPreviousData, skipToken, useQuery } from '@tanstack/react-query';
 import type { inferRouterOutputs } from '@trpc/server';
 import { CornerDownLeft, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { WarningText } from './warning-text';
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useDebounced } from '@/lib/use-debounced';
 import type { AppRouter } from '@/server/trpc/root';
@@ -280,12 +281,13 @@ function RowDrug({
           drugId: h.id,
           drugName: drugLabel(h),
           genericName: h.genericName,
+          strength: h.strength,
           form: h.form,
         });
       }}
       onFreeText={(v) => {
         setEditing(false);
-        onChange({ drugId: null, drugName: v, genericName: null });
+        onChange({ drugId: null, drugName: v, genericName: null, strength: null });
       }}
       labels={{
         label: t('med.drugOfRow', { n: index + 1 }),
@@ -518,7 +520,7 @@ function RowEditor({
               key={w.code}
               className="rounded-md border-2 border-amber-600 bg-amber-50 px-3 py-1 font-medium text-amber-950"
             >
-              ▲ {t(`warnings.${w.code}`)}
+              ▲ <WarningText warning={w} />
             </li>
           ))}
         </ul>

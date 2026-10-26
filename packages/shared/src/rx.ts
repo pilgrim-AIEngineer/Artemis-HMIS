@@ -2,6 +2,14 @@ import { z } from 'zod';
 import { noForbiddenTerms } from './compliance/forbidden-terms';
 import { addDays, istToday, parseIsoDate, toIsoDate, compareDates } from './dates';
 import { DRUG_FORMS, type DrugForm } from './masters';
+import {
+  checkPaedsDose,
+  PAEDS_WARNING_VERDICTS,
+  parseTypedDose,
+  strengthMg,
+  type PaedsDoseRule,
+  type PaedsDoseVerdict,
+} from './paeds';
 import { idempotencyKeySchema, isoDateSchema, uuidSchema } from './primitives';
 
 /**
@@ -199,13 +207,34 @@ export const RX_WARNING_CODES = [
   'no_frequency',
   'no_duration',
   'free_text_drug',
+  'paeds_dose',
+  'paeds_no_weight',
 ] as const;
 export type RxWarningCode = (typeof RX_WARNING_CODES)[number];
+
+/** What a `paeds_dose` warning shows: the expected range for the child's weight (docs/11 §4.4). */
+export interface PaedsWarningDetail {
+  verdict: PaedsDoseVerdict;
+  weightKg: number;
+  expectedMin: number | null;
+  expectedMax: number | null;
+  expectedMgMin: number;
+  expectedMgMax: number;
+  unit: 'ml' | 'mg' | 'unit';
+  maxDosesPerDay: number | null;
+}
 
 export interface RxWarning {
   code: RxWarningCode;
   /** 0-based row of the medicines grid. */
   row: number;
+  paeds?: PaedsWarningDetail;
+}
+
+/** Today's weight of a child and the paediatrician's rules, for the dose check. */
+export interface PaedsCheckContext {
+  weightKg: number | null;
+  rules: readonly PaedsDoseRule[];
 }
 
 /** Sanity limits for the warnings; deliberately loose: they ask "is this what the paper says?". */
@@ -226,6 +255,9 @@ export interface WarnableItem {
   durationValue: number | null;
   durationUnit: DurationUnit | null;
   quantity: number | null;
+  /** For the paediatric dose check (docs/11 §4.4). */
+  doseText?: string | null;
+  strength?: string | null;
 }
 
 /**
@@ -234,7 +266,10 @@ export interface WarnableItem {
  * pregnancy-caution and paediatric dose rules join when their masters exist (OPD-05/06); none is
  * invented here. Warnings never block saving.
  */
-export function rxWarnings(items: readonly WarnableItem[]): RxWarning[] {
+export function rxWarnings(
+  items: readonly WarnableItem[],
+  paeds: PaedsCheckContext | null = null,
+): RxWarning[] {
   const out: RxWarning[] = [];
   const seenDrug = new Map<string, number>();
   const seenGeneric = new Map<string, number>();
@@ -264,8 +299,57 @@ export function rxWarnings(items: readonly WarnableItem[]): RxWarning[] {
       add('no_duration');
     }
     if (it.quantity !== null && it.quantity > RX_SANITY.maxQuantity) add('large_quantity');
+    if (paeds) {
+      const w = paedsDoseWarning(it, paeds);
+      if (w) out.push({ ...w, row });
+    }
   });
   return out;
+}
+
+/** Doses per day of a row: from its pattern, else its code; null for `SOS` / `STAT` / unknown. */
+function dosesPerDay(it: WarnableItem): number | null {
+  const pattern =
+    it.pattern ?? (it.frequencyCode ? (CODE_PATTERN[it.frequencyCode] ?? null) : null);
+  return pattern ? patternSum(pattern) : null;
+}
+
+/**
+ * The weight-based check of one row (docs/11 §4.4): only for a drug the paediatrician has a rule
+ * for. Never changes the dose; `paeds_no_weight` says the check could not run.
+ */
+function paedsDoseWarning(
+  it: WarnableItem,
+  ctx: PaedsCheckContext,
+): { code: RxWarningCode; paeds?: PaedsWarningDetail } | null {
+  const generic = it.genericName?.trim().toLowerCase();
+  const rule = generic ? ctx.rules.find((r) => r.genericName === generic) : undefined;
+  if (!rule) return null;
+  if (ctx.weightKg === null) return { code: 'paeds_no_weight' };
+  const dose = parseTypedDose(it.doseText);
+  if (!dose) return null;
+  const c = checkPaedsDose({
+    rule,
+    weightKg: ctx.weightKg,
+    dose,
+    form: it.form,
+    mgPerUnit: strengthMg(it.strength),
+    dosesPerDay: dosesPerDay(it),
+  });
+  if (!PAEDS_WARNING_VERDICTS.includes(c.verdict)) return null;
+  return {
+    code: 'paeds_dose',
+    paeds: {
+      verdict: c.verdict,
+      weightKg: c.weightKg,
+      expectedMin: c.expectedMin,
+      expectedMax: c.expectedMax,
+      expectedMgMin: c.expectedMgMin,
+      expectedMgMax: c.expectedMgMax,
+      unit: c.unit,
+      maxDosesPerDay: rule.maxDosesPerDay,
+    },
+  };
 }
 
 // ---------------------------------------------------------------- verification sampling (Q15)
@@ -414,6 +498,7 @@ export const rxDraftPayloadSchema = z.object({
         drugId: uuidSchema.nullish(),
         drugName: draftText(120),
         genericName: draftText(120),
+        strength: draftText(60),
         form: z.enum(DRUG_FORMS).nullish(),
         doseText: draftText(40),
         frequencyCode: z.enum(FREQUENCY_CODES).nullish(),

@@ -18,6 +18,12 @@ import { NUMBER_SERIES_CONFIG_SETTING, numberSeriesConfigSchema } from './number
 import { ROLE_KEYS, type RoleKey } from './permissions';
 import { PRIORITY_CLASSES } from './visits';
 import {
+  DEFAULT_EARLY_GRACE_DAYS,
+  DEFAULT_OVERDUE_GRACE_DAYS,
+  DEFAULT_REMINDER_LEAD_DAYS,
+  IMMUNISATION_SCHEDULES,
+} from './immunisation';
+import {
   DEFAULT_HEIGHT_PROMPT_DAYS,
   DEFAULT_VITALS_THRESHOLDS,
   vitalsThresholdsSchema,
@@ -164,6 +170,18 @@ export const SETTINGS = {
   'anc.viabilityWeeks': def(z.number().int().min(20).max(37), DEFAULT_VIABILITY_WEEKS),
   /** Days after the booking visit before a booking test or Td dose is overdue. */
   'anc.bookingGraceDays': def(z.number().int().min(0).max(60), DEFAULT_BOOKING_GRACE_DAYS),
+
+  // --- Paediatrics (docs/11 §4): clinical seeds pending paediatrician sign-off
+  /** The paediatrician has reviewed the immunisation schedule, intervals, growth and dose rules. */
+  'paeds.rulesSignedOff': def(z.boolean(), false),
+  /** Schedule new children start on; one child can be switched to the other (`immunisation_profile`). Q14. */
+  'immunisation.defaultSchedule': def(z.enum(IMMUNISATION_SCHEDULES), 'IAP'),
+  /** Days past the due date before a dose shows as overdue instead of due. */
+  'immunisation.overdueGraceDays': def(z.number().int().min(0).max(60), DEFAULT_OVERDUE_GRACE_DAYS),
+  /** A dose given up to this many days before its earliest valid date is not flagged as early. */
+  'immunisation.earlyGraceDays': def(z.number().int().min(0).max(14), DEFAULT_EARLY_GRACE_DAYS),
+  /** The WhatsApp vaccine reminder goes this many days before the due date (docs/21 §3). */
+  'immunisation.reminderLeadDays': def(z.number().int().min(0).max(14), DEFAULT_REMINDER_LEAD_DAYS),
 
   // --- Registration (docs/10 §3)
   /** Duplicate check: phonetic name similarity (percent) at or above which a patient on the same mobile is a possible duplicate. */

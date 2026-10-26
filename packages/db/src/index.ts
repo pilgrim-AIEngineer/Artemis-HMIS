@@ -19,3 +19,4 @@ export * from './billing-adjustments';
 export * from './vitals';
 export * from './rx';
 export * from './anc';
+export * from './paeds';

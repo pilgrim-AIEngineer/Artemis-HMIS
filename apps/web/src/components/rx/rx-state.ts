@@ -10,6 +10,7 @@ import {
   type RxPhrasesOverride,
   type RxRoute,
   type RxTiming,
+  type PaedsCheckContext,
   type RxWarning,
   type SaveRxInput,
 } from '@hmis/shared';
@@ -27,6 +28,8 @@ export interface RxRow {
   drugId: string | null;
   drugName: string;
   genericName: string | null;
+  /** The drug's strength (`250 mg`), for the paediatric dose check. */
+  strength?: string | null;
   form: DrugForm | null;
   doseText: string | null;
   frequencyCode: FrequencyCode | null;
@@ -94,6 +97,7 @@ export function rowFromParsed(p: ParsedRxLine, d: DrugChoice | null): RxRow {
     drugId: d?.id ?? null,
     drugName: d ? drugLabel(d) : p.drugText || p.raw,
     genericName: d?.genericName ?? null,
+    strength: d?.strength ?? null,
     form: d?.form ?? p.form,
     doseText: p.doseText,
     frequencyCode: p.frequencyCode,
@@ -124,8 +128,16 @@ export const shownQuantity = (r: RxRow): number | null =>
 export const shownInstruction = (r: RxRow, lang: 'hi' | 'en', phrases: RxPhrasesOverride) =>
   (lang === 'hi' ? r.instructionsHi : r.instructionsEn) ?? buildInstruction(r, lang, phrases);
 
-export const warningsOf = (rows: readonly RxRow[]): RxWarning[] =>
-  rows.length === 0 ? [] : rxWarnings(rows.map((r) => ({ ...r, quantity: shownQuantity(r) })));
+export const warningsOf = (
+  rows: readonly RxRow[],
+  paeds: PaedsCheckContext | null = null,
+): RxWarning[] =>
+  rows.length === 0
+    ? []
+    : rxWarnings(
+        rows.map((r) => ({ ...r, quantity: shownQuantity(r) })),
+        paeds,
+      );
 
 // ---------------------------------------------------------------- saved Rx → state
 
@@ -193,6 +205,7 @@ export function fromDraft(p: RxDraftPayload): RxState {
       drugId: i.drugId ?? null,
       drugName: i.drugName ?? '',
       genericName: i.genericName ?? null,
+      strength: i.strength ?? null,
       form: i.form ?? null,
       doseText: i.doseText ?? null,
       frequencyCode: i.frequencyCode ?? null,
