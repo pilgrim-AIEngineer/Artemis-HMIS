@@ -28,6 +28,7 @@ Roles are bundles of permission keys. Admin can create custom roles and assign m
 ```
 admin.users.manage          admin.roles.manage          admin.settings.manage
 admin.masters.manage        admin.tariff.manage         admin.audit.view
+admin.import.run
 patient.create              patient.update              patient.merge
 patient.view                patient.view.restricted     (never granted by default; see MTP)
 visit.create                visit.cancel                queue.manage

@@ -10,6 +10,7 @@ import {
   GUARDIAN_RELATIONS,
   MARITAL_STATUSES,
   MOBILE_OWNER_RELATIONS,
+  PATIENT_IDENTIFIER_TYPES,
   PATIENT_SEXES,
 } from '@hmis/shared';
 import { sql } from 'drizzle-orm';
@@ -114,5 +115,34 @@ export const patient = pgTable(
     ),
     check('patient_deceased_fields', sql`${t.isDeceased} or ${t.deceasedAt} is null`),
     ...cancelChecks('patient', t),
+  ],
+);
+
+/**
+ * Other numbers that identify a patient (docs/04 §3): ABHA, PM-JAY id, and the number from the
+ * old register (`type = 'other'`, label "Old reg no", MIG-01). A wrong entry is cancelled, not
+ * deleted (AGENTS.md rule 4). Never holds a full Aadhaar number.
+ */
+export const patientIdentifier = pgTable(
+  'patient_identifier',
+  {
+    id: idColumn(),
+    facilityId: facilityRef(),
+    patientId: uuid()
+      .notNull()
+      .references(() => patient.id),
+    type: text().notNull(),
+    /** Free label for `other` ("Old reg no"); null for the fixed types. */
+    label: text(),
+    value: text().notNull(),
+    verifiedAt: timestamp({ withTimezone: true }),
+    ...cancelColumns(),
+    ...auditColumns(),
+  },
+  (t) => [
+    index('patient_identifier_patient_idx').on(t.patientId),
+    index('patient_identifier_lookup_idx').on(t.facilityId, t.type, t.value),
+    check('patient_identifier_type', sqlIn(t.type, PATIENT_IDENTIFIER_TYPES)),
+    ...cancelChecks('patient_identifier', t),
   ],
 );

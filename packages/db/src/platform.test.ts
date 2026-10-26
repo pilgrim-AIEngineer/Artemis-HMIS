@@ -70,7 +70,14 @@ const PLATFORM_TABLES = [
 ];
 
 /** Tables deliberately without the audit trigger (logs, caches, delivery queues). */
-const NOT_AUDITED = ['access_log', 'audit_log', 'idempotency', 'integration_event', 'print_log'];
+const NOT_AUDITED = [
+  'access_log',
+  'audit_log',
+  'idempotency',
+  'import_row', // staging copy of an uploaded file; the batch and the rows it creates are audited
+  'integration_event',
+  'print_log',
+];
 
 describe('platform schema (docs/04 §1)', () => {
   it('creates every platform table', async () => {

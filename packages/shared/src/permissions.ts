@@ -11,6 +11,7 @@ export const PERMISSIONS = [
   'admin.masters.manage',
   'admin.tariff.manage',
   'admin.audit.view',
+  'admin.import.run',
   'patient.create',
   'patient.update',
   'patient.merge',

@@ -12,6 +12,7 @@ export * from './facility';
 export * from './fy';
 export * from './gst';
 export * from './health';
+export * from './import';
 export * from './i18n';
 export * from './immunisation';
 export * from './masters';
