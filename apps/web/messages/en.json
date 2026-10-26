@@ -102,7 +102,9 @@
       "print": "Print header",
       "printHint": "Hindi lines, footer, colour and test prints",
       "masters": "Master data",
-      "mastersHint": "Services, rates, doctors, drugs, lab tests, payers"
+      "mastersHint": "Services, rates, doctors, drugs, lab tests, payers",
+      "display": "Waiting-room TV",
+      "displayHint": "Link for the queue display on the TV"
     }
   },
   "account": {
@@ -358,6 +360,10 @@
           "priorityOrder": {
             "label": "Order of priority patients",
             "hint": "One per line, first line is called first: emergency, labour, elderly, staff, vip. Normal patients follow by token number. A priority not listed is treated as normal."
+          },
+          "displayVoice": {
+            "label": "Speak token calls on the TV in Hindi",
+            "hint": "On: the TV also says the token number aloud if the TV computer has a Hindi voice. Off or no voice: a chime only."
           }
         },
         "billing": {
@@ -876,6 +882,26 @@
         "noHistory": "No rates entered yet.",
         "replaced": "corrected"
       }
+    },
+    "display": {
+      "title": "Waiting-room TV",
+      "back": "Administration",
+      "help": "The TV shows token numbers only. It opens a private link with a long secret key, so nobody needs to sign in on the TV and nobody can guess the address. Open the link once in full-screen Chrome on the TV computer.",
+      "linkTitle": "TV link",
+      "configured": "A TV link is set up.",
+      "notConfigured": "No TV link yet.",
+      "create": "Make TV link",
+      "replace": "Make a new TV link",
+      "confirmReplace": "Yes, switch off the old link",
+      "cancel": "Cancel",
+      "replaceWarning": "The TV that uses the old link will stop showing the queue until it is opened with the new link.",
+      "shownOnce": "Copy this link now. It is shown only once; if it is lost, make a new one.",
+      "linkLabel": "TV link",
+      "copy": "Copy link",
+      "copied": "Copied",
+      "optionsTitle": "What the TV shows",
+      "optionsHelp": "Names on the TV and the spoken Hindi announcement are switched on or off in Settings (Queue section).",
+      "openSettings": "Open settings"
     }
   },
   "modules": {
@@ -1074,7 +1100,8 @@
     "back": "Back",
     "nextIsOriginal": "This will be the original copy.",
     "nextIsDuplicate": "Already printed before. This will be copy {n} and is marked DUPLICATE.",
-    "showingCopy": "Showing copy {n}."
+    "showingCopy": "Showing copy {n}.",
+    "autoFailed": "The sheet could not be printed: {error}. Use the Print button."
   },
   "reception": {
     "title": "Reception",
@@ -1237,7 +1264,9 @@
         "referredBy": "Referred by",
         "registered": "Registered on"
       },
-      "newVisit": "New visit"
+      "newVisit": "New visit",
+      "printSticker": "Print sticker",
+      "printCard": "Print UHID card"
     },
     "queue": "Queue"
   },
@@ -1326,7 +1355,9 @@
       "emergency": "Emergency",
       "anc": "ANC",
       "paeds_vaccination": "Vaccination"
-    }
+    },
+    "vitalsDone": "Vitals done",
+    "printSheet": "Print OPD sheet"
   },
   "visit": {
     "title": "New visit",
@@ -1356,6 +1387,19 @@
     "collectThenToken": "Collect {amount}, then give the token.",
     "feeMissing": "The fee is not set. Check with the administrator before giving a token.",
     "giveToken": "Fee collected: give token",
-    "openQueue": "Open queue"
+    "openQueue": "Open queue",
+    "printSheet": "Print OPD sheet"
+  },
+  "display": {
+    "title": "Waiting hall queue",
+    "now": "Now",
+    "next": "Next",
+    "waiting": "more waiting",
+    "nobody": "No one waiting",
+    "idle": "No tokens yet today",
+    "reconnecting": "Reconnecting…",
+    "enableSound": "Tap to turn on sound",
+    "invalid": "This display link is no longer valid",
+    "announce": "Token number {no}, please come to {doctor}"
   }
 }

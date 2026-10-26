@@ -95,7 +95,8 @@ describe('parse / resolve', () => {
     expect(safeParseSettingValue('billing.refundApprovalAbovePaise', 10.5).success).toBe(false);
     expect(safeParseSettingValue('billing.refundApprovalAbovePaise', -1).success).toBe(false);
     expect(safeParseSettingValue('queue.displayKey', 'short').success).toBe(false);
-    expect(safeParseSettingValue('queue.displayKey', 'k'.repeat(32)).success).toBe(true);
+    expect(safeParseSettingValue('queue.displayKey', 'k'.repeat(32)).success).toBe(false);
+    expect(safeParseSettingValue('queue.displayKey', 'a1'.repeat(32)).success).toBe(true);
   });
 
   it('validates per-doctor overrides keyed by uuid', () => {
