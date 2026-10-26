@@ -142,6 +142,34 @@ test('flow 6: bill cancellation with credit note and refund approval by PIN', as
   await expect(voucher.getByTestId('receipt-amount')).toHaveText('₹2,000.00');
   await expect(voucher.getByTestId('receipt')).toContainText('दो हज़ार रुपये');
 
+  // Layout at its paper size, once (desktop): the voucher is the 80 mm roll like a receipt.
+  if (desktop) {
+    const frameUrl = new URL(
+      page
+        .frames()
+        .find((f) => f.url().includes('/print/receipt/'))!
+        .url(),
+    );
+    const voucherPage = await page.context().newPage();
+    await voucherPage.goto(`${frameUrl.pathname}?copy=1`);
+    const sheet = voucherPage.locator('.print-sheet');
+    await expect(sheet).toBeVisible();
+    await voucherPage.evaluate(() => document.fonts.ready.then(() => undefined));
+    const box = (await sheet.boundingBox())!;
+    expect(box.width).toBeCloseTo((80 / 25.4) * 96, -1); // 80 mm in CSS px
+    await expect(sheet).toHaveScreenshot('refund-voucher-thermal80.png', {
+      mask: [
+        voucherPage.locator('.receipt > .receipt-row').first(),
+        voucherPage.locator('.receipt > .receipt-row').nth(1),
+        voucherPage.locator('.receipt-patient'),
+        voucherPage.locator('.print-footer'),
+        voucherPage.locator('.receipt > .receipt-row').last(),
+      ],
+      maxDiffPixelRatio: 0.02,
+    });
+    await voucherPage.close();
+  }
+
   // The bill is cancelled but keeps its number; the money trail is on the page.
   await expect(page.getByRole('heading', { level: 1 })).toContainText(billNumber);
   await expect(page.getByRole('heading', { level: 1 })).toContainText('Cancelled');
