@@ -14,13 +14,51 @@ export const usernameSchema = z
   .trim()
   .regex(/^[A-Za-z0-9._-]{3,40}$/, 'validation.username');
 
-export const PASSWORD_MIN_LENGTH = 8;
+/** OWASP ASVS 2.1.1: at least 12 characters, no composition rules (2.1.9). */
+export const PASSWORD_MIN_LENGTH = 12;
+
+/**
+ * Passwords everyone tries first (ASVS 2.1.7, a short built-in list: the server has no internet
+ * to check a breach corpus). Compared lowercase, ignoring spaces, dashes and underscores.
+ */
+const COMMON_PASSWORDS = [
+  'password1234',
+  'password12345',
+  'passw0rd1234',
+  'qwerty123456',
+  'qwertyuiop12',
+  '123456789012',
+  '1234567890123',
+  'iloveyou1234',
+  'admin1234567',
+  'administrator',
+  'welcome12345',
+  'changeme1234',
+  'letmein12345',
+  'hospital1234',
+  'hospital12345',
+  'hmis12345678',
+  'abcd12345678',
+  'india1234567',
+  'india@123456',
+  'password@123',
+  'password@1234',
+  'admin@123456',
+  'welcome@1234',
+] as const;
+
+/** True for a password on the built-in common list, or one that is a single repeated character. */
+export function isCommonPassword(password: string): boolean {
+  const norm = password.toLowerCase().replace(/[\s_-]/g, '');
+  return (COMMON_PASSWORDS as readonly string[]).includes(norm) || /^(.)\1+$/.test(norm);
+}
 
 /** Length is what matters for staff passwords; argon2 input is capped to bound hashing cost. */
 export const passwordSchema = z
   .string()
   .min(PASSWORD_MIN_LENGTH, 'validation.passwordShort')
-  .max(128, 'validation.passwordLong');
+  .max(128, 'validation.passwordLong')
+  .refine((p) => !isCommonPassword(p), 'validation.passwordCommon');
 
 /** Login accepts whatever was typed (old/legacy passwords); only the length cap applies. */
 export const loginPasswordSchema = z.string().min(1, 'validation.required').max(128);

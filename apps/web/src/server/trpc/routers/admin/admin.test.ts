@@ -175,7 +175,8 @@ describe('cross-facility access is denied', () => {
   it('NOT_FOUND for every by-id mutation on another facility’s rows', async () => {
     const target = f.users.reception.id;
     const calls = [
-      () => adminB.call((c) => c.admin.resetPassword({ userId: target, password: 'hijack-pass' })),
+      () =>
+        adminB.call((c) => c.admin.resetPassword({ userId: target, password: 'hijack-pass-12' })),
       () => adminB.call((c) => c.admin.resetPin({ userId: target })),
       () => adminB.call((c) => c.admin.clearLockout({ userId: target })),
       () => adminB.call((c) => c.admin.resetTotp({ userId: target })),
