@@ -1262,6 +1262,10 @@
       "measuredRange": "तिथि बच्चे के जन्म और आज के बीच होनी चाहिए।",
       "ruleNotFound": "खुराक का नियम नहीं मिला।",
       "encounterMismatch": "यह विज़िट इस मरीज़ की नहीं है।"
+    },
+    "timeline": {
+      "patientNotFound": "मरीज़ नहीं मिला।",
+      "badCursor": "पेज की स्थिति सही नहीं है। टाइमलाइन दोबारा खोलें।"
     }
   },
   "nav": {
@@ -1488,7 +1492,8 @@
       },
       "newVisit": "नई विज़िट",
       "printSticker": "स्टिकर प्रिंट करें",
-      "printCard": "यूएचआईडी कार्ड प्रिंट करें"
+      "printCard": "यूएचआईडी कार्ड प्रिंट करें",
+      "timeline": "टाइमलाइन"
     },
     "queue": "कतार"
   },
@@ -2620,6 +2625,110 @@
       "lt_neg2": "−2 से नीचे",
       "gt_pos2": "+2 से ऊपर",
       "gt_pos3": "+3 से ऊपर"
+    }
+  },
+  "timeline": {
+    "title": "मरीज़ की टाइमलाइन",
+    "loading": "टाइमलाइन खुल रही है…",
+    "loadFailed": "टाइमलाइन नहीं खुल सकी। कृपया दोबारा कोशिश करें।",
+    "empty": "अभी कुछ दर्ज नहीं है।",
+    "loadMore": "पुराना दिखाएँ",
+    "loadingMore": "खुल रहा है…",
+    "back": "मरीज़ के पेज पर वापस",
+    "open": "टाइमलाइन",
+    "filters": "दिखाएँ",
+    "all": "सब",
+    "types": {
+      "visit": "विज़िट",
+      "rx": "पर्चे",
+      "order": "ऑर्डर",
+      "bill": "बिल",
+      "anc": "ANC विज़िट",
+      "vaccine": "टीके",
+      "document": "दस्तावेज़"
+    },
+    "visit": {
+      "title": "विज़िट {number}",
+      "doctor": "डॉ. {name}",
+      "bp": "BP {sys}/{dia}",
+      "pulse": "नाड़ी {value}",
+      "temp": "तापमान {value} °C",
+      "spo2": "SpO₂ {value}%",
+      "weight": "वज़न {value} किग्रा",
+      "noVitals": "वाइटल्स दर्ज नहीं"
+    },
+    "visitType": {
+      "new": "नया",
+      "follow_up": "फ़ॉलो-अप",
+      "emergency": "इमरजेंसी",
+      "anc": "ANC",
+      "paeds_vaccination": "टीकाकरण"
+    },
+    "visitStatus": {
+      "open": "खुला",
+      "closed": "बंद",
+      "cancelled": "रद्द"
+    },
+    "rx": {
+      "title": "पर्चा",
+      "version": "संस्करण {version}",
+      "verified": "डॉक्टर द्वारा जाँचा गया",
+      "noItems": "कोई दवा नहीं",
+      "days": "{value} दिन",
+      "weeks": "{value} सप्ताह",
+      "months": "{value} महीने"
+    },
+    "order": {
+      "title": "ऑर्डर"
+    },
+    "orderKind": {
+      "lab": "लैब जाँच",
+      "usg": "अल्ट्रासाउंड",
+      "procedure": "प्रक्रिया",
+      "admission": "भर्ती की सलाह",
+      "referral": "रेफ़रल",
+      "cardiology_test": "हृदय जाँच"
+    },
+    "orderStatus": {
+      "ordered": "ऑर्डर हुआ",
+      "billed": "बिल बना",
+      "in_progress": "चालू",
+      "completed": "पूरा",
+      "cancelled": "रद्द"
+    },
+    "bill": {
+      "title": "बिल {number}",
+      "net": "राशि {amount}",
+      "paid": "जमा {amount}",
+      "balance": "बाकी {amount}"
+    },
+    "billStatus": {
+      "final": "अंतिम",
+      "cancelled": "रद्द",
+      "draft": "मसौदा"
+    },
+    "anc": {
+      "title": "ANC विज़िट",
+      "ga": "{weeks} सप्ताह {days} दिन",
+      "weight": "वज़न {value} किग्रा",
+      "hb": "Hb {value}"
+    },
+    "vaccine": {
+      "title": "टीका: {name}",
+      "batch": "बैच {batch}"
+    },
+    "document": {
+      "title": "दस्तावेज़",
+      "view": "खोलें"
+    },
+    "documentKind": {
+      "rx_scan": "पर्चे की फ़ोटो",
+      "consent": "सहमति",
+      "report_pdf": "रिपोर्ट",
+      "photo": "फ़ोटो",
+      "ecg": "ECG",
+      "other": "दस्तावेज़",
+      "form_f_signed": "दस्तावेज़"
     }
   }
 }

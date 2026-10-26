@@ -4,7 +4,7 @@ import { formatDate, formatDateTime, type Permission } from '@hmis/shared';
 import { Button } from '@hmis/ui/components/button';
 import { PatientHeader, type PatientHeaderFlag } from '@hmis/ui/components/patient-header';
 import { skipToken, useQuery } from '@tanstack/react-query';
-import { Pencil, Search, Stethoscope, UserRoundPlus } from 'lucide-react';
+import { History, Pencil, Search, Stethoscope, UserRoundPlus } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useSession } from '@/components/auth/session-provider';
@@ -133,6 +133,12 @@ export function PatientSummary({ id, justRegistered }: { id: string; justRegiste
             </Link>
           </Button>
         )}
+        <Button asChild variant="outline">
+          <Link href={`/reception/patients/${id}/timeline`}>
+            <History aria-hidden />
+            {tSum('timeline')}
+          </Link>
+        </Button>
         {can('patient.create') && (
           <Button asChild variant="outline">
             <Link href={`/reception/patients/new?familyOf=${id}`}>
