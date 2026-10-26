@@ -3,15 +3,26 @@ import { L } from '../labels';
 import type { PrintHeaderData, PrintMeta } from '../types';
 
 /** QR of the document id, print time and user initials (docs/05 §6), plus the hospital's note. */
-export function PrintFooter({ header, meta }: { header: PrintHeaderData; meta: PrintMeta }) {
+export function PrintFooter({
+  header,
+  meta,
+  withQr = true,
+}: {
+  header: PrintHeaderData;
+  meta: PrintMeta;
+  /** False when the template draws its own QR (OPD sheet). */
+  withQr?: boolean;
+}) {
   return (
     <footer className="print-footer">
-      <div
-        className="print-qr"
-        role="img"
-        aria-label="QR"
-        dangerouslySetInnerHTML={{ __html: meta.qrSvg }}
-      />
+      {withQr && (
+        <div
+          className="print-qr"
+          role="img"
+          aria-label="QR"
+          dangerouslySetInnerHTML={{ __html: meta.qrSvg }}
+        />
+      )}
       <div className="print-footer-text">
         {header.footerNoteHi && <p>{header.footerNoteHi}</p>}
         {header.footerNoteEn && <p>{header.footerNoteEn}</p>}

@@ -28,14 +28,15 @@ export function openPrintFrame(src: string, title: string): void {
   }, 120_000);
 }
 
-/** Listens for the frame's "done" message; returns the unsubscribe function. */
+/**
+ * Listens for the frame's "done" message; returns the unsubscribe function. Unsubscribing leaves
+ * a frame that is mid-print alone (a card on the queue board may remount while its sheet prints);
+ * the frame goes on "done" or after its two-minute timeout.
+ */
 export function onPrintDone(): () => void {
   const handler = (e: MessageEvent) => {
     if (e.origin === window.location.origin && e.data === PRINT_DONE_MESSAGE) removePrintFrame();
   };
   window.addEventListener('message', handler);
-  return () => {
-    window.removeEventListener('message', handler);
-    removePrintFrame();
-  };
+  return () => window.removeEventListener('message', handler);
 }

@@ -20,6 +20,8 @@ import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { useSession } from '@/components/auth/session-provider';
+import { PrintButton } from '@/components/print/print-button';
+import { PrintOnMount } from '@/components/print/print-on-mount';
 import { useAgeText } from '@/lib/use-age-text';
 import { useErrorText } from '@/lib/use-error-text';
 import { useTRPC } from '@/trpc/client';
@@ -184,7 +186,18 @@ export function VisitForm({ patientId }: { patientId: string }) {
               {error.text}
             </p>
           )}
+          {(created.printSheet || issue.data?.printSheet) && (
+            <PrintOnMount template="opd-sheet" entityId={created.encounterId} />
+          )}
           <div className="flex flex-wrap gap-3">
+            <PrintButton
+              template="opd-sheet"
+              entityId={created.encounterId}
+              label={t('printSheet')}
+              variant="outline"
+              size="lg"
+              shortcut={false}
+            />
             {created.tokenNo === null && !issue.data && canRelease && (
               <Button
                 variant="money"

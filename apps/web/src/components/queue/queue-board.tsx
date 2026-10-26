@@ -15,10 +15,13 @@ import {
   Flag,
   Undo2,
   Ticket,
+  HeartPulse,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { useSession } from '@/components/auth/session-provider';
+import { PrintButton } from '@/components/print/print-button';
+import { PrintOnMount } from '@/components/print/print-on-mount';
 import { ShortcutHint } from '@/components/shortcut-hint';
 import { useAgeText } from '@/lib/use-age-text';
 import { useErrorText } from '@/lib/use-error-text';
@@ -66,6 +69,8 @@ export function QueueBoard({ mode }: { mode: 'desk' | 'room' }) {
   const canCall = can('queue.call');
   const canManage = can('queue.manage');
   const canRelease = can('billing.payment.collect');
+  const canVitals = can('vitals.record');
+  const canPrint = can('patient.view');
 
   const { live, refetchInterval } = useLiveQueue();
   const board = useQuery(trpc.queue.board.queryOptions({}, { refetchInterval }));
@@ -87,12 +92,23 @@ export function QueueBoard({ mode }: { mode: 'desk' | 'room' }) {
 
   const [message, setMessage] = useState<string | null>(null);
   const [dialogue, setDialogue] = useState<Dialogue>(null);
+  // OPD sheet to print right now (after the vitals); a new `n` prints again.
+  const [sheet, setSheet] = useState<{ encounterId: string; n: number } | null>(null);
   const done = () => {
     setMessage(null);
     setDialogue(null);
     void queryClient.invalidateQueries({ queryKey: [['queue']] });
   };
   const opts = { onSuccess: done, onError: (e: unknown) => setMessage(errorText(e)) };
+  const vitalsDone = useMutation(
+    trpc.queue.vitalsDone.mutationOptions({
+      onSuccess: (r) => {
+        done();
+        if (r.printSheet) setSheet((s) => ({ encounterId: r.encounterId, n: (s?.n ?? 0) + 1 }));
+      },
+      onError: opts.onError,
+    }),
+  );
   const callNext = useMutation(trpc.queue.callNext.mutationOptions(opts));
   const sendIn = useMutation(trpc.queue.sendIn.mutationOptions(opts));
   const recall = useMutation(trpc.queue.recall.mutationOptions(opts));
@@ -116,6 +132,7 @@ export function QueueBoard({ mode }: { mode: 'desk' | 'room' }) {
     transfer,
     priority,
     issue,
+    vitalsDone,
   ].some((m) => m.isPending);
 
   const data = board.data;
@@ -155,6 +172,27 @@ export function QueueBoard({ mode }: { mode: 'desk' | 'room' }) {
     const calling = c.queueState === 'with_doctor';
     return (
       <div className="flex flex-wrap gap-2">
+        {canVitals && c.queueState === 'waiting' && (
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={busy}
+            onClick={() => vitalsDone.mutate({ tokenId: c.tokenId })}
+          >
+            <HeartPulse aria-hidden />
+            {t('vitalsDone')}
+          </Button>
+        )}
+        {canPrint && (pending || calling) && (
+          <PrintButton
+            template="opd-sheet"
+            entityId={c.encounterId}
+            label={t('printSheet')}
+            variant="outline"
+            size="sm"
+            shortcut={false}
+          />
+        )}
         {canCall && pending && (
           <Button size="sm" disabled={busy} onClick={() => sendIn.mutate({ tokenId: c.tokenId })}>
             <Megaphone aria-hidden />
@@ -466,6 +504,8 @@ export function QueueBoard({ mode }: { mode: 'desk' | 'room' }) {
           );
         })}
       </div>
+
+      {sheet && <PrintOnMount key={sheet.n} template="opd-sheet" entityId={sheet.encounterId} />}
 
       {dialogue?.kind === 'noShow' && (
         <NoShowDialog
