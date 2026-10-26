@@ -10,6 +10,7 @@ import { paedsRouter } from './routers/paeds';
 import { patientsRouter } from './routers/patients';
 import { printRouter } from './routers/print';
 import { queueRouter } from './routers/queue';
+import { reportsRouter } from './routers/reports';
 import { rxRouter } from './routers/rx';
 import { timelineRouter } from './routers/timeline';
 import { visitsRouter } from './routers/visits';
@@ -31,6 +32,7 @@ export const appRouter = router({
   timeline: timelineRouter,
   billing: billingRouter,
   dayClose: dayCloseRouter,
+  reports: reportsRouter,
 });
 
 export type AppRouter = typeof appRouter;

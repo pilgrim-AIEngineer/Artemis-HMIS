@@ -34,3 +34,4 @@ export * from './rx';
 export * from './rx-hindi';
 export * from './rx-shorthand';
 export * from './timeline';
+export * from './reports';

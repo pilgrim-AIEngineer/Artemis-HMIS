@@ -827,7 +827,7 @@ export async function dueSoon(
   q: Queryable,
   facilityId: string,
   now: Date,
-  o: { lookBackDays?: number; aheadDays?: number } = {},
+  o: { lookBackDays?: number; aheadDays?: number; limit?: number } = {},
 ): Promise<DueSoonItem[]> {
   const today = istDateString(now);
   const from = plusDays(today, -(o.lookBackDays ?? 60));
@@ -866,7 +866,7 @@ export async function dueSoon(
       ),
     )
     .orderBy(asc(latest.nextDueDate), asc(patient.fullName))
-    .limit(200);
+    .limit(o.limit ?? 200);
   return rows.map((r) => ({
     patientId: r.patientId,
     uhid: r.uhid,
