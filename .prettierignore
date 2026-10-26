@@ -9,3 +9,4 @@ test-results/
 packages/db/migrations/
 docs/
 AGENTS.md
+packages/shared/src/who-growth/

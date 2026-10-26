@@ -260,3 +260,97 @@ describe('Rx inputs', () => {
     expect(r.success).toBe(false);
   });
 });
+
+describe('paediatric dose warnings in the grid (docs/11 §4.4)', () => {
+  // Invented numbers for exercising the code; the real list comes from the paediatrician.
+  const rule = {
+    genericName: 'testdrug',
+    mgPerKgMin: 10,
+    mgPerKgMax: 15,
+    maxMgPerDose: 500,
+    maxDosesPerDay: 4,
+    concentrationMgPerMl: { syp: 25 },
+  };
+  const syrup = (over: Partial<WarnableItem> = {}) =>
+    item({
+      drugName: 'Testdrug syrup',
+      genericName: 'Testdrug',
+      form: 'syp',
+      doseText: '6 ml',
+      pattern: '1-1-1',
+      quantity: null,
+      ...over,
+    });
+  const codes = (w: ReturnType<typeof rxWarnings>) => w.map((x) => x.code);
+
+  it('adds nothing without a child context, or for a drug with no rule', () => {
+    expect(codes(rxWarnings([syrup()]))).not.toContain('paeds_dose');
+    expect(codes(rxWarnings([syrup()], { weightKg: 14, rules: [] }))).toEqual([]);
+    expect(
+      codes(rxWarnings([syrup({ genericName: 'Other' })], { weightKg: 14, rules: [rule] })),
+    ).toEqual([]);
+  });
+  it('is silent when the dose is in the range for the weight', () => {
+    expect(codes(rxWarnings([syrup()], { weightKg: 14, rules: [rule] }))).toEqual([]);
+  });
+  it('warns, with the expected range, when the dose is outside it; the dose is untouched', () => {
+    const items = [syrup({ doseText: '10 ml' })];
+    const w = rxWarnings(items, { weightKg: 14, rules: [rule] });
+    expect(w).toHaveLength(1);
+    expect(w[0]).toMatchObject({
+      code: 'paeds_dose',
+      row: 0,
+      paeds: { verdict: 'above', expectedMin: 5.6, expectedMax: 8.4, unit: 'ml', weightKg: 14 },
+    });
+    expect(items[0]!.doseText).toBe('10 ml');
+    expect(
+      rxWarnings([syrup({ doseText: '4 ml' })], { weightKg: 14, rules: [rule] })[0]!.paeds!.verdict,
+    ).toBe('below');
+  });
+  it('flags too many doses a day from the pattern or the code', () => {
+    const w = rxWarnings([syrup({ pattern: '1-1-1-1-1' })], {
+      weightKg: 14,
+      rules: [rule],
+    });
+    expect(w).toEqual([]); // not a valid pattern: no doses per day to judge
+    const five = rxWarnings([syrup({ pattern: '2-2-2', doseText: '6 ml' })], {
+      weightKg: 14,
+      rules: [{ ...rule, maxDosesPerDay: 4 }],
+    });
+    expect(five.map((x) => x.paeds?.verdict)).toEqual(['too_many_doses']);
+    const qid = rxWarnings([syrup({ pattern: null, frequencyCode: 'QID' })], {
+      weightKg: 14,
+      rules: [{ ...rule, maxDosesPerDay: 3 }],
+    });
+    expect(qid.map((x) => x.paeds?.verdict)).toEqual(['too_many_doses']);
+    expect(
+      rxWarnings([syrup({ pattern: null, frequencyCode: 'SOS' })], { weightKg: 14, rules: [rule] }),
+    ).toEqual([]);
+  });
+  it('tablets are judged on the strength of the drug', () => {
+    const tab = (doseText: string) =>
+      syrup({ form: 'tab', strength: '250 mg', doseText, pattern: '1-0-1' });
+    const ctx = { weightKg: 20, rules: [rule] };
+    expect(rxWarnings([tab('1 tab')], ctx)).toEqual([]);
+    expect(rxWarnings([tab('2 tab')], ctx)[0]!.paeds!.verdict).toBe('above');
+    // No strength known: cannot check, so no false alarm.
+    expect(rxWarnings([syrup({ form: 'tab', strength: null, doseText: '3 tab' })], ctx)).toEqual(
+      [],
+    );
+  });
+  it('says so when the weight of today is missing, only for a drug that has a rule', () => {
+    expect(codes(rxWarnings([syrup()], { weightKg: null, rules: [rule] }))).toEqual([
+      'paeds_no_weight',
+    ]);
+    expect(
+      codes(rxWarnings([syrup({ genericName: 'Other' })], { weightKg: null, rules: [rule] })),
+    ).toEqual([]);
+  });
+  it('keeps the other warnings alongside', () => {
+    const w = rxWarnings([syrup({ doseText: '10 ml', durationValue: null, durationUnit: null })], {
+      weightKg: 14,
+      rules: [rule],
+    });
+    expect(codes(w)).toContain('paeds_dose');
+  });
+});

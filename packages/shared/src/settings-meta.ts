@@ -52,6 +52,8 @@ export const SETTING_GROUPS = [
   'print',
   'vitals',
   'anc',
+  'paeds',
+  'immunisation',
   'usg',
   'pcpndt',
   'pmjay',
