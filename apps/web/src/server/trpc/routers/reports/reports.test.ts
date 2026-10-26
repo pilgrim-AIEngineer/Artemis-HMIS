@@ -12,8 +12,11 @@ import {
   setupAuthFixture,
   trpcError,
   type AuthFixture,
+  type Caller,
   type TestBrowser,
 } from '../../../../../test/auth-fixture';
+
+type Call = (c: Caller) => Promise<unknown>;
 
 let f: AuthFixture;
 let opd: Omit<OpdFixture, 't' | 'f'>;
@@ -64,14 +67,15 @@ async function visit(doctorId: string) {
 describe('permissions (rule 6)', () => {
   it('the front desk and the cashier open no report and no dashboard', async () => {
     for (const b of [reception, cashier]) {
-      for (const call of [
-        (c: Parameters<Parameters<typeof b.call>[0]>[0]) => c.reports.collection(range()),
-        (c: Parameters<Parameters<typeof b.call>[0]>[0]) => c.reports.opdCensus(range()),
-        (c: Parameters<Parameters<typeof b.call>[0]>[0]) => c.reports.ancRegister({}),
-        (c: Parameters<Parameters<typeof b.call>[0]>[0]) => c.reports.vaccinesDue({}),
-        (c: Parameters<Parameters<typeof b.call>[0]>[0]) => c.reports.dashboard(),
-        (c: Parameters<Parameters<typeof b.call>[0]>[0]) => c.billing.discountReport(range()),
-      ]) {
+      const calls: Call[] = [
+        (c: Caller) => c.reports.collection(range()),
+        (c: Caller) => c.reports.opdCensus(range()),
+        (c: Caller) => c.reports.ancRegister({}),
+        (c: Caller) => c.reports.vaccinesDue({}),
+        (c: Caller) => c.reports.dashboard(),
+        (c: Caller) => c.billing.discountReport(range()),
+      ];
+      for (const call of calls) {
         expect((await trpcError(b.call(call))).code).toBe('FORBIDDEN');
       }
     }
@@ -81,12 +85,12 @@ describe('permissions (rule 6)', () => {
     await expect(doctor.call((c) => c.reports.opdCensus(range()))).resolves.toBeDefined();
     await expect(doctor.call((c) => c.reports.ancRegister({}))).resolves.toBeDefined();
     await expect(doctor.call((c) => c.reports.vaccinesDue({}))).resolves.toBeDefined();
-    for (const call of [
-      (c: Parameters<Parameters<typeof doctor.call>[0]>[0]) => c.reports.collection(range()),
-      (c: Parameters<Parameters<typeof doctor.call>[0]>[0]) => c.reports.dashboard(),
-      (c: Parameters<Parameters<typeof doctor.call>[0]>[0]) =>
-        c.billing.cancellationReport(range()),
-    ]) {
+    const denied: Call[] = [
+      (c: Caller) => c.reports.collection(range()),
+      (c: Caller) => c.reports.dashboard(),
+      (c: Caller) => c.billing.cancellationReport(range()),
+    ];
+    for (const call of denied) {
       expect((await trpcError(doctor.call(call))).code).toBe('FORBIDDEN');
     }
   });
