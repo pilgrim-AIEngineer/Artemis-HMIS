@@ -6,6 +6,8 @@
 import {
   activeVitals,
   ancSummary,
+  getGrowthOverview,
+  getImmunisationCard,
   getPregnancyView,
   facilityCloseView,
   loadDayClose,
@@ -27,6 +29,11 @@ import {
   DEFAULT_QUICK_ORDERS,
   formatDate,
   formatGa as formatGaDays,
+  addDays,
+  istDateString,
+  outstandingDoses,
+  parseIsoDate,
+  toIsoDate,
   visitQrPayload,
 } from '@hmis/shared';
 import { and, desc, eq, lt, ne } from 'drizzle-orm';
@@ -36,6 +43,12 @@ import { initials, qrSvg } from './doc-utils';
 import { SampleDocument } from './templates/sample';
 import { ageSex, mobileLast4, sheetVitals } from './templates/format';
 import { AncCard, type AncCardData } from './templates/anc-card';
+import { GrowthChartSheet, type GrowthChartData } from './templates/growth-chart';
+import {
+  VaccinationCard,
+  VaccinationCertificate,
+  type VaccinationData,
+} from './templates/vaccination';
 import { OpdSheet, type OpdSheetData } from './templates/opd-sheet';
 import { PatientSticker, UhidCard, type PatientLabelData } from './templates/patient-labels';
 import {
@@ -48,6 +61,9 @@ import { Receipt, ReceiptA5, receiptStamp, type ReceiptPrintData } from './templ
 import {
   ANC_CARD_TEMPLATE,
   DAY_CLOSE_TEMPLATE,
+  GROWTH_CHART_TEMPLATE,
+  VACCINATION_CARD_TEMPLATE,
+  VACCINATION_CERTIFICATE_TEMPLATE,
   FACILITY_CLOSE_TEMPLATE,
   findTemplateMeta,
   OPD_SHEET_TEMPLATE,
@@ -439,6 +455,112 @@ const ancCard = impl<AncCardData>({
   body: (data, pm) => <AncCard data={data} meta={pm} />,
 });
 
+/** The vaccines given and still to give, as the card and the certificate print them (OPD-06). */
+async function vaccinationData(
+  db: Parameters<typeof getImmunisationCard>[0],
+  facilityId: string,
+  patientId: string,
+): Promise<VaccinationData | null> {
+  const now = new Date();
+  let card;
+  try {
+    card = await getImmunisationCard(db, { facilityId, userId: '' }, patientId, now);
+  } catch {
+    return null;
+  }
+  const [pt] = await db
+    .select({ guardian: patient.guardianName })
+    .from(patient)
+    .where(eq(patient.id, patientId));
+  const today = istDateString(now);
+  const horizon = toIsoDate(addDays(parseIsoDate(today), 365));
+  const byCode = new Map(card.rows.map((r) => [r.code, r.item]));
+  return {
+    patient: {
+      name: card.patient.name,
+      nameHi: card.patient.nameHi,
+      dob: card.patient.dob,
+      sex: card.patient.sex,
+      uhid: card.patient.uhid,
+      guardian: pt?.guardian ?? null,
+      mobileLast4: mobileLast4(card.patient.mobile),
+    },
+    scheduleName: card.scheduleName,
+    given: card.given.map((g) => {
+      const item = g.itemCode ? byCode.get(g.itemCode) : undefined;
+      return {
+        label: item
+          ? { hi: item.labelHi, en: item.label }
+          : { hi: g.vaccineName, en: g.vaccineName },
+        date: g.givenOn,
+        brand: g.brand,
+        batchNo: g.batchNo,
+        expiry: g.expiry,
+        site: g.site,
+      };
+    }),
+    pending: outstandingDoses(card.rows)
+      .filter((r) => !r.item.isOptional || r.dueDate! <= horizon)
+      .map((r) => ({
+        label: { hi: r.item.labelHi, en: r.item.label },
+        dueDate: r.dueDate!,
+        overdue: r.status === 'overdue',
+        optional: r.item.isOptional,
+      })),
+    nextDue: card.nextDueDate,
+  };
+}
+
+/** `/print/vaccination-card/<patient id>`: A5 card with batches and what is still due (OPD-06). */
+const vaccinationCard = impl<VaccinationData>({
+  meta: metaOf(VACCINATION_CARD_TEMPLATE),
+  load: ({ db, facilityId, entityId }) => vaccinationData(db, facilityId, entityId),
+  body: (data, pm) => <VaccinationCard data={data} meta={pm} />,
+});
+
+/** `/print/vaccination-certificate/<patient id>`: the doses given, for signature and stamp. */
+const vaccinationCertificate = impl<VaccinationData>({
+  meta: metaOf(VACCINATION_CERTIFICATE_TEMPLATE),
+  load: ({ db, facilityId, entityId }) => vaccinationData(db, facilityId, entityId),
+  body: (data, pm) => <VaccinationCertificate data={data} meta={pm} />,
+});
+
+/** `/print/growth-chart/<patient id>`: WHO charts with the child's points (OPD-06). */
+const growthChart = impl<GrowthChartData>({
+  meta: metaOf(GROWTH_CHART_TEMPLATE),
+  async load({ db, facilityId, entityId }) {
+    let v;
+    try {
+      v = await getGrowthOverview(db, { facilityId, userId: '' }, entityId, new Date());
+    } catch {
+      return null;
+    }
+    return {
+      patient: {
+        name: v.patient.name,
+        nameHi: v.patient.nameHi,
+        dob: v.patient.dob,
+        sex: v.patient.sex,
+        uhid: v.patient.uhid,
+      },
+      charts: v.charts,
+      rows: [...v.measurements]
+        .sort((a, b) => a.measuredOn.localeCompare(b.measuredOn))
+        .map((m) => ({
+          date: m.measuredOn,
+          weightKg: m.weightKg,
+          lengthHeightCm: m.lengthHeightCm,
+          headCircCm: m.headCircCm,
+          zWfa: m.zScores.wfa,
+          zLhfa: m.zScores.lhfa,
+          zHcfa: m.zScores.hcfa,
+          zWfh: m.zScores.wfh,
+        })),
+    };
+  },
+  body: (data, pm) => <GrowthChartSheet data={data} meta={pm} />,
+});
+
 const IMPLS = new Map<string, TemplateImpl<unknown>>(
   [
     ...sampleTemplates,
@@ -450,6 +572,9 @@ const IMPLS = new Map<string, TemplateImpl<unknown>>(
     dayCloseSlip,
     facilityClose,
     ancCard,
+    vaccinationCard,
+    vaccinationCertificate,
+    growthChart,
   ].map((t) => [t.meta.key, t]),
 );
 

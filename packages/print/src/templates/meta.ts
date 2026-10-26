@@ -21,6 +21,9 @@ export const RECEIPT_A5_TEMPLATE = 'receipt-a5';
 export const DAY_CLOSE_TEMPLATE = 'day-close';
 export const FACILITY_CLOSE_TEMPLATE = 'facility-close';
 export const ANC_CARD_TEMPLATE = 'anc-card';
+export const VACCINATION_CARD_TEMPLATE = 'vaccination-card';
+export const VACCINATION_CERTIFICATE_TEMPLATE = 'vaccination-certificate';
+export const GROWTH_CHART_TEMPLATE = 'growth-chart';
 
 /** REG-06: A5 sheet per visit; the entity is the encounter. */
 const OPD_SHEET: PrintTemplateMeta = {
@@ -102,6 +105,36 @@ const ANC_CARD: PrintTemplateMeta = {
   markDuplicate: false,
 };
 
+/** OPD-06: vaccination card on A5; the entity is the patient. */
+const VACCINATION_CARD: PrintTemplateMeta = {
+  key: VACCINATION_CARD_TEMPLATE,
+  paper: 'a5',
+  entity: 'patient',
+  permission: 'clinical.paeds.edit',
+  title: L.vaccinationCardTitle,
+  chrome: 'compact',
+  markDuplicate: false,
+};
+
+/** OPD-06: certificate of the vaccines given, on A4. */
+const VACCINATION_CERTIFICATE: PrintTemplateMeta = {
+  key: VACCINATION_CERTIFICATE_TEMPLATE,
+  paper: 'a4',
+  entity: 'patient',
+  permission: 'clinical.paeds.edit',
+  title: L.vaccinationCertTitle,
+};
+
+/** OPD-06: the WHO growth charts with the child's points, on A4. */
+const GROWTH_CHART: PrintTemplateMeta = {
+  key: GROWTH_CHART_TEMPLATE,
+  paper: 'a4',
+  entity: 'patient',
+  permission: 'clinical.paeds.edit',
+  title: L.growthChartTitle,
+  markDuplicate: false,
+};
+
 /** All print templates, client-safe. Add real templates here and in `server.tsx`. */
 export const PRINT_TEMPLATE_METAS: readonly PrintTemplateMeta[] = [
   ...SAMPLE_METAS,
@@ -113,6 +146,9 @@ export const PRINT_TEMPLATE_METAS: readonly PrintTemplateMeta[] = [
   DAY_CLOSE,
   FACILITY_CLOSE,
   ANC_CARD,
+  VACCINATION_CARD,
+  VACCINATION_CERTIFICATE,
+  GROWTH_CHART,
 ];
 
 export const findTemplateMeta = (key: string): PrintTemplateMeta | undefined =>

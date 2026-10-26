@@ -16,6 +16,7 @@
   "dependencies": {
     "@hmis/db": "workspace:*",
     "@hmis/shared": "workspace:*",
+    "@hmis/ui": "workspace:*",
     "drizzle-orm": "0.45.4",
     "qrcode": "1.5.4",
     "react": "19.3.1",
