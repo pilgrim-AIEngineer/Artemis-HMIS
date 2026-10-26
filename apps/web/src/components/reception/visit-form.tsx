@@ -15,15 +15,18 @@ import { PatientHeader } from '@hmis/ui/components/patient-header';
 import { Select } from '@hmis/ui/components/select';
 import { cn } from '@hmis/ui/lib/utils';
 import { skipToken, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ListChecks, Ticket } from 'lucide-react';
+import { IndianRupee, ListChecks, ReceiptText, Ticket } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { useSession } from '@/components/auth/session-provider';
+import { PaymentDialog, type PaidResult } from '@/components/billing/payment-dialog';
+import { ShortcutHint } from '@/components/shortcut-hint';
 import { PrintButton } from '@/components/print/print-button';
 import { PrintOnMount } from '@/components/print/print-on-mount';
 import { useAgeText } from '@/lib/use-age-text';
 import { useErrorText } from '@/lib/use-error-text';
+import { useShortcut } from '@/lib/use-shortcut';
 import { useTRPC } from '@/trpc/client';
 
 const DOCTOR_KEY = 'hmis.visit.doctor';
@@ -45,6 +48,7 @@ export function VisitForm({ patientId }: { patientId: string }) {
   const queryClient = useQueryClient();
   const { me } = useSession();
   const canRelease = me.permissions.includes('billing.payment.collect');
+  const canBill = me.permissions.includes('billing.bill.create');
 
   const patient = useQuery(trpc.patients.get.queryOptions({ id: patientId }));
   const doctors = useQuery(trpc.visit.doctors.queryOptions());
@@ -90,6 +94,21 @@ export function VisitForm({ patientId }: { patientId: string }) {
       },
     }),
   );
+  const [paying, setPaying] = useState(false);
+  const [paid, setPaid] = useState<PaidResult | null>(null);
+  const created0 = create.data;
+  // The draft bill of the new visit (BIL-01): its balance is what the payment dialog collects.
+  const bill = useQuery(
+    trpc.billing.get.queryOptions(created0 && canBill ? { billId: created0.billId } : skipToken),
+  );
+  const canPay =
+    !!created0 &&
+    canRelease &&
+    created0.tokenNo === null &&
+    !paid &&
+    (bill.data?.balancePaise ?? 0n) > 0n;
+  useShortcut('F8', () => setPaying(true), canPay && !paying);
+
   const issue = useMutation(
     trpc.visit.issueToken.mutationOptions({
       onError: (e) => setError({ text: errorText(e), key: '' }),
@@ -168,10 +187,37 @@ export function VisitForm({ patientId }: { patientId: string }) {
               </span>
               {created.tokenNo}
             </p>
-          ) : (
+          ) : paid ? null : (
             <p className="text-xl" role="status">
               {feeMissing ? t('feeMissing') : t('collectThenToken', { amount: formatINR(fee) })}
             </p>
+          )}
+          {paid && (
+            <div className="space-y-2" data-testid="visit-paid">
+              <p className="text-xl font-semibold" role="status">
+                {t('paid', {
+                  amount: formatINR(BigInt(paid.totalPaise)),
+                  receipt: paid.receiptNumber,
+                })}
+              </p>
+              {paid.tokenNo !== null ? (
+                <p className="text-6xl font-bold tabular-nums" role="status">
+                  <span className="text-2xl font-semibold text-muted-foreground">
+                    {t('tokenLabel')}{' '}
+                  </span>
+                  {paid.tokenNo}
+                </p>
+              ) : (
+                <p className="text-xl" role="status">
+                  {t('stillDue', { amount: formatINR(BigInt(paid.balancePaise)) })}
+                </p>
+              )}
+              <PrintOnMount
+                key={paid.collectionId}
+                template="receipt"
+                entityId={paid.collectionId}
+              />
+            </div>
           )}
           {issue.data && (
             <p className="text-6xl font-bold tabular-nums" role="status">
@@ -186,7 +232,7 @@ export function VisitForm({ patientId }: { patientId: string }) {
               {error.text}
             </p>
           )}
-          {(created.printSheet || issue.data?.printSheet) && (
+          {(created.printSheet || issue.data?.printSheet) && !paid && (
             <PrintOnMount template="opd-sheet" entityId={created.encounterId} />
           )}
           <div className="flex flex-wrap gap-3">
@@ -198,7 +244,31 @@ export function VisitForm({ patientId }: { patientId: string }) {
               size="lg"
               shortcut={false}
             />
-            {created.tokenNo === null && !issue.data && canRelease && (
+            {canPay && (
+              <Button
+                variant="money"
+                size="lg"
+                autoFocus
+                onClick={() => setPaying(true)}
+                data-testid="visit-collect"
+              >
+                <IndianRupee aria-hidden />
+                {t('collect', { amount: formatINR(bill.data!.balancePaise) })}
+                <ShortcutHint keys="F8" />
+              </Button>
+            )}
+            {paid && (
+              <PrintButton
+                template="receipt"
+                entityId={paid.collectionId}
+                label={t('printReceipt')}
+                variant="outline"
+                size="lg"
+                shortcut={false}
+              />
+            )}
+            {/* Fee not priced in the system (no rule / no rate): the token is released by hand. */}
+            {created.tokenNo === null && !issue.data && !paid && canRelease && feeMissing && (
               <Button
                 variant="money"
                 size="lg"
@@ -209,16 +279,37 @@ export function VisitForm({ patientId }: { patientId: string }) {
                 {t('giveToken')}
               </Button>
             )}
+            {canBill && (
+              <Button asChild variant="outline" size="lg">
+                <Link href={`/billing/bills/${created.billId}`}>
+                  <ReceiptText aria-hidden />
+                  {t('openBill')}
+                </Link>
+              </Button>
+            )}
             <Button asChild variant="outline" size="lg">
               <Link href="/reception/queue">
                 <ListChecks aria-hidden />
                 {t('openQueue')}
               </Link>
             </Button>
-            <Button asChild size="lg" autoFocus>
+            <Button asChild size="lg" autoFocus={!canPay}>
               <Link href="/reception">{tR('summary.backToSearch')}</Link>
             </Button>
           </div>
+          {canPay && (
+            <PaymentDialog
+              billId={created.billId}
+              balancePaise={bill.data!.balancePaise}
+              open={paying}
+              onOpenChange={setPaying}
+              onPaid={(r) => {
+                setPaid(r);
+                void queryClient.invalidateQueries({ queryKey: [['queue']] });
+                void queryClient.invalidateQueries({ queryKey: trpc.billing.pathKey() });
+              }}
+            />
+          )}
         </section>
       </div>
     );

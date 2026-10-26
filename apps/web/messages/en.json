@@ -12,7 +12,8 @@
     "done": "Done.",
     "never": "Never",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "close": "Close"
   },
   "language": {
     "label": "Language",
@@ -1030,7 +1031,8 @@
       "notFound": "Visit not found.",
       "notCancellable": "The patient has already been seen, so the visit cannot be cancelled.",
       "tokenAlreadyIssued": "This visit already has a token.",
-      "notOpen": "This visit is already closed or cancelled."
+      "notOpen": "This visit is already closed or cancelled.",
+      "billHasPayments": "Money has been collected on this visit. Cancel the bill with a credit note first."
     },
     "queue": {
       "tokenNotFound": "Token not found. Please reload.",
@@ -1042,6 +1044,23 @@
     },
     "idempotency": {
       "conflict": "This request was already used for a different entry. Reload the page and try again."
+    },
+    "billing": {
+      "billNotFound": "This bill was not found. Please reload.",
+      "lineNotFound": "This item is no longer on the bill. Please reload.",
+      "encounterNotFound": "This visit was not found.",
+      "encounterNotOpen": "This visit is closed or cancelled.",
+      "serviceNotFound": "This service is not available. Choose another.",
+      "noRate": "This service has no rate in the tariff. Ask the administrator to set it.",
+      "notDraft": "This bill is already final and cannot be changed.",
+      "billCancelled": "This bill is cancelled.",
+      "empty": "Add at least one item before finalising.",
+      "unpaid": "Collect the full amount before finalising the bill.",
+      "belowPaid": "The bill cannot go below the amount already paid. A refund is needed.",
+      "nothingDue": "Nothing is due on this bill.",
+      "overpayment": "The amount is more than what is due. Give the change back in cash.",
+      "upiRefRequired": "Enter the UTR (or its last digits) for this UPI payment.",
+      "finalizeNotAllowed": "You may take a part payment, but settling the bill needs permission to finalise bills."
     }
   },
   "nav": {
@@ -1388,7 +1407,12 @@
     "feeMissing": "The fee is not set. Check with the administrator before giving a token.",
     "giveToken": "Fee collected: give token",
     "openQueue": "Open queue",
-    "printSheet": "Print OPD sheet"
+    "printSheet": "Print OPD sheet",
+    "collect": "Collect {amount}",
+    "paid": "{amount} received. Receipt {receipt}.",
+    "stillDue": "Still due: {amount}. The token is given when the bill is paid.",
+    "printReceipt": "Print receipt",
+    "openBill": "Open bill"
   },
   "display": {
     "title": "Waiting hall queue",
@@ -1401,5 +1425,101 @@
     "enableSound": "Tap to turn on sound",
     "invalid": "This display link is no longer valid",
     "announce": "Token number {no}, please come to {doctor}"
+  },
+  "paise": {
+    "invalid": "Enter the amount in rupees, e.g. 500 or 499.50.",
+    "negative": "The amount cannot be negative.",
+    "notPositive": "Enter an amount above ₹0.",
+    "tooLarge": "This amount is too large. Check the number."
+  },
+  "quantity": {
+    "invalid": "Enter a quantity such as 1 or 1.5.",
+    "notPositive": "The quantity must be more than 0.",
+    "tooLarge": "The quantity is too large. Check the number."
+  },
+  "billing": {
+    "upiRefInvalid": "The UTR must be 4 to 12 digits.",
+    "cardLast4Invalid": "Enter the last 4 digits of the card.",
+    "duplicateMode": "Each payment mode can be used once.",
+    "deskTitle": "Billing desk",
+    "search": "Find bill",
+    "searchPlaceholder": "UHID, mobile, name or visit number",
+    "pendingList": "Bills waiting for payment",
+    "nothingPending": "No bills are waiting for payment.",
+    "noMatch": "No unpaid bill matches this search.",
+    "due": "due",
+    "notFound": "This bill was not found.",
+    "billNo": "Bill {number}",
+    "draftTitle": "Draft bill",
+    "visitLine": "Visit {number} · {doctor}",
+    "tokenNo": "Token {token}",
+    "token": "Token",
+    "backToDesk": "Billing desk",
+    "paidDone": "{amount} received. Receipt {receipt}.",
+    "lines": "Items",
+    "noLines": "No items yet. Add a service below.",
+    "cols": {
+      "item": "Item",
+      "qty": "Qty",
+      "rate": "Rate",
+      "gst": "GST",
+      "amount": "Amount",
+      "actions": "Actions"
+    },
+    "exempt": "Exempt",
+    "removeLine": "Remove {item}",
+    "addService": "Add service",
+    "addServicePlaceholder": "Type a service name or code",
+    "noRate": "Rate not set",
+    "noServices": "No service matches.",
+    "totals": "Totals",
+    "gross": "Total of items",
+    "discount": "Discount",
+    "cgst": "CGST",
+    "sgst": "SGST",
+    "roundOff": "Round off",
+    "net": "Bill amount",
+    "paid": "Paid",
+    "balance": "Balance due",
+    "finalize": "Finalise bill",
+    "collect": "Collect {amount}",
+    "payments": "Payments",
+    "printReceipt": "Print receipt",
+    "status": {
+      "draft": "Draft",
+      "final": "Final",
+      "cancelled": "Cancelled"
+    },
+    "modes": {
+      "cash": "Cash",
+      "upi": "UPI",
+      "card": "Card",
+      "split": "Split"
+    },
+    "pay": {
+      "title": "Collect payment",
+      "due": "Amount due",
+      "mode": "Payment mode",
+      "amount": "Amount received now",
+      "partial": "Part payment: {amount} will remain due.",
+      "remaining": "Still to split: {amount}",
+      "over": "{amount} more than due",
+      "tendered": "Cash given by patient",
+      "change": "Return {amount}",
+      "short": "{amount} short",
+      "utr": "UTR / last digits (optional)",
+      "utrNeeded": "UTR / last digits (needed)",
+      "upiPayerName": "Paid by (name, optional)",
+      "cardLast4": "Card last 4 digits (optional)",
+      "enterAmount": "Enter the amount received.",
+      "moreThanDue": "This is more than the amount due ({due}). Give the change back in cash.",
+      "utrRequired": "Enter the UTR (or its last digits) for this UPI payment.",
+      "utrInvalid": "The UTR must be 4 to 12 digits.",
+      "cardInvalid": "Enter the last 4 digits of the card.",
+      "collect": "Collect {amount}",
+      "confirmTitle": "Confirm payment received",
+      "confirm": "Yes, received",
+      "back": "Go back"
+    }
   }
 }
