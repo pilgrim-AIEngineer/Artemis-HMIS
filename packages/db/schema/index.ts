@@ -9,3 +9,4 @@ export * from './masters';
 export * from './patient';
 export { currentAppUserId } from './columns';
 export * from './visit';
+export * from './billing';
