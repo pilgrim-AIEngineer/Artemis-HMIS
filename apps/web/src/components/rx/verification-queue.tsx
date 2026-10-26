@@ -5,6 +5,7 @@ import { Button } from '@hmis/ui/components/button';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
+import { WarningText } from './warning-text';
 import { useState } from 'react';
 import { FormStatus } from '@/components/form/text-field';
 import { useAgeText } from '@/lib/use-age-text';
@@ -102,7 +103,7 @@ export function VerificationQueue() {
                       key={`${w.code}-${w.row}`}
                       className="rounded-md border-2 border-amber-600 bg-amber-50 px-3 py-1 text-amber-950"
                     >
-                      ▲ {w.row + 1}. {t(`warnings.${w.code}`)}
+                      ▲ {w.row + 1}. <WarningText warning={w} />
                     </li>
                   ))}
                 </ul>

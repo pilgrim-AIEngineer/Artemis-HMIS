@@ -6,6 +6,7 @@ import { billingRouter } from './routers/billing';
 import { dayCloseRouter } from './routers/billing/day-close';
 import { healthRouter } from './routers/health';
 import { mastersRouter } from './routers/masters';
+import { paedsRouter } from './routers/paeds';
 import { patientsRouter } from './routers/patients';
 import { printRouter } from './routers/print';
 import { queueRouter } from './routers/queue';
@@ -24,6 +25,7 @@ export const appRouter = router({
   queue: queueRouter,
   vitals: vitalsRouter,
   anc: ancRouter,
+  paeds: paedsRouter,
   rx: rxRouter,
   billing: billingRouter,
   dayClose: dayCloseRouter,

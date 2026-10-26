@@ -171,7 +171,7 @@ export function RxScreen({ ctx, onReload }: { ctx: Context; onReload: () => void
   }, [autosaving, encounterId]);
 
   // ---- save
-  const warnings = useMemo(() => warningsOf(state.rows), [state.rows]);
+  const warnings = useMemo(() => warningsOf(state.rows, ctx.paeds), [state.rows, ctx.paeds]);
   const payloadJson = JSON.stringify(toDraft(state));
   // One key per content: a double click or a retry of the same Rx replays the first result.
   const idemKey = useMemo(() => uuidv7(), [payloadJson]); // eslint-disable-line react-hooks/exhaustive-deps
