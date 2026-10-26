@@ -66,7 +66,7 @@ E2E flows 1, 2, 5, 6 land with M3.
 | 19 | MSG-01 | Outbox + worker sender (Meta Cloud API adapter — Q13), templates, retry 48 h, receipts + `reminder.daily` |
 | 20 | MIG-01 | Excel/CSV import for patients and rate list with dry-run + error report |
 | 21 | OPS-01 | `install.sh`, `update.sh` with rollback, backups (pgBackRest/restic to USB + S3 Mumbai), `backup-check.sh`, `restore-drill.sh`, `/api/health`, monitoring alerts |
-| 22 | — | Hardening: k6 load test at `32 §1` targets, ASVS L1 checklist, `--demo` seed complete, UAT scripts, go-live checklist (`31 §7`) |
+| 22 | — | Hardening: k6 load test at `32 §1` targets, ASVS L1 checklist, `--demo` seed complete, UAT scripts, go-live checklist (`31 §7`) — done: `34`, `35`, `36`, `docs/uat/` |
 
 ## 3. Inputs needed from the hospital before go-live (not blocking development)
 

@@ -59,6 +59,8 @@ Pre-printed blank OPD sheets, downtime receipt book (DT-series numbers), downtim
 
 ## 7. Go-live checklist (Phase 1)
 
+The tracked, fill-in copy of this list (owner, proof, evidence, status) is `docs/35-go-live-checklist.md`; this list stays the short reference.
+
 - [ ] Masters reviewed and signed by owner (services, fees, doctors, follow-up rules, quick-tick orders, Rx phrases)
 - [ ] Users created, one per person; roles reviewed; PINs set
 - [ ] Every PC opens hmis.local without certificate warning; every printer prints its templates
