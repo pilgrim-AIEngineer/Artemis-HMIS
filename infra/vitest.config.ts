@@ -6,6 +6,11 @@ export default defineProject({
   test: {
     name: 'infra',
     include: ['tests/**/*.test.ts'],
+    // Docker builds, restic and extra Postgres containers are heavy: run this project after all
+    // the others (not alongside them) so it cannot starve their timing-sensitive DB tests.
+    sequence: { groupOrder: 1 },
+    // Files share the host's Docker daemon; keep them serial too.
+    fileParallelism: false,
     testTimeout: 120_000,
     hookTimeout: 600_000,
   },

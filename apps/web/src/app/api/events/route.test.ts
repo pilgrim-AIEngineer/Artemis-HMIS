@@ -95,8 +95,13 @@ describe('GET /api/events', () => {
       await issueToken(tx, actor, v.encounterId, 'manual_fee_pending', new Date());
     });
     text = '';
-    for (let i = 0; i < 5 && !text.includes('event: change'); i++)
-      text += dec.decode((await reader.read()).value);
+    // Heartbeats and the change arrive on the LISTEN/NOTIFY schedule: wait for it, with a deadline.
+    const deadline = Date.now() + 15_000;
+    while (!text.includes('event: change') && Date.now() < deadline) {
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      text += dec.decode(chunk.value);
+    }
     expect(text).toContain(`"d":"${opd.doctorB}"`);
     ctl.abort();
   });

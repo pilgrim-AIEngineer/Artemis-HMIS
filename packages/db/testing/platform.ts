@@ -21,9 +21,20 @@ export interface PlatformTestDb {
   close: () => Promise<void>;
 }
 
+/**
+ * Tests queue far more transactions than the pool has connections (e.g. 60 concurrent token
+ * allocations) while the whole suite loads the machine; the 5 s production timeout would make
+ * them flaky.
+ */
+const TEST_CONNECT_TIMEOUT_MS = 60_000;
+
 export async function setupPlatformDb(adminUrl: string, appPoolMax = 20): Promise<PlatformTestDb> {
   const url = await createTestDatabase(adminUrl);
-  const owner = createDb({ connectionString: url, max: 4 });
+  const owner = createDb({
+    connectionString: url,
+    max: 4,
+    connectionTimeoutMs: TEST_CONNECT_TIMEOUT_MS,
+  });
   await runMigrations(owner);
 
   const user = `t_app_${randomBytes(5).toString('hex')}`;
@@ -32,7 +43,11 @@ export async function setupPlatformDb(adminUrl: string, appPoolMax = 20): Promis
   const appUrl = new URL(url);
   appUrl.username = user;
   appUrl.password = password;
-  const app = createDb({ connectionString: appUrl.toString(), max: appPoolMax });
+  const app = createDb({
+    connectionString: appUrl.toString(),
+    max: appPoolMax,
+    connectionTimeoutMs: TEST_CONNECT_TIMEOUT_MS,
+  });
 
   return {
     owner,
