@@ -13,8 +13,8 @@ import {
   reminderInstant,
   toIsoDate,
 } from '@hmis/shared';
-import { and, eq } from 'drizzle-orm';
-import { clinicalNote, doctorProfile, encounter, patient } from '../schema';
+import { and, eq, gte, lte } from 'drizzle-orm';
+import { clinicalNote, doctorProfile, encounter, messageOutbox, patient } from '../schema';
 import { activePregnancies } from './anc';
 import type { Db } from './client';
 import { enqueueMessage, activeFacilityIds } from './messaging';
@@ -23,6 +23,8 @@ import { readSettings } from './settings';
 import { withTx } from './tx';
 
 const plus = (date: string, days: number) => toIsoDate(addDays(parseIsoDate(date), days));
+/** A visit already reminded within this long is not reminded again by the overlapping windows. */
+const REMINDED_LOOKBACK_MS = 7 * 24 * 60 * 60 * 1000;
 const SYSTEM_USER = '00000000-0000-0000-0000-000000000000';
 
 export interface ReminderRun {
@@ -45,6 +47,27 @@ export async function queueDailyReminders(
   if (!cfg['whatsapp.enabled']) return out;
   const tomorrow = plus(istDateString(now), 1);
   const sendAfter = reminderInstant(tomorrow);
+  // Visits from tomorrow up to the normal target are in the window: a run that did not happen
+  // (power cut, restart) leaves its visits to the next run, which sends at its own next 10:00.
+  // Visits already today or past are not reminded.
+  const followUpTarget = plus(tomorrow, cfg['whatsapp.followUpLeadDays']);
+  const lookback = new Date(now.getTime() - REMINDED_LOOKBACK_MS);
+  const alreadyReminded = async (patientId: string, kind: string, entityId: string) => {
+    const [row] = await db
+      .select({ id: messageOutbox.id })
+      .from(messageOutbox)
+      .where(
+        and(
+          eq(messageOutbox.facilityId, facilityId),
+          eq(messageOutbox.patientId, patientId),
+          eq(messageOutbox.templateKind, kind),
+          eq(messageOutbox.entityId, entityId),
+          gte(messageOutbox.createdAt, lookback),
+        ),
+      )
+      .limit(1);
+    return !!row;
+  };
 
   const notes = await db
     .select({
@@ -62,29 +85,35 @@ export async function queueDailyReminders(
       and(
         eq(clinicalNote.facilityId, facilityId),
         eq(clinicalNote.status, 'final'),
-        eq(clinicalNote.followUpDate, plus(tomorrow, cfg['whatsapp.followUpLeadDays'])),
+        gte(clinicalNote.followUpDate, tomorrow),
+        lte(clinicalNote.followUpDate, followUpTarget),
       ),
     );
   for (const n of notes) {
-    const r = await withTx({ db, userId: null, facilityId }, (tx) =>
-      enqueueMessage(
-        tx,
-        {
-          facilityId,
-          patientId: n.patientId,
-          kind: 'follow_up',
-          entityId: n.id,
-          sendAfter,
-          variables: {
-            patientName: n.patientName,
-            doctorName: n.doctorName ?? '',
-            date: formatDate(n.date!),
+    try {
+      if (await alreadyReminded(n.patientId, 'follow_up', n.id)) continue;
+      const r = await withTx({ db, userId: null, facilityId }, (tx) =>
+        enqueueMessage(
+          tx,
+          {
+            facilityId,
+            patientId: n.patientId,
+            kind: 'follow_up',
+            entityId: n.id,
+            sendAfter,
+            variables: {
+              patientName: n.patientName,
+              doctorName: n.doctorName ?? '',
+              date: formatDate(n.date!),
+            },
           },
-        },
-        now,
-      ),
-    );
-    if (r.id) out.followUp += 1;
+          now,
+        ),
+      );
+      if (r.id) out.followUp += 1;
+    } catch {
+      // One bad row must not drop the rest of the run; the next run retries it (no patient data logged).
+    }
   }
 
   const target = plus(tomorrow, cfg['whatsapp.ancLeadDays']);
@@ -94,22 +123,28 @@ export async function queueDailyReminders(
     now,
   );
   for (const p of pregnancies) {
-    if (p.nextVisit?.date !== target) continue;
-    const r = await withTx({ db, userId: null, facilityId }, (tx) =>
-      enqueueMessage(
-        tx,
-        {
-          facilityId,
-          patientId: p.patientId,
-          kind: 'anc_reminder',
-          entityId: p.id,
-          sendAfter,
-          variables: { patientName: p.fullName, date: formatDate(target) },
-        },
-        now,
-      ),
-    );
-    if (r.id) out.anc += 1;
+    const date = p.nextVisit?.date;
+    if (!date || date < tomorrow || date > target) continue;
+    try {
+      if (await alreadyReminded(p.patientId, 'anc_reminder', p.id)) continue;
+      const r = await withTx({ db, userId: null, facilityId }, (tx) =>
+        enqueueMessage(
+          tx,
+          {
+            facilityId,
+            patientId: p.patientId,
+            kind: 'anc_reminder',
+            entityId: p.id,
+            sendAfter,
+            variables: { patientName: p.fullName, date: formatDate(date) },
+          },
+          now,
+        ),
+      );
+      if (r.id) out.anc += 1;
+    } catch {
+      // See above: isolate the failure to this pregnancy.
+    }
   }
 
   out.vaccine = await refreshDueVaccineReminders(db, facilityId, now);
