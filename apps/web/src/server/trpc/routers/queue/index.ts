@@ -1,10 +1,14 @@
 import {
+  advanceToken,
   callNext,
+  hasDisplayKey,
   markDone,
   markNoShow,
   markSeen,
   queueBoard,
+  readSetting,
   recall,
+  rotateDisplayKey,
   reinstate,
   sendIn,
   setPriority,
@@ -27,6 +31,10 @@ const view = protectedProcedure.meta({ permission: 'patient.view' });
 const room = protectedProcedure.meta({ permission: 'queue.call' });
 /** Desk actions: no-show, reinstate, transfer, priority. */
 const desk = protectedProcedure.meta({ permission: 'queue.manage' });
+/** The waiting-hall TV link (docs/03: `queue.display.manage`). */
+const display = protectedProcedure.meta({ permission: 'queue.display.manage' });
+/** Vitals desk (docs/10 §8). */
+const vitals = protectedProcedure.meta({ permission: 'vitals.record' });
 
 /** Updated token rows carry no patient data; the board re-reads through `queue.board`. */
 const pick = <T extends { id: string; queueState: string; tokenNo: number }>(t: T) => ({
@@ -41,6 +49,34 @@ export const queueRouter = router({
     .query(({ ctx, input }) =>
       ctx.tx((tx) => queueBoard(tx, ctx.auth.facilityId, input, ctx.now())),
     ),
+
+  /** Whether a TV link exists. The key itself is never readable: only its hash is stored. */
+  displayStatus: display.query(async ({ ctx }) => ({
+    configured: await hasDisplayKey(ctx.db(), ctx.auth.facilityId),
+  })),
+
+  /**
+   * Creates or replaces the TV link key and returns it once (REG-05). The old link stops
+   * working immediately; the TV must be opened with the new one.
+   */
+  rotateDisplayKey: display.mutation(async ({ ctx }) => ({
+    key: await ctx.tx((tx) => rotateDisplayKey(tx, ctx.auth.facilityId)),
+  })),
+
+  /**
+   * Vitals taken: `waiting` → `vitals_done`. Saving the vitals themselves arrives with OPD-01,
+   * which calls the same step. `printSheet` tells the screen to print the OPD sheet now
+   * (`opd.sheetPrintAt` = `vitals`, the default, docs/10 §7).
+   */
+  vitalsDone: vitals.input(tokenIdSchema).mutation(({ ctx, input }) =>
+    mapped(() =>
+      ctx.tx(async (tx) => {
+        const t = await advanceToken(tx, a(ctx), input.tokenId, 'vitals_done', ctx.now(), 'vitals');
+        const at = await readSetting(tx, ctx.auth.facilityId, 'opd.sheetPrintAt');
+        return { ...pick(t), encounterId: t.encounterId, printSheet: at === 'vitals' };
+      }),
+    ),
+  ),
 
   callNext: room
     .input(callNextSchema)

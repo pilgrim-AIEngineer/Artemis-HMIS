@@ -60,6 +60,33 @@ describe('tRPC HTTP handler', () => {
     expect(body.result.data.json.username).toBe(f.users.reception.username);
   });
 
+  it('serves a query sent by POST, so its input never has to be in a URL (rule 15)', async () => {
+    const res = await login(f.users.reception.username);
+    const token = res.headers
+      .getSetCookie()
+      .find((c) => c.startsWith('hmis_session='))!
+      .split(';')[0]!;
+    const me = await handler(
+      new Request(`${base}/auth.me`, {
+        method: 'POST',
+        headers: { ...sameOrigin, cookie: `${token}; hmis_csrf=${CSRF}`, host: 'hmis.local' },
+        body: JSON.stringify({ json: null }),
+      }),
+    );
+    expect(me.status).toBe(200);
+    const body = (await me.json()) as { result: { data: { json: { username: string } } } };
+    expect(body.result.data.json.username).toBe(f.users.reception.username);
+    // …and the POST still needs the CSRF token like any other.
+    const bare = await handler(
+      new Request(`${base}/auth.me`, {
+        method: 'POST',
+        headers: { ...sameOrigin, 'x-csrf-token': '', cookie: token, host: 'hmis.local' },
+        body: JSON.stringify({ json: null }),
+      }),
+    );
+    expect(bare.status).toBe(403);
+  });
+
   it.each([
     ['a cross-site POST', { 'sec-fetch-site': 'cross-site' }],
     ['a foreign Origin', { origin: 'https://evil.example', 'sec-fetch-site': null }],

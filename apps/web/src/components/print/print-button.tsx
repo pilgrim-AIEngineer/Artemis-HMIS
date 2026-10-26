@@ -4,7 +4,7 @@ import { Button } from '@hmis/ui/components/button';
 import { useMutation } from '@tanstack/react-query';
 import { Printer } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ComponentProps } from 'react';
 import { FormStatus } from '@/components/form/text-field';
 import { ShortcutHint } from '@/components/shortcut-hint';
 import { useErrorText } from '@/lib/use-error-text';
@@ -23,12 +23,19 @@ export function PrintButton({
   entityId,
   onCopy,
   shortcut = true,
+  label,
+  variant,
+  size,
 }: {
   template: string;
   entityId: string;
   /** Called with the copy number once it has been logged. */
   onCopy?: (copyNo: number) => void;
   shortcut?: boolean;
+  /** Button text; defaults to "Print". */
+  label?: string;
+  variant?: ComponentProps<typeof Button>['variant'];
+  size?: ComponentProps<typeof Button>['size'];
 }) {
   const t = useTranslations('print');
   const errorText = useErrorText();
@@ -57,10 +64,10 @@ export function PrintButton({
 
   return (
     <div className="space-y-1">
-      <Button onClick={start} disabled={begin.isPending}>
+      <Button onClick={start} disabled={begin.isPending} variant={variant} size={size}>
         <Printer aria-hidden />
-        {t('print')}
-        <ShortcutHint keys="Ctrl+P" />
+        {label ?? t('print')}
+        {shortcut && <ShortcutHint keys="Ctrl+P" />}
       </Button>
       <FormStatus error={error} />
     </div>

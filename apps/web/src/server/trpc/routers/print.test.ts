@@ -1,5 +1,6 @@
 /** FND-06: print.begin writes print_log with copy numbers and enforces the template permission. */
 import { printLog } from '@hmis/db/schema';
+import { seedOpdData } from '@hmis/db/testing/opd';
 import { and, eq } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
@@ -90,5 +91,47 @@ describe('print.begin (FND-06, docs/01 §4)', () => {
       adminB.call((c) => c.print.begin({ template: sample, entityId: f.a.facilityId })),
     );
     expect(cross.code).toBe('NOT_FOUND');
+  });
+});
+
+describe('registration prints (REG-06, REG-07)', () => {
+  it('lets reception print the sticker, the card and the OPD sheet, logging each copy', async () => {
+    const opd = await seedOpdData(f.t, {
+      facilityId: f.a.facilityId,
+      userId: f.users.reception.id,
+      workstationId: f.a.workstationId,
+    });
+    const patientId = await opd.newPatient();
+    const v = await reception.call((c) =>
+      c.visit.create({ patientId, doctorId: opd.doctorB, idempotencyKey: uuidv7() }),
+    );
+    const cases = [
+      ['patient-sticker', patientId, 'patient'],
+      ['uhid-card', patientId, 'patient'],
+      ['opd-sheet', v.encounterId, 'encounter'],
+    ] as const;
+    for (const [template, entityId, entity] of cases) {
+      const a = await reception.call((c) => c.print.begin({ template, entityId }));
+      const b = await reception.call((c) => c.print.begin({ template, entityId }));
+      expect([a.copyNo, b.copyNo]).toEqual([1, 2]);
+      const [row] = await f.db
+        .select()
+        .from(printLog)
+        .where(and(eq(printLog.template, template), eq(printLog.entityId, entityId)))
+        .limit(1);
+      expect(row?.entity).toBe(entity);
+    }
+    // The wrong kind of id (a patient id for the sheet) is not found, and nothing is logged.
+    const wrong = await trpcError(
+      reception.call((c) => c.print.begin({ template: 'opd-sheet', entityId: patientId })),
+    );
+    expect(wrong.code).toBe('NOT_FOUND');
+  });
+
+  it('needs patient.view: an admin without it is refused', async () => {
+    const e = await trpcError(
+      admin.call((c) => c.print.begin({ template: 'patient-sticker', entityId: uuidv7() })),
+    );
+    expect(e.code).toBe('FORBIDDEN');
   });
 });

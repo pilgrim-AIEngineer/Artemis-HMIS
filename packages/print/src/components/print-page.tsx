@@ -14,7 +14,8 @@ export function PrintPage({ doc }: { doc: PrintDocument }) {
   const { template, header, meta, body } = doc;
   const paper = template.paper;
   const isLabel = paper === 'label50x25';
-  const duplicate = meta.copyNo > 1;
+  const chrome = isLabel ? 'none' : (template.chrome ?? 'full');
+  const duplicate = meta.copyNo > 1 && template.markDuplicate !== false;
   const style = header.accent ? ({ '--print-accent': header.accent } as CSSProperties) : undefined;
   return (
     <div
@@ -35,15 +36,19 @@ export function PrintPage({ doc }: { doc: PrintDocument }) {
             </span>
           </div>
         )}
-        <PrintHeader header={header} paper={paper} />
+        {chrome !== 'none' && (
+          <PrintHeader header={header} paper={paper} compact={chrome === 'compact'} />
+        )}
         {duplicate && !isLabel && (
           <p className="print-duplicate-line">
             {L.duplicateCopy.hi} / {L.duplicateCopy.en} #{meta.copyNo}
           </p>
         )}
-        {!isLabel && <Title title={template.title} />}
+        {chrome === 'full' && <Title title={template.title} />}
         <div className="print-body">{body}</div>
-        {!isLabel && <PrintFooter header={header} meta={meta} />}
+        {chrome !== 'none' && (
+          <PrintFooter header={header} meta={meta} withQr={chrome === 'full'} />
+        )}
       </div>
     </div>
   );

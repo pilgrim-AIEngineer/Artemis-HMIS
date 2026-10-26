@@ -20,6 +20,8 @@ export function createTrpcHandler(overrides: Partial<Pick<Context, 'db' | 'now'>
       endpoint: '/api/trpc',
       req,
       router: appRouter,
+      // Queries are sent as POST (see the client link) so their input never lands in a URL.
+      allowMethodOverride: true,
       createContext: (opts) => ({ ...createContext(opts), ...overrides }),
       onError({ error, path }) {
         if (error.code === 'INTERNAL_SERVER_ERROR') {

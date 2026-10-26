@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { accentColorSchema } from './accent';
+import { displayKeyHashSchema } from './display';
 import { cidrSchema, DEFAULT_LAN_CIDRS } from './network';
 import { NUMBER_SERIES_CONFIG_SETTING, numberSeriesConfigSchema } from './number-series';
 import { ROLE_KEYS, type RoleKey } from './permissions';
@@ -90,8 +91,13 @@ export const SETTINGS = {
       ),
     [...PRIORITY_CLASSES],
   ),
-  /** Long random key in the `/display/queue` URL; generated on first use, never defaulted. */
-  'queue.displayKey': def(z.string().min(32).nullable(), null),
+  /** Speak "token N, Dr X" in Hindi on the TV when a token is called (browser voice; chime only if none). */
+  'queue.displayVoice': def(z.boolean(), false),
+  /**
+   * SHA-256 of the long random key in the `/display/queue` URL (docs/01 §2). Only the hash is
+   * stored, so neither `setting` reads nor `audit_log` ever reveal the key; null = no link yet.
+   */
+  'queue.displayKey': def(displayKeyHashSchema.nullable(), null),
 
   // --- Registration (docs/10 §3)
   /** Duplicate check: phonetic name similarity (percent) at or above which a patient on the same mobile is a possible duplicate. */
