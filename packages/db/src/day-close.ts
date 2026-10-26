@@ -986,3 +986,26 @@ export async function pendingUpiReconciliations(
     .orderBy(asc(payment.businessDate));
   return rows.map((r) => r.d);
 }
+
+/** The cashier's latest closes, newest first (to reprint a slip). */
+export async function recentOwnCloses(
+  q: Queryable,
+  facilityId: string,
+  userId: string,
+  limit = 5,
+): Promise<UserCloseRow[]> {
+  const rows = await q
+    .select(userCloseSelect)
+    .from(dayClose)
+    .innerJoin(appUser, eq(appUser.id, dayClose.userId))
+    .where(
+      and(
+        eq(dayClose.facilityId, facilityId),
+        eq(dayClose.kind, 'user'),
+        eq(dayClose.userId, userId),
+      ),
+    )
+    .orderBy(desc(dayClose.closedAt))
+    .limit(limit);
+  return rows.map(toUserCloseRow);
+}
