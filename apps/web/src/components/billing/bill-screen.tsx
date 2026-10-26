@@ -1,12 +1,19 @@
 'use client';
 
-import { bpToPercent, formatDateTime, formatINR, maskRef, type Permission } from '@hmis/shared';
+import {
+  bpToPercent,
+  creditableOf,
+  formatDateTime,
+  formatINR,
+  maskRef,
+  type Permission,
+} from '@hmis/shared';
 import { Button } from '@hmis/ui/components/button';
 import { Input } from '@hmis/ui/components/input';
 import { PatientHeader } from '@hmis/ui/components/patient-header';
 import { cn } from '@hmis/ui/lib/utils';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CheckCircle2, IndianRupee, Plus, Search, Trash2 } from 'lucide-react';
+import { Ban, CheckCircle2, IndianRupee, Percent, Plus, Search, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
 import { useId, useState, type KeyboardEvent } from 'react';
@@ -19,6 +26,7 @@ import { useDebounced } from '@/lib/use-debounced';
 import { useErrorText } from '@/lib/use-error-text';
 import { useShortcut } from '@/lib/use-shortcut';
 import { useTRPC } from '@/trpc/client';
+import { CancelBillDialog, DiscountDialog, VoidDraftDialog } from './bill-adjustments';
 import { PaymentDialog, type PaidResult } from './payment-dialog';
 
 /** Bill status chip: text and colour, never colour alone (docs/05 §4). */
@@ -58,11 +66,28 @@ export function BillScreen({ billId }: { billId: string }) {
   const bill = useQuery(trpc.billing.get.queryOptions({ billId }));
   const [paying, setPaying] = useState(false);
   const [paid, setPaid] = useState<PaidResult | null>(null);
+  const [discounting, setDiscounting] = useState<{ lineId?: string } | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [voiding, setVoiding] = useState(false);
+  const [cancelled, setCancelled] = useState<{
+    creditNoteNumber: string;
+    refundPaise: string;
+    refundCollectionId: string | null;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = () => queryClient.invalidateQueries({ queryKey: trpc.billing.pathKey() });
   const remove = useMutation(
     trpc.billing.removeLine.mutationOptions({
+      onSuccess: () => {
+        setError(null);
+        void refresh();
+      },
+      onError: (e) => setError(errorText(e)),
+    }),
+  );
+  const clear = useMutation(
+    trpc.billing.clearDiscount.mutationOptions({
       onSuccess: () => {
         setError(null);
         void refresh();
@@ -96,6 +121,9 @@ export function BillScreen({ billId }: { billId: string }) {
     );
   }
   const draft = b.status === 'draft';
+  const canDiscount = draft && can('billing.discount.apply') && b.lines.length > 0;
+  const canCancel = b.status === 'final' && can('billing.bill.cancel') && creditableOf(b) > 0n;
+  const canVoid = draft && can('billing.bill.cancel') && b.paidPaise === 0n;
   const name = (l: { description: string; descriptionHi: string | null }) =>
     locale === 'hi' && l.descriptionHi ? l.descriptionHi : l.description;
   const collections = [...new Map(b.payments.map((p) => [p.collectionId, p])).values()];
@@ -129,6 +157,41 @@ export function BillScreen({ billId }: { billId: string }) {
           <Link href="/billing">{t('backToDesk')}</Link>
         </Button>
       </div>
+
+      {b.status === 'cancelled' && b.cancelNote && (
+        <p
+          role="status"
+          className="rounded-lg border-2 border-destructive p-3 text-lg font-medium text-destructive"
+          data-testid="cancelled-banner"
+        >
+          {t('adj.cancelledBanner', { note: b.cancelNote })}
+        </p>
+      )}
+
+      {cancelled && (
+        <section
+          className="space-y-2 rounded-lg border-2 border-money p-4"
+          role="status"
+          data-testid="cancel-done"
+        >
+          <p className="flex items-center gap-2 text-2xl font-semibold">
+            <CheckCircle2 aria-hidden className="size-7 text-money" />
+            {BigInt(cancelled.refundPaise) > 0n
+              ? t('adj.doneRefund', {
+                  number: cancelled.creditNoteNumber,
+                  amount: formatINR(BigInt(cancelled.refundPaise)),
+                })
+              : t('adj.done', { number: cancelled.creditNoteNumber })}
+          </p>
+          {cancelled.refundCollectionId && (
+            <PrintOnMount
+              key={cancelled.refundCollectionId}
+              template="receipt"
+              entityId={cancelled.refundCollectionId}
+            />
+          )}
+        </section>
+      )}
 
       {paid && (
         <section
@@ -179,7 +242,17 @@ export function BillScreen({ billId }: { billId: string }) {
               <tbody className="[&>tr:nth-child(even)]:bg-muted/40">
                 {b.lines.map((l) => (
                   <tr key={l.id} data-testid="bill-line">
-                    <td className="px-3 py-2">{name(l)}</td>
+                    <td className="px-3 py-2">
+                      {name(l)}
+                      {l.discountPaise > 0n && (
+                        <span
+                          className="block text-sm text-muted-foreground"
+                          data-testid="line-discount"
+                        >
+                          {t('adj.lineDiscount', { amount: formatINR(l.discountPaise) })}
+                        </span>
+                      )}
+                    </td>
                     <td className="px-3 py-2 text-right tabular-nums">
                       {l.qty.replace(/\.?0+$/, '')}
                     </td>
@@ -193,7 +266,17 @@ export function BillScreen({ billId }: { billId: string }) {
                       {formatINR(l.patientSharePaise)}
                     </td>
                     {draft && (
-                      <td className="px-3 py-1 text-right">
+                      <td className="px-3 py-1 text-right whitespace-nowrap">
+                        {can('billing.discount.apply') && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            aria-label={t('adj.lineDiscountButton', { item: name(l) })}
+                            onClick={() => setDiscounting({ lineId: l.id })}
+                          >
+                            <Percent aria-hidden />
+                          </Button>
+                        )}
                         {can('billing.bill.create') && (
                           <Button
                             variant="ghost"
@@ -243,7 +326,14 @@ export function BillScreen({ billId }: { billId: string }) {
         )}
         {b.roundOffPaise !== 0n && <Row label={t('roundOff')} value={formatINR(b.roundOffPaise)} />}
         <Row label={t('net')} value={formatINR(b.netPaise)} strong testId="bill-net" />
-        <Row label={t('paid')} value={formatINR(b.paidPaise)} />
+        {b.creditedPaise > 0n && (
+          <Row
+            label={t('adj.credited')}
+            value={`-${formatINR(b.creditedPaise)}`}
+            testId="bill-credited"
+          />
+        )}
+        <Row label={t('paid')} value={formatINR(b.paidPaise)} testId="bill-paid" />
         <div className="flex items-baseline justify-between border-t-2 pt-2">
           <span className="font-semibold">{t('balance')}</span>
           <span className="text-3xl font-bold" data-testid="bill-balance">
@@ -252,6 +342,52 @@ export function BillScreen({ billId }: { billId: string }) {
         </div>
       </section>
 
+      {b.discounts.length > 0 && (
+        <section aria-labelledby="bill-discounts" className="space-y-2">
+          <h2 id="bill-discounts" className="text-xl font-semibold">
+            {t('adj.discounts')}
+          </h2>
+          <ul className="divide-y rounded-lg border bg-card" data-testid="discount-list">
+            {b.discounts.map((d) => {
+              const line = b.lines.find((l) => l.id === d.lineId);
+              return (
+                <li key={d.id} className="flex flex-wrap items-center justify-between gap-3 p-3">
+                  <p>
+                    {t('adj.discountRow', {
+                      scope: line ? name(line) : t('adj.discountOnBill'),
+                      amount: formatINR(d.amountPaise),
+                      reason: locale === 'hi' && d.reasonLabelHi ? d.reasonLabelHi : d.reasonLabel,
+                    })}
+                    {d.reasonText && ` (${d.reasonText})`}
+                    {d.approvedByName && (
+                      <span className="text-muted-foreground">
+                        {' · '}
+                        {t('adj.approvedBy', { name: d.approvedByName })}
+                      </span>
+                    )}
+                  </p>
+                  {draft && can('billing.discount.apply') && (
+                    <Button
+                      variant="outline"
+                      disabled={clear.isPending}
+                      onClick={() =>
+                        clear.mutate({
+                          billId,
+                          lineId: d.lineId ?? undefined,
+                          idempotencyKey: crypto.randomUUID(),
+                        })
+                      }
+                    >
+                      {t('removeDiscountLine')}
+                    </Button>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
       {error && (
         <p role="alert" className="font-medium text-destructive">
           {error}
@@ -259,6 +395,42 @@ export function BillScreen({ billId }: { billId: string }) {
       )}
 
       <div className="flex flex-wrap justify-end gap-3">
+        {canDiscount && (
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={() => setDiscounting({})}
+            data-testid="discount-open"
+          >
+            <Percent aria-hidden />
+            {t('adj.discountButton')}
+          </Button>
+        )}
+        {canVoid && (
+          <Button
+            variant="outline"
+            size="lg"
+            onClick={() => setVoiding(true)}
+            data-testid="void-open"
+          >
+            <Ban aria-hidden />
+            {t('adj.voidButton')}
+          </Button>
+        )}
+        {canCancel && (
+          <Button
+            variant="destructive"
+            size="lg"
+            onClick={() => {
+              setCancelled(null);
+              setCancelling(true);
+            }}
+            data-testid="cancel-open"
+          >
+            <Ban aria-hidden />
+            {t('adj.cancelButton')}
+          </Button>
+        )}
         {draft && b.balancePaise === 0n && b.lines.length > 0 && can('billing.bill.finalize') && (
           <Button
             size="lg"
@@ -292,6 +464,7 @@ export function BillScreen({ billId }: { billId: string }) {
                 >
                   <div>
                     <p className="font-semibold">
+                      {c.kind === 'refund' && `${t('adj.refundRow')} · `}
                       {c.number} · {formatDateTime(c.receivedAt)}
                     </p>
                     <p className="text-muted-foreground">
@@ -310,7 +483,7 @@ export function BillScreen({ billId }: { billId: string }) {
                     <PrintButton
                       template="receipt"
                       entityId={c.collectionId}
-                      label={t('printReceipt')}
+                      label={c.kind === 'refund' ? t('adj.printVoucher') : t('printReceipt')}
                       variant="outline"
                       shortcut={false}
                     />
@@ -320,6 +493,60 @@ export function BillScreen({ billId }: { billId: string }) {
             })}
           </ul>
         </section>
+      )}
+
+      {b.creditNotes.length > 0 && (
+        <section aria-labelledby="bill-credit-notes" className="space-y-2">
+          <h2 id="bill-credit-notes" className="text-xl font-semibold">
+            {t('adj.creditNotes')}
+          </h2>
+          <ul className="divide-y rounded-lg border bg-card" data-testid="credit-note-list">
+            {b.creditNotes.map((c) => (
+              <li key={c.id} className="flex flex-wrap justify-between gap-3 p-3">
+                <span>
+                  {t('adj.creditNoteRow', { number: c.number, date: formatDateTime(c.issuedAt) })}
+                  {' · '}
+                  {locale === 'hi' && c.reasonLabelHi ? c.reasonLabelHi : c.reasonLabel}
+                  {c.issuedByName && ` · ${c.issuedByName}`}
+                </span>
+                <span className="font-medium tabular-nums">{formatINR(c.amountPaise)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {discounting && canDiscount && (
+        <DiscountDialog
+          bill={b}
+          lineId={discounting.lineId}
+          open
+          onOpenChange={(o) => !o && setDiscounting(null)}
+          onDone={() => {
+            setError(null);
+            void refresh();
+          }}
+        />
+      )}
+      {canCancel && (
+        <CancelBillDialog
+          bill={b}
+          open={cancelling}
+          onOpenChange={setCancelling}
+          onDone={(r) => {
+            setCancelled(r);
+            void refresh();
+            void queryClient.invalidateQueries({ queryKey: [['queue']] });
+          }}
+        />
+      )}
+      {canVoid && (
+        <VoidDraftDialog
+          billId={billId}
+          open={voiding}
+          onOpenChange={setVoiding}
+          onDone={() => void refresh()}
+        />
       )}
 
       {canPay && (

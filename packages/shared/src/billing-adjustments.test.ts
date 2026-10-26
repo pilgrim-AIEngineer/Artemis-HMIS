@@ -1,5 +1,6 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
+import { FORBIDDEN_TERMS } from './compliance/forbidden-terms';
 import {
   allocateDiscounts,
   applyDiscountSchema,
@@ -246,9 +247,10 @@ describe('thresholds and inputs', () => {
     expect(applyDiscountSchema.safeParse({ ...ok, percentBp: 0 }).success).toBe(false);
     expect(applyDiscountSchema.safeParse({ ...ok, percentBp: 10_001 }).success).toBe(false);
     expect(applyDiscountSchema.safeParse({ ...ok, reasonText: 'ab' }).success).toBe(false);
-    expect(applyDiscountSchema.safeParse({ ...ok, reasonText: 'fetal sex request' }).success).toBe(
-      false,
-    );
+    expect(
+      applyDiscountSchema.safeParse({ ...ok, reasonText: FORBIDDEN_TERMS[0]!.examples[0]! })
+        .success,
+    ).toBe(false);
     expect(cancelBillSchema.safeParse({ billId: id, idempotencyKey: key }).success).toBe(false);
     expect(
       cancelBillSchema.safeParse({ billId: id, idempotencyKey: key, reasonCodeId: id }).success,

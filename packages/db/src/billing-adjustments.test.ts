@@ -206,7 +206,7 @@ const cancelBy = (
         reasonCodeId: reasonId('cancel', 'patient_request'),
         idempotencyKey: uuidv7(),
         ...req,
-      } as never,
+      },
       at,
       { approverId },
     ),
@@ -790,7 +790,7 @@ describe('over-refund attempts (docs/04 §15.8)', () => {
         amount_paise: -50_001,
         received_at: new Date().toISOString(),
         idempotency_key: uuidv7(),
-        approval_id: ap!.id,
+        approval_id: ap.id,
         reason_code_id: reasonId('refund', 'other'),
         ...over,
       };
@@ -812,7 +812,7 @@ describe('over-refund attempts (docs/04 §15.8)', () => {
     expect(await insertRefund({ amount_paise: -100 })).toMatch(/paid amount does not match/);
     // Refund-only columns on an ordinary payment are refused.
     expect(
-      await rawSql(sql`update payment set approval_id = ${ap!.id} where id = ${orig!.id}`),
+      await rawSql(sql`update payment set approval_id = ${ap.id} where id = ${orig!.id}`),
     ).toMatch(/immutable|payment_refund_only_fields/);
   });
 
@@ -907,7 +907,7 @@ describe('concurrent refunds (BIL-04)', () => {
     ]);
     expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
     for (const r of results.filter((x) => x.status === 'rejected')) {
-      expect((r as PromiseRejectedResult).reason).toMatchObject({ key: 'billing.billCancelled' });
+      expect(r.reason).toMatchObject({ key: 'billing.billCancelled' });
     }
     const pays = await fx.t.app.select().from(payment).where(eq(payment.billId, f.billId));
     expect(pays.reduce((s, p) => s + p.amountPaise, 0n)).toBe(0n);
@@ -924,7 +924,7 @@ describe('concurrent refunds (BIL-04)', () => {
     );
     expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
     for (const r of results.filter((x) => x.status === 'rejected')) {
-      expect((r as PromiseRejectedResult).reason).toMatchObject({ key: 'billing.creditTooLarge' });
+      expect(r.reason).toMatchObject({ key: 'billing.creditTooLarge' });
     }
     const b = await view(f.billId);
     expect([b.paidPaise, b.creditedPaise, b.balancePaise]).toEqual([20_000n, 30_000n, 0n]);
@@ -1069,7 +1069,7 @@ describe('report hooks (BIL-03, BIL-04)', () => {
     );
     expect(row).toMatchObject({
       scope: 'bill',
-      givenByName: expect.any(String),
+      givenByName: 'Test User',
       reasonLabel: 'Poor patient',
       approvalMethod: 'pin',
       status: 'active',

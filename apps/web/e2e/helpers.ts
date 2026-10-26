@@ -36,3 +36,26 @@ export async function payVisitInCash(page: Page) {
   await page.getByTestId('confirm-money-ok').click();
   await expect(created.getByTestId('visit-paid')).toContainText(/Receipt RC\//);
 }
+
+/** Registers a patient from the reception form and waits for the patient page. */
+export async function registerPatient(
+  page: Page,
+  p: { first: string; last: string; age: string; mobile: string },
+) {
+  await page.goto('/reception/patients/new');
+  await page.getByLabel('First name').fill(p.first);
+  await page.getByLabel('Surname').fill(p.last);
+  await page.getByText('Female', { exact: true }).click();
+  await page.getByLabel('Age', { exact: true }).fill(p.age);
+  await page.getByLabel('Mobile number', { exact: true }).fill(p.mobile);
+  await page.getByRole('button', { name: 'Save patient' }).click();
+  await expect(page).toHaveURL(/\/reception\/patients\/[0-9a-f-]{36}\?registered=/);
+}
+
+/** The hidden print frame holds `template` copy `copy` (the browser print is stubbed). */
+export async function printedFrame(page: Page, template: string, copy: number) {
+  const frame = page.frameLocator('iframe[aria-hidden="true"]');
+  await expect(frame.locator('.print-root')).toHaveAttribute('data-template', template);
+  await expect(frame.locator('.print-root')).toHaveAttribute('data-copy', String(copy));
+  return frame;
+}

@@ -220,6 +220,7 @@ const receipt = impl<ReceiptPrintData>({
     if (!r) return null;
     return {
       number: r.number,
+      kind: r.kind,
       receivedAt: r.receivedAt,
       receivedBy: r.receivedByName,
       status: r.status,

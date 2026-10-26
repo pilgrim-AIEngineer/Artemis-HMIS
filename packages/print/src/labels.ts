@@ -91,4 +91,8 @@ export const L = {
   cardEnding: { hi: 'कार्ड', en: 'Card' },
   inWords: { hi: 'शब्दों में', en: 'In words' },
   reversed: { hi: 'रद्द', en: 'CANCELLED' },
+  billCancelled: { hi: 'बिल रद्द', en: 'BILL CANCELLED' },
+  refundTitle: { hi: 'रिफ़ंड / क्रेडिट नोट', en: 'Refund / Credit note' },
+  creditNoteNo: { hi: 'क्रेडिट नोट सं.', en: 'Credit note no.' },
+  refundedNow: { hi: 'लौटाई गई राशि', en: 'Amount refunded' },
 } as const satisfies Record<string, Bilingual>;

@@ -52,7 +52,7 @@ const amountSchema = positivePaiseSchema.refine((p) => p <= MONEY_CEILING_PAISE,
 /** Approver credentials typed on the same screen; never part of an idempotency payload. */
 export const approverSchema = z.object({
   username: z.string().trim().min(3).max(40),
-  pin: z.string().regex(/^\d{4,6}$/, 'auth.pinInvalid'),
+  pin: z.string().regex(/^\d{4,6}$/, 'validation.pinFormat'),
 });
 export type ApproverInput = z.input<typeof approverSchema>;
 

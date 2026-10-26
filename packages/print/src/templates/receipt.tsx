@@ -12,6 +12,8 @@ import type { Bilingual } from '../types';
 /** What a payment receipt shows (docs/12 §3). The QR (in `PrintMeta`) encodes the receipt id only. */
 export interface ReceiptPrintData {
   number: string;
+  /** `refund` (BIL-04): amounts arrive negative and print as money handed back. */
+  kind: 'payment' | 'refund';
   receivedAt: Date;
   receivedBy: string | null;
   status: 'valid' | 'reversed';
@@ -27,6 +29,7 @@ export interface ReceiptPrintData {
   doctorName: string | null;
   bill: {
     number: string | null;
+    status: 'draft' | 'final' | 'cancelled';
     netPaise: bigint;
     paidPaise: bigint;
     balancePaise: bigint;
@@ -57,11 +60,20 @@ const qtyText = (q: string) => q.replace(/\.?0+$/, '');
  */
 export function Receipt({ data }: { data: ReceiptPrintData }) {
   const { patient, bill } = data;
+  const refund = data.kind === 'refund';
+  // A refund voucher prints the money handed back as a positive amount.
+  const shown = refund ? -data.totalPaise : data.totalPaise;
   return (
     <div className="receipt" data-testid="receipt">
       {data.status === 'reversed' && <p className="receipt-status">{bi(L.reversed)}</p>}
+      {refund && <p className="receipt-status">{bi(L.refundTitle)}</p>}
+      {!refund && bill?.status === 'cancelled' && (
+        <p className="receipt-status" data-testid="receipt-bill-cancelled">
+          {bi(L.billCancelled)}
+        </p>
+      )}
       <div className="receipt-row">
-        <span className="receipt-k">{bi(L.receiptNo)}</span>
+        <span className="receipt-k">{bi(refund ? L.creditNoteNo : L.receiptNo)}</span>
         <strong data-testid="receipt-number">{data.number}</strong>
       </div>
       <div className="receipt-row">
@@ -124,8 +136,8 @@ export function Receipt({ data }: { data: ReceiptPrintData }) {
         </table>
       )}
       <div className="receipt-row receipt-paid">
-        <span>{bi(L.paidNow)}</span>
-        <span data-testid="receipt-amount">{formatINR(data.totalPaise)}</span>
+        <span>{bi(refund ? L.refundedNow : L.paidNow)}</span>
+        <span data-testid="receipt-amount">{formatINR(shown)}</span>
       </div>
       {data.tenders.map((t) => (
         <div className="receipt-row" key={t.mode}>
@@ -134,11 +146,13 @@ export function Receipt({ data }: { data: ReceiptPrintData }) {
             {t.upiRef && ` · ${L.utr.en} ${maskRef(t.upiRef)}`}
             {t.cardLast4 && ` · ${L.cardEnding.en} …${t.cardLast4}`}
           </span>
-          <span className="receipt-amount">{formatINR(t.amountPaise)}</span>
+          <span className="receipt-amount">
+            {formatINR(refund ? -t.amountPaise : t.amountPaise)}
+          </span>
         </div>
       ))}
       <p className="receipt-words">
-        {bi(L.inWords)}: {amountInWordsHi(data.totalPaise)} / {amountInWordsEn(data.totalPaise)}
+        {bi(L.inWords)}: {amountInWordsHi(shown)} / {amountInWordsEn(shown)}
       </p>
       {bill && (
         <>

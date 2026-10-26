@@ -58,6 +58,7 @@ await withTx({ db: owner, userId: null }, async (tx) => {
     ['CONS-PAED-NEW', 400],
     ['CONS-PAED-FU', 0],
     ['PROC-SUTURE-REM', '350.50'],
+    ['PROC-IUCD-INS', 1500],
   ] as const) {
     const [svc] = await tx
       .select({ id: service.id })
