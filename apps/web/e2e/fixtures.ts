@@ -16,6 +16,8 @@ export const E2E_USERS = {
   },
   // Billing desk: holds billing.bill.cancel and billing.refund.create but not discount.approve.
   cashier: { username: 'e2e_cashier', fullName: 'E2E Cashier', pin: '4826', roles: ['cashier'] },
+  // A cashier nobody else uses: its counter starts empty, so the day-close figures are exact (flow 5).
+  counter: { username: 'e2e_counter', fullName: 'E2E Counter', pin: '7531', roles: ['cashier'] },
   admin: { username: 'e2e_admin', fullName: 'E2E Admin', pin: '1357', roles: ['admin'] },
   // Holds queue.display.manage (the waiting-room TV link); admins do not by default.
   owner: { username: 'e2e_owner', fullName: 'E2E Owner', pin: '3691', roles: ['owner'] },
