@@ -1,5 +1,5 @@
 import { findPrintCopy, nextCopyNo } from '@hmis/db';
-import { findTemplateMeta, PrintPage } from '@hmis/print';
+import { copyFamilyKeys, findTemplateMeta, PrintPage } from '@hmis/print';
 import { preparePrintDocument } from '@hmis/print/server';
 import { uuidSchema } from '@hmis/shared';
 import { notFound, redirect } from 'next/navigation';
@@ -47,7 +47,12 @@ export default async function PrintRoute({
   if (!auth.permissions.has(meta.permission)) notFound();
 
   const db = getDb();
-  const target = { facilityId: auth.facilityId, template: meta.key, entityId: parsedId.data };
+  const target = {
+    facilityId: auth.facilityId,
+    template: meta.key,
+    entityId: parsedId.data,
+    family: copyFamilyKeys(meta),
+  };
   let copyNo: number;
   let printedAt = new Date();
   if (search.data.copy !== undefined) {

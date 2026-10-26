@@ -74,6 +74,17 @@ const TEMPLATE_CSS = `
 .receipt-paid > :last-child, .receipt-amount { white-space: nowrap; }
 .receipt-words { font-size: 0.85em; }
 .receipt-status { text-align: center; font-weight: 700; border: 1pt solid #000; padding: 0.5mm; }
+.receipt-a5 { gap: 2.2mm; font-size: 1.05em; }
+.receipt-a5-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2mm 4mm; border-top: 0.5pt dashed #000; border-bottom: 0.5pt dashed #000; padding: 1.5mm 0; }
+.receipt-a5-grid > div { display: flex; flex-direction: column; min-width: 0; overflow-wrap: anywhere; }
+.receipt-a5-balance { border-top: 0.5pt dashed #000; padding-top: 1mm; }
+.receipt-a5-sign { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 8mm; gap: 6mm; }
+.receipt-a5-sign > div { flex: 1; }
+.receipt-a5-sign-box { margin-top: 9mm; border-top: 0.75pt solid #000; text-align: center; padding-top: 0.5mm; font-size: 0.8em; }
+.receipt-a5-sign .receipt-a5-sign-box { margin-top: 0; }
+.facility-close { display: flex; flex-direction: column; gap: 3mm; }
+.facility-close-h { margin: 2mm 0 0; font-size: 1.05em; }
+.facility-close-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
 `;
 
 /**
@@ -135,6 +146,9 @@ ${pageCss(paper)}
   color: rgba(0, 0, 0, 0.14); border: 0.12em solid rgba(0, 0, 0, 0.14); padding: 0 0.2em; line-height: 1.25;
 }
 .print-watermark small { display: block; font-size: 0.4em; letter-spacing: 0; }
+.print-watermark.print-stamp span { font-size: ${paper === 'a4' ? 44 : paper === 'a5' ? 32 : paper === 'thermal80' ? 17 : 10}pt; }
+.print-watermark.print-stamp.with-duplicate span { transform: rotate(-32deg) translateY(-70%); }
+.print-watermark.print-duplicate-mark.with-stamp span { transform: rotate(-32deg) translateY(70%); }
 .print-duplicate-line { font-weight: 700; text-align: center; border: 1pt solid #000; padding: 0.5mm; margin-bottom: 1.5mm; }
 .print-label { display: flex; gap: 1mm; align-items: center; height: 100%; }
 .print-label .print-label-text { flex: 1; min-width: 0; line-height: 1.15; }

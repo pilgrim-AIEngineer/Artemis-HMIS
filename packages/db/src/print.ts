@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { printLog } from '../schema';
 import type { Db } from './client';
 import type { Tx } from './tx';
@@ -9,7 +9,16 @@ export interface PrintTarget {
   facilityId: string;
   template: string;
   entityId: string;
+  /**
+   * All templates that print the same document in another layout (a receipt on the 80 mm roll and
+   * on A5): they share one copy sequence, so the second layout of a receipt is a DUPLICATE too.
+   * Defaults to `[template]`.
+   */
+  family?: readonly string[];
 }
+
+const familyOf = (t: PrintTarget): string[] =>
+  [...new Set([t.template, ...(t.family ?? [])])].sort();
 
 /** The copy number the next print of this document gets (1 = original, >1 = DUPLICATE). */
 export async function nextCopyNo(q: Queryable, t: PrintTarget): Promise<number> {
@@ -19,7 +28,7 @@ export async function nextCopyNo(q: Queryable, t: PrintTarget): Promise<number> 
     .where(
       and(
         eq(printLog.facilityId, t.facilityId),
-        eq(printLog.template, t.template),
+        inArray(printLog.template, familyOf(t)),
         eq(printLog.entityId, t.entityId),
       ),
     );
@@ -42,7 +51,7 @@ export async function recordPrint(
   input: RecordPrintInput,
 ): Promise<{ id: string; copyNo: number }> {
   await tx.execute(
-    sql`select pg_advisory_xact_lock(hashtextextended(${`print:${input.facilityId}:${input.template}:${input.entityId}`}, 0))`,
+    sql`select pg_advisory_xact_lock(hashtextextended(${`print:${input.facilityId}:${familyOf(input).join(',')}:${input.entityId}`}, 0))`,
   );
   const copyNo = await nextCopyNo(tx, input);
   const [row] = await tx

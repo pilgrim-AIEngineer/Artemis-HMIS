@@ -480,13 +480,22 @@ export function BillScreen({ billId }: { billId: string }) {
                     </p>
                   </div>
                   {can('billing.payment.collect') && (
-                    <PrintButton
-                      template="receipt"
-                      entityId={c.collectionId}
-                      label={c.kind === 'refund' ? t('adj.printVoucher') : t('printReceipt')}
-                      variant="outline"
-                      shortcut={false}
-                    />
+                    <div className="flex flex-wrap gap-2">
+                      <PrintButton
+                        template="receipt"
+                        entityId={c.collectionId}
+                        label={c.kind === 'refund' ? t('adj.printVoucher') : t('printReceipt')}
+                        variant="outline"
+                        shortcut={false}
+                      />
+                      <PrintButton
+                        template="receipt-a5"
+                        entityId={c.collectionId}
+                        label={c.kind === 'refund' ? t('adj.printVoucherA5') : t('printReceiptA5')}
+                        variant="outline"
+                        shortcut={false}
+                      />
+                    </div>
                   )}
                 </li>
               );

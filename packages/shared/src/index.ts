@@ -4,6 +4,7 @@ export * from './billing';
 export * from './billing-adjustments';
 export * from './compliance/forbidden-terms';
 export * from './dates';
+export * from './day-close';
 export * from './display';
 export * from './enums';
 export * from './facility';

@@ -42,7 +42,13 @@ export const ROUTE_GROUP_DEFS: Record<RouteGroup, RouteGroupDef> = {
   billing: {
     group: 'billing',
     href: '/billing',
-    anyOf: ['billing.bill.create', 'billing.payment.collect', 'billing.ipd.final'],
+    anyOf: [
+      'billing.bill.create',
+      'billing.payment.collect',
+      'billing.ipd.final',
+      'billing.dayclose.own',
+      'billing.dayclose.facility',
+    ],
   },
   doctor: {
     group: 'doctor',

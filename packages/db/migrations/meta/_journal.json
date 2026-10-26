@@ -127,6 +127,20 @@
       "when": 1792980080743,
       "tag": "0017_discounts_credit_notes_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792982902404,
+      "tag": "0018_day_close",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792982907679,
+      "tag": "0019_day_close_audit",
+      "breakpoints": true
     }
   ]
 }
