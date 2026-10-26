@@ -326,7 +326,9 @@
         "sample": "Sample",
         "all": "All",
         "IAP": "IAP",
-        "UIP": "UIP"
+        "UIP": "UIP",
+        "fake": "Test only (sends nothing)",
+        "meta": "Meta WhatsApp Cloud API"
       },
       "items": {
         "opd": {
@@ -523,6 +525,26 @@
           "enabled": {
             "label": "WhatsApp messages",
             "hint": "Send reminders and reports through WhatsApp (needs internet and an approved account)."
+          },
+          "provider": {
+            "label": "Messaging service",
+            "hint": "Which service sends the messages. “fake” only pretends (for testing). The login for the real service is set on the server."
+          },
+          "sendReceipts": {
+            "label": "Send receipt on WhatsApp",
+            "hint": "Message the patient a receipt when a payment is collected (only if they agreed to WhatsApp)."
+          },
+          "followUpLeadDays": {
+            "label": "Follow-up reminder: days before",
+            "hint": "How many days before the follow-up date the reminder goes (at 10 am)."
+          },
+          "ancLeadDays": {
+            "label": "Check-up reminder: days before",
+            "hint": "How many days before the next antenatal check-up the reminder goes (at 10 am)."
+          },
+          "monthlyCap": {
+            "label": "Monthly message limit",
+            "hint": "Most messages to send in a month. 0 means no limit. A warning is logged at 80%."
           }
         },
         "features": {

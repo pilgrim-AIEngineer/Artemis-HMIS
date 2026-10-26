@@ -15,6 +15,7 @@ export * from './health';
 export * from './i18n';
 export * from './immunisation';
 export * from './masters';
+export * from './messaging';
 export * from './money';
 export * from './navigation';
 export * from './network';

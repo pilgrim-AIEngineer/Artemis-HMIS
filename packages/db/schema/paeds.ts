@@ -31,7 +31,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import { auditColumns, cancelChecks, cancelColumns, idColumn, sqlIn } from './columns';
 import { patient } from './patient';
-import { appUser, facilityRef } from './platform';
+import { appUser, document, facilityRef } from './platform';
 import { encounter } from './visit';
 
 /** Schedule master (docs/33 §5, seeded; the paediatrician edits it). */
@@ -272,6 +272,15 @@ export const messageOutbox = pgTable(
     providerMessageId: text(),
     sendAfter: timestamp({ withTimezone: true }).notNull(),
     cancelReason: text(),
+    /** What the message is about (bill collection, note, pregnancy …): the 24 h de-duplication scope. */
+    entityId: uuid(),
+    /** PDF to upload and send with the message (docs/21 §4). */
+    documentId: uuid().references(() => document.id),
+    /** When the current attempt was claimed by a worker (`sending`). */
+    claimedAt: timestamp({ withTimezone: true }),
+    /** First claim: the 48 h retry window runs from here (docs/21 §4). */
+    firstAttemptAt: timestamp({ withTimezone: true }),
+    sentAt: timestamp({ withTimezone: true }),
     ...auditColumns(),
   },
   (t) => [
@@ -283,5 +292,28 @@ export const messageOutbox = pgTable(
     check('message_outbox_channel', sqlIn(t.channel, ['whatsapp', 'sms'])),
     check('message_outbox_status', sqlIn(t.status, MESSAGE_OUTBOX_STATUSES)),
     check('message_outbox_language', sqlIn(t.language, ['en', 'hi'])),
+  ],
+);
+
+/** Provider templates (docs/04 §13): the approved name per kind and language. */
+export const messageTemplate = pgTable(
+  'message_template',
+  {
+    id: idColumn(),
+    facilityId: facilityRef(),
+    channel: text().notNull().default('whatsapp'),
+    kind: text().notNull(),
+    language: text().notNull(),
+    providerTemplateName: text().notNull(),
+    bodyPreview: text().notNull(),
+    variables: jsonb().$type<string[]>().notNull(),
+    /** Set once Meta has approved the template; nothing is sent with an unapproved one. */
+    isApproved: boolean().notNull().default(false),
+    ...auditColumns(),
+  },
+  (t) => [
+    uniqueIndex('message_template_key').on(t.facilityId, t.channel, t.kind, t.language),
+    check('message_template_channel', sqlIn(t.channel, ['whatsapp', 'sms'])),
+    check('message_template_language', sqlIn(t.language, ['en', 'hi'])),
   ],
 );

@@ -257,11 +257,13 @@ export type ConsentMethod = (typeof CONSENT_METHODS)[number];
 /** `cancelled` is added to docs/04 §13: a queued reminder replaced when the schedule moves. */
 export const MESSAGE_OUTBOX_STATUSES = [
   'queued',
+  'sending',
   'sent',
   'delivered',
   'read',
   'failed',
   'opted_out',
+  'skipped_no_consent',
   'cancelled',
 ] as const;
 export type MessageOutboxStatus = (typeof MESSAGE_OUTBOX_STATUSES)[number];

@@ -259,6 +259,16 @@ export const SETTINGS = {
   /** Client networks treated as the hospital LAN; anything else (incl. Tailscale) is remote. */
   'auth.lanNetworks': def(z.array(cidrSchema).max(50), [...DEFAULT_LAN_CIDRS] as string[]),
   'whatsapp.enabled': def(z.boolean(), false),
+  /** Which adapter sends (docs/21 §1). `fake` only logs; the Meta credentials come from the server's environment. */
+  'whatsapp.provider': def(z.enum(['fake', 'meta']), 'meta'),
+  /** Send a receipt message when a payment is collected (docs/21 §3). */
+  'whatsapp.sendReceipts': def(z.boolean(), false),
+  /** Follow-up reminder goes this many days before the follow-up date, at 10 am. */
+  'whatsapp.followUpLeadDays': def(z.number().int().min(0).max(7), 1),
+  /** ANC reminder goes this many days before the suggested next visit, at 10 am. */
+  'whatsapp.ancLeadDays': def(z.number().int().min(0).max(7), 2),
+  /** Messages per calendar month; 0 = no cap. An alert is logged at 80% (docs/21 §4). */
+  'whatsapp.monthlyCap': def(z.number().int().min(0).max(1_000_000), 0),
   'features.pmjay': def(z.boolean(), false),
   'features.cardiology': def(z.boolean(), false),
   'features.trainingMode': def(z.boolean(), false),

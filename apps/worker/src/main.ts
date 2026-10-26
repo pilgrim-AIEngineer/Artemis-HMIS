@@ -2,7 +2,9 @@ import { createDb, resolveAppDatabaseUrl, resolveDatabaseUrl } from '@hmis/db';
 import { createLogger } from '@hmis/shared/logger';
 import { createBoss, registerJobs } from './boss';
 import { filesDirFromEnv } from './files';
+import { OUTBOX_WHATSAPP_CRON, OUTBOX_WHATSAPP_QUEUE } from './jobs/outbox-whatsapp';
 import { QUEUE_END_OF_DAY, QUEUE_END_OF_DAY_CRON } from './jobs/queue-end-of-day';
+import { REMINDER_DAILY_CRON, REMINDER_DAILY_QUEUE } from './jobs/reminder-daily';
 
 const logger = createLogger('hmis-worker');
 const boss = createBoss(resolveDatabaseUrl());
@@ -21,6 +23,8 @@ boss.on('error', (err) =>
 await boss.start();
 await registerJobs(boss, { logger, db, filesDir: filesDirFromEnv() });
 await boss.schedule(QUEUE_END_OF_DAY, QUEUE_END_OF_DAY_CRON, {}, { tz: 'Asia/Kolkata' });
+await boss.schedule(OUTBOX_WHATSAPP_QUEUE, OUTBOX_WHATSAPP_CRON, {}, { tz: 'Asia/Kolkata' });
+await boss.schedule(REMINDER_DAILY_QUEUE, REMINDER_DAILY_CRON, {}, { tz: 'Asia/Kolkata' });
 logger.info('worker started');
 
 let stopping = false;
