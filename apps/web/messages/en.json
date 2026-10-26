@@ -1519,7 +1519,8 @@
       "collect": "Collect {amount}",
       "confirmTitle": "Confirm payment received",
       "confirm": "Yes, received",
-      "back": "Go back"
+      "back": "Go back",
+      "splitAmount": "{mode} amount"
     }
   }
 }
