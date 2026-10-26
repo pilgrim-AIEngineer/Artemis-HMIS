@@ -89,7 +89,7 @@ Layout (top to bottom):
 3. QR code (encodes `E:<encounter short id>`) + barcode of visit number.
 4. Vitals box: printed values if entered, else blank boxes for BP / Pulse / Wt / Temp / SpO2.
 5. Context box (auto):
-   - Pregnant: GA today (`24w 3d`), EDD, G P A L, risk flags (bold), last 3 visits BP/weight, ANC tests due/overdue, Td status.
+   - Pregnant: GA today (`24w 3d`), EDD, G P A L, risk flags (bold), last 3 visits BP/weight, ANC tests due/overdue, Td status (built with OPD-05).
    - Child: age, weight (with growth percentile), vaccines due/overdue.
    - Everyone: allergies (bold), last visit date + diagnosis + up to 5 last drugs.
 6. Large blank area: "Complaints / Findings" (left) and "Rx" (right) for handwriting.

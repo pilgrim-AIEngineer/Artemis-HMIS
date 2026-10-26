@@ -26,7 +26,9 @@ import {
   timestamp,
   uniqueIndex,
   uuid,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
+import { pregnancy } from './anc';
 import { auditColumns, idColumn, sqlIn } from './columns';
 import { department, doctorProfile, payer, service, tariff } from './masters';
 import { patient } from './patient';
@@ -73,6 +75,8 @@ export const encounter = pgTable(
     isRestricted: boolean().notNull().default(false),
     referralSource: text(),
     isDowntimeEntry: boolean().notNull().default(false),
+    /** The pregnancy this visit belongs to (ANC visit, OPD-05); null for other visits. */
+    pregnancyId: uuid().references((): AnyPgColumn => pregnancy.id),
     /** Consultation fee snapshot (rate of the tariff on the visit day); the bill reads it. */
     consultationServiceId: uuid().references(() => service.id),
     consultationFeePaise: bigint({ mode: 'bigint' })

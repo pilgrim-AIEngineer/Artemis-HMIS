@@ -25,6 +25,7 @@ export const L = {
   },
   samplePatient: { hi: 'नमूना मरीज़', en: 'Sample Patient' },
   uhid: { hi: 'यूएचआईडी', en: 'UHID' },
+  ancCardTitle: { hi: 'गर्भावस्था जाँच कार्ड', en: 'Antenatal care card' },
   opdSheetTitle: { hi: 'ओपीडी पर्ची', en: 'OPD sheet' },
   stickerTitle: { hi: 'मरीज़ स्टिकर', en: 'Patient sticker' },
   uhidCardTitle: { hi: 'यूएचआईडी कार्ड', en: 'UHID card' },

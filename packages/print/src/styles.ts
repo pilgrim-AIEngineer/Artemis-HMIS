@@ -31,6 +31,8 @@ const TEMPLATE_CSS = `
 .sheet-vital-more .sheet-vital-box { min-width: 7mm; }
 .sheet-vital-key { font-size: 0.7em; margin-left: auto; }
 .sheet-alert { border: 1.25pt solid #000; padding: 1mm 1.5mm; margin: 0; }
+.sheet-preg { border: 0.75pt solid #000; padding: 1mm 1.5mm; font-size: 0.82em; display: grid; gap: 0.4mm; }
+.sheet-preg-risks { font-weight: 700; }
 .sheet-context { border: 0.75pt solid #000; padding: 1mm 1.5mm; display: grid; gap: 1mm; }
 .sheet-blank-line { display: inline-block; min-width: 40mm; border-bottom: 0.5pt solid #000; height: 3.5mm; vertical-align: bottom; }
 .sheet-blank-line.short { min-width: 12mm; }
@@ -85,6 +87,29 @@ const TEMPLATE_CSS = `
 .receipt-a5-sign > div { flex: 1; }
 .receipt-a5-sign-box { margin-top: 9mm; border-top: 0.75pt solid #000; text-align: center; padding-top: 0.5mm; font-size: 0.8em; }
 .receipt-a5-sign .receipt-a5-sign-box { margin-top: 0; }
+.anc-card { display: flex; flex-direction: column; gap: 1.2mm; font-size: 0.88em; }
+.anc-title { text-align: center; font-weight: 700; font-size: 1.15em; }
+.anc-patient, .anc-box, .anc-visits { border: 0.75pt solid #000; padding: 0.8mm 1.5mm; break-inside: avoid; }
+.anc-table thead { display: table-header-group; }
+.anc-table tr { break-inside: avoid; }
+.anc-name { font-size: 1.1em; margin-bottom: 0.8mm; }
+.anc-h { display: block; font-size: 0.75em; font-weight: 700; margin-bottom: 0.6mm; }
+.anc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.6mm 1.5mm; }
+.anc-cell { min-width: 0; overflow-wrap: anywhere; }
+.anc-k { display: block; font-size: 0.65em; color: #333; line-height: 1.1; }
+.anc-risks ul, .anc-schedule { list-style: none; margin: 0; padding: 0; }
+.anc-risks li { font-size: 0.95em; }
+.anc-risks li[data-level='alert'] { text-decoration: underline; }
+.anc-table { width: 100%; border-collapse: collapse; font-size: 0.78em; }
+.anc-table th, .anc-table td { border: 0.5pt solid #555; padding: 0.4mm 0.6mm; text-align: center; vertical-align: top; }
+.anc-table th { font-size: 0.85em; line-height: 1.1; }
+.anc-table td:last-child { text-align: left; }
+.anc-schedule { display: grid; grid-template-columns: 1fr 1fr; gap: 0.3mm 3mm; font-size: 0.74em; line-height: 1.15; }
+.anc-schedule li { display: flex; justify-content: space-between; gap: 1.5mm; border-bottom: 0.4pt dotted #777; }
+.anc-schedule li[data-state='overdue'] .anc-state { font-weight: 700; }
+.anc-state { white-space: nowrap; text-align: right; }
+.anc-next { border: 1.25pt solid #000; padding: 1mm 1.5mm; }
+.anc-bring { font-size: 0.8em; }
 .facility-close { display: flex; flex-direction: column; gap: 3mm; }
 .facility-close-h { margin: 2mm 0 0; font-size: 1.05em; }
 .facility-close-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }

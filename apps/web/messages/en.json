@@ -308,7 +308,8 @@
         "whatsapp": "WhatsApp",
         "features": "Optional modules",
         "ui": "Screens",
-        "vitals": "Vitals"
+        "vitals": "Vitals",
+        "anc": "Antenatal care (ANC)"
       },
       "options": {
         "reception": "Reception",
@@ -558,6 +559,32 @@
           "heightPromptDays": {
             "label": "Ask for height again after (days)",
             "hint": "The vitals desk asks for the height when it has not been measured for this many days."
+          }
+        },
+        "anc": {
+          "rulesSignedOff": {
+            "label": "ANC rules signed off by the gynaecologist",
+            "hint": "Tick only after the owner gynaecologist has reviewed the ANC schedule, scan re-dating table, risk rules and visit intervals. Until then the screens show 'pending sign-off'."
+          },
+          "redatingThresholds": {
+            "label": "Scan re-dating limits",
+            "hint": "Advanced. From which GA at the scan (in days) the LMP and scan EDDs may differ by how many days before the scan EDD is suggested, as JSON. Draft values (ACOG-style); the gynaecologist confirms them."
+          },
+          "riskRules": {
+            "label": "ANC risk flag limits",
+            "hint": "Advanced. Age, height, BMI, BP, Hb, abortions, para and post-dates limits that raise the automatic risk flags, as JSON. Draft values from the spec; the gynaecologist confirms them."
+          },
+          "visitIntervals": {
+            "label": "Days between ANC visits",
+            "hint": "Advanced. Suggested gap to the next visit by GA (in days), as JSON. Draft: every 4 weeks to 28 weeks, 2 weeks to 36 weeks, then weekly."
+          },
+          "viabilityWeeks": {
+            "label": "Weeks from which a delivery counts as a birth (G P A L)",
+            "hint": "An earlier pregnancy that ended before this many weeks counts as an abortion in P and A. Draft value 28; the gynaecologist confirms it."
+          },
+          "bookingGraceDays": {
+            "label": "Days to do the booking tests",
+            "hint": "Booking tests and Td-1 are due from the booking visit and show as overdue after this many days."
           }
         }
       }
@@ -1170,6 +1197,28 @@
       "notYourPatient": "Only the doctor who wrote this prescription can verify it.",
       "scanTooLarge": "The photo is too large (more than 10 MB).",
       "scanInvalid": "This file is not a photo (JPEG). Take the photo again."
+    },
+    "anc": {
+      "patientNotFound": "Patient not found.",
+      "notFemale": "ANC records are for women only; this patient is registered as male.",
+      "pregnancyNotFound": "Pregnancy record not found. Please reload.",
+      "activeExists": "This woman already has an active pregnancy record. Use that one, or close it first.",
+      "notActive": "This pregnancy is closed and can no longer be changed.",
+      "lmpFuture": "The LMP cannot be in the future.",
+      "lmpTooOld": "The LMP is more than 44 weeks ago. Check the date, or date the pregnancy by a scan.",
+      "dateInvalid": "This date is not valid for a pregnancy that is going on.",
+      "datingNeeded": "Give the LMP, or the scan date and GA.",
+      "scanInFuture": "The scan date cannot be in the future.",
+      "scanBeforeLmp": "The scan date is before the LMP. Check both dates.",
+      "datingBasisMissing": "The LMP is not known, so the pregnancy can only be dated by the scan.",
+      "gpalInconsistent": "The score does not add up: births plus abortions must be less than G.",
+      "visitDateRange": "The visit date must be between the start of the pregnancy and today.",
+      "encounterMismatch": "That OPD visit belongs to another patient.",
+      "scheduleItemNotFound": "This test or vaccine is not in the schedule.",
+      "doneDateRange": "The date done must be between the start of the pregnancy and today.",
+      "mtpForbidden": "You are not allowed to record this outcome.",
+      "deliveryOutcomeNeeded": "Choose how the delivery happened.",
+      "outcomeDateRange": "The outcome date must be between the start of the pregnancy and today."
     }
   },
   "nav": {
@@ -2131,6 +2180,221 @@
       "noPhoto": "No photo attached.",
       "verify": "Verify",
       "correctHint": "If something is wrong, tell the assistant: a correction is saved as a new version and comes back here."
+    }
+  },
+  "anc": {
+    "deskTitle": "Antenatal care (ANC)",
+    "assistantLink": "ANC cards",
+    "deskHint": "Open a woman's ANC card: GA, EDD, visits, tests due and risk flags.",
+    "search": "Find a woman",
+    "searchHint": "Name, mobile number or UHID",
+    "noPatient": "No woman found. Register her at the reception first.",
+    "activeTitle": "Pregnancies in care",
+    "nobodyActive": "No active pregnancy record yet.",
+    "openCard": "Open ANC card",
+    "loadFailed": "Could not load. Check the connection and try again.",
+    "loading": "Loading…",
+    "ga": "GA",
+    "edd": "EDD",
+    "nextVisit": "Next visit",
+    "lmp": "LMP",
+    "scanDate": "Scan date",
+    "scanWeeks": "GA at scan: weeks",
+    "scanDays": "days",
+    "bloodGroup": "Blood group",
+    "notKnown": "Not known",
+    "notes": "Notes",
+    "mobile": "Mobile",
+    "highRisk": "High-risk pregnancy",
+    "notEligible": "ANC records are for women only. This patient is registered as male.",
+    "noPregnancy": "No pregnancy record. The assistant or doctor opens it.",
+    "risks": "Risk flags",
+    "noRisks": "No risk flag raised.",
+    "booked": "Booked on",
+    "printCard": "Print ANC card",
+    "weightChart": "Weight rose by {gain} kg, from {first} to {last} kg",
+    "weightGain": "Weight gain {gain} kg",
+    "scanGaRange": "GA at the scan must be between 5 weeks and 42 weeks.",
+    "datingNeeded": "Give the LMP, or the scan date and GA if the LMP is not known.",
+    "pendingSignOff": {
+      "title": "Pending gynaecologist sign-off.",
+      "body": "The ANC schedule, scan re-dating table and risk rules are the draft starting values. They calculate and remind only; the doctor decides. The owner gynaecologist must review them before go-live (Admin → Settings → ANC)."
+    },
+    "create": {
+      "title": "Open the pregnancy record",
+      "hint": "EDD, gestational age and G P A L are worked out from what you enter. The doctor or assistant can correct them later.",
+      "lmpLegend": "Last menstrual period",
+      "lmpKnown": "LMP is known",
+      "lmpUnknown": "LMP not known (date by scan)",
+      "hasScan": "A dating scan has also been done",
+      "submit": "Open pregnancy record"
+    },
+    "dating": {
+      "title": "Dating",
+      "eddByLmp": "EDD by LMP",
+      "eddByScan": "EDD by scan",
+      "basis": {
+        "lmp": "by LMP",
+        "scan": "by scan"
+      },
+      "pending": "The scan EDD differs from the LMP EDD by more than the limit. Choose which EDD to use.",
+      "decision": {
+        "kept_lmp": "The LMP EDD was kept after the scan.",
+        "switched_to_scan": "The EDD was changed to the scan EDD."
+      },
+      "scanForm": "Dating scan",
+      "difference": "The two EDDs differ by {days} days (limit at this GA: {limit} days).",
+      "suggestScan": "Suggested: use the scan EDD.",
+      "suggestLmp": "Suggested: keep the LMP EDD.",
+      "noLmp": "The LMP is not known, so this scan sets the EDD.",
+      "keepLmp": "Keep LMP EDD",
+      "useScan": "Use scan EDD"
+    },
+    "plurality": {
+      "label": "Babies",
+      "single": "One baby",
+      "twins": "Twins",
+      "higher": "More than two"
+    },
+    "history": {
+      "title": "Earlier pregnancies",
+      "none": "No earlier pregnancy.",
+      "row": "Pregnancy {n}",
+      "outcome": "How it ended",
+      "year": "Year",
+      "weeks": "Weeks",
+      "alive": "Babies alive",
+      "neonatalDeath": "Died as newborn",
+      "complications": "Complications",
+      "remove": "Remove earlier pregnancy {n}",
+      "removeShort": "Remove",
+      "add": "Add earlier pregnancy",
+      "save": "Save earlier pregnancies",
+      "saved": "Saved."
+    },
+    "obOutcome": {
+      "nvd": "Normal delivery",
+      "lscs": "Caesarean (LSCS)",
+      "assisted": "Assisted delivery",
+      "abortion": "Abortion",
+      "ectopic": "Ectopic",
+      "stillbirth": "Stillbirth"
+    },
+    "gpal": {
+      "label": "G P A L",
+      "manual": "(typed by hand)",
+      "edit": "Type the score by hand",
+      "set": "Use this score",
+      "restore": "Work it out from the history again"
+    },
+    "visits": {
+      "title": "ANC visits",
+      "none": "No ANC visit recorded yet.",
+      "col": {
+        "date": "Date",
+        "ga": "GA",
+        "weight": "Weight",
+        "bp": "BP",
+        "fundal": "Fundal height",
+        "fhr": "FHR",
+        "presentation": "Presentation",
+        "oedema": "Oedema",
+        "urine": "Urine protein / sugar",
+        "hb": "Hb",
+        "remarks": "Remarks"
+      },
+      "edit": "Edit the visit of {date}",
+      "editShort": "Edit",
+      "add": "Add or complete a visit",
+      "bpSys": "BP upper",
+      "bpDia": "BP lower",
+      "urineProtein": "Urine protein",
+      "urineSugar": "Urine sugar",
+      "save": "Save visit",
+      "saved": "Visit saved."
+    },
+    "presentation": {
+      "cephalic": "Cephalic",
+      "breech": "Breech",
+      "transverse": "Transverse",
+      "oblique": "Oblique",
+      "not_assessed": "Not assessed"
+    },
+    "schedule": {
+      "title": "Tests, scans and vaccines",
+      "byOrder": "from completed order",
+      "afterTd1": "after Td-1 is given",
+      "undo": "Undo",
+      "undoFor": "Undo the mark on {name}",
+      "done": "Done",
+      "doneFor": "Mark {name} as done",
+      "skip": "Skip",
+      "skipFor": "Skip {name}"
+    },
+    "state": {
+      "upcoming": "Later",
+      "due": "Due",
+      "overdue": "Overdue",
+      "done": "Done",
+      "skipped": "Skipped",
+      "not_applicable": "Not needed"
+    },
+    "details": {
+      "title": "Blood group, risk flags and notes",
+      "manualRisks": "Risk flags set by the doctor",
+      "otherText": "Other risk (text)",
+      "save": "Save",
+      "saved": "Saved."
+    },
+    "close": {
+      "open": "Close this pregnancy…",
+      "title": "Close the pregnancy",
+      "outcome": "Outcome",
+      "date": "Date",
+      "mode": "Mode of delivery",
+      "alive": "Babies alive",
+      "reason": "Note",
+      "cancel": "Cancel",
+      "submit": "Close pregnancy"
+    },
+    "outcome": {
+      "active": "Active",
+      "delivered": "Delivered",
+      "aborted": "Abortion",
+      "mtp": "MTP",
+      "ectopic": "Ectopic",
+      "lost_to_follow_up": "Lost to follow-up",
+      "transferred": "Transferred",
+      "closed": "Closed"
+    },
+    "past": {
+      "title": "Earlier pregnancy records"
+    },
+    "summary": {
+      "title": "Pregnancy at a glance"
+    },
+    "risk": {
+      "age_young": "Young maternal age",
+      "age_elderly": "Advanced maternal age",
+      "short_stature": "Short stature",
+      "obese_at_booking": "Obesity at booking",
+      "raised_bp": "Raised BP",
+      "severe_raised_bp": "Severely raised BP",
+      "anaemia": "Anaemia",
+      "severe_anaemia": "Severe anaemia",
+      "previous_lscs": "Previous caesarean",
+      "previous_stillbirth_or_neonatal_death": "Previous stillbirth or neonatal death",
+      "recurrent_abortions": "Recurrent abortions",
+      "grand_multipara": "Grand multipara",
+      "rh_negative": "Rh negative",
+      "multiple_pregnancy": "Multiple pregnancy",
+      "post_dates": "Post-dates",
+      "gdm": "Gestational diabetes",
+      "thyroid_disorder": "Thyroid disorder",
+      "heart_disease": "Heart disease",
+      "placenta_praevia": "Placenta praevia",
+      "iugr": "Growth restriction (IUGR)",
+      "other": "Other"
     }
   }
 }

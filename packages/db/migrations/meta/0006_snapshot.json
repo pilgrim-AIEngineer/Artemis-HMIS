@@ -141,12 +141,8 @@
           "name": "access_log_facility_id_facility_id_fk",
           "tableFrom": "access_log",
           "tableTo": "facility",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["facility_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -154,12 +150,8 @@
           "name": "access_log_user_id_app_user_id_fk",
           "tableFrom": "access_log",
           "tableTo": "app_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -167,12 +159,8 @@
           "name": "access_log_workstation_id_workstation_id_fk",
           "tableFrom": "access_log",
           "tableTo": "workstation",
-          "columnsFrom": [
-            "workstation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workstation_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -375,12 +363,8 @@
           "name": "app_user_facility_id_facility_id_fk",
           "tableFrom": "app_user",
           "tableTo": "facility",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["facility_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -672,12 +656,8 @@
           "name": "document_facility_id_facility_id_fk",
           "tableFrom": "document",
           "tableTo": "facility",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["facility_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -942,12 +922,8 @@
           "name": "idempotency_facility_id_facility_id_fk",
           "tableFrom": "idempotency",
           "tableTo": "facility",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["facility_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -957,9 +933,7 @@
         "idempotency_key_key": {
           "name": "idempotency_key_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "key"
-          ]
+          "columns": ["key"]
         }
       },
       "policies": {},
@@ -1096,12 +1070,8 @@
           "name": "integration_event_facility_id_facility_id_fk",
           "tableFrom": "integration_event",
           "tableTo": "facility",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["facility_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1211,12 +1181,8 @@
           "name": "number_series_facility_id_facility_id_fk",
           "tableFrom": "number_series",
           "tableTo": "facility",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["facility_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1226,11 +1192,7 @@
         "number_series_facility_key_fy": {
           "name": "number_series_facility_key_fy",
           "nullsNotDistinct": false,
-          "columns": [
-            "facility_id",
-            "key",
-            "fy"
-          ]
+          "columns": ["facility_id", "key", "fy"]
         }
       },
       "policies": {},
@@ -1319,12 +1281,8 @@
           "name": "permission_facility_id_facility_id_fk",
           "tableFrom": "permission",
           "tableTo": "facility",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["facility_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1334,10 +1292,7 @@
         "permission_facility_key": {
           "name": "permission_facility_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "facility_id",
-            "key"
-          ]
+          "columns": ["facility_id", "key"]
         }
       },
       "policies": {},
@@ -1491,12 +1446,8 @@
           "name": "print_log_facility_id_facility_id_fk",
           "tableFrom": "print_log",
           "tableTo": "facility",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["facility_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1504,12 +1455,8 @@
           "name": "print_log_user_id_app_user_id_fk",
           "tableFrom": "print_log",
           "tableTo": "app_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1517,12 +1464,8 @@
           "name": "print_log_workstation_id_workstation_id_fk",
           "tableFrom": "print_log",
           "tableTo": "workstation",
-          "columnsFrom": [
-            "workstation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workstation_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1627,12 +1570,8 @@
           "name": "role_facility_id_facility_id_fk",
           "tableFrom": "role",
           "tableTo": "facility",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["facility_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1642,10 +1581,7 @@
         "role_facility_key": {
           "name": "role_facility_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "facility_id",
-            "key"
-          ]
+          "columns": ["facility_id", "key"]
         }
       },
       "policies": {},
@@ -1755,12 +1691,8 @@
           "name": "role_permission_facility_id_facility_id_fk",
           "tableFrom": "role_permission",
           "tableTo": "facility",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["facility_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1768,12 +1700,8 @@
           "name": "role_permission_role_id_role_id_fk",
           "tableFrom": "role_permission",
           "tableTo": "role",
-          "columnsFrom": [
-            "role_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["role_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1781,12 +1709,8 @@
           "name": "role_permission_permission_id_permission_id_fk",
           "tableFrom": "role_permission",
           "tableTo": "permission",
-          "columnsFrom": [
-            "permission_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["permission_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1940,12 +1864,8 @@
           "name": "session_facility_id_facility_id_fk",
           "tableFrom": "session",
           "tableTo": "facility",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["facility_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1953,12 +1873,8 @@
           "name": "session_user_id_app_user_id_fk",
           "tableFrom": "session",
           "tableTo": "app_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1966,12 +1882,8 @@
           "name": "session_workstation_id_workstation_id_fk",
           "tableFrom": "session",
           "tableTo": "workstation",
-          "columnsFrom": [
-            "workstation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["workstation_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1981,9 +1893,7 @@
         "session_token_hash_key": {
           "name": "session_token_hash_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "token_hash"
-          ]
+          "columns": ["token_hash"]
         }
       },
       "policies": {},
@@ -2053,12 +1963,8 @@
           "name": "setting_facility_id_facility_id_fk",
           "tableFrom": "setting",
           "tableTo": "facility",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["facility_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2068,10 +1974,7 @@
         "setting_facility_key": {
           "name": "setting_facility_key",
           "nullsNotDistinct": false,
-          "columns": [
-            "facility_id",
-            "key"
-          ]
+          "columns": ["facility_id", "key"]
         }
       },
       "policies": {},
@@ -2181,12 +2084,8 @@
           "name": "user_role_facility_id_facility_id_fk",
           "tableFrom": "user_role",
           "tableTo": "facility",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["facility_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2194,12 +2093,8 @@
           "name": "user_role_user_id_app_user_id_fk",
           "tableFrom": "user_role",
           "tableTo": "app_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2207,12 +2102,8 @@
           "name": "user_role_role_id_role_id_fk",
           "tableFrom": "user_role",
           "tableTo": "role",
-          "columnsFrom": [
-            "role_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["role_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2336,12 +2227,8 @@
           "name": "workstation_facility_id_facility_id_fk",
           "tableFrom": "workstation",
           "tableTo": "facility",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["facility_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2351,10 +2238,7 @@
         "workstation_facility_name": {
           "name": "workstation_facility_name",
           "nullsNotDistinct": false,
-          "columns": [
-            "facility_id",
-            "name"
-          ]
+          "columns": ["facility_id", "name"]
         }
       },
       "policies": {},
@@ -2496,12 +2380,8 @@
           "name": "consultation_rule_facility_id_facility_id_fk",
           "tableFrom": "consultation_rule",
           "tableTo": "facility",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["facility_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2509,12 +2389,8 @@
           "name": "consultation_rule_doctor_id_doctor_profile_id_fk",
           "tableFrom": "consultation_rule",
           "tableTo": "doctor_profile",
-          "columnsFrom": [
-            "doctor_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["doctor_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2522,12 +2398,8 @@
           "name": "consultation_rule_service_id_service_id_fk",
           "tableFrom": "consultation_rule",
           "tableTo": "service",
-          "columnsFrom": [
-            "service_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["service_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2702,12 +2574,8 @@
           "name": "department_facility_id_facility_id_fk",
           "tableFrom": "department",
           "tableTo": "facility",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["facility_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2936,12 +2804,8 @@
           "name": "doctor_profile_facility_id_facility_id_fk",
           "tableFrom": "doctor_profile",
           "tableTo": "facility",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["facility_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2949,12 +2813,8 @@
           "name": "doctor_profile_user_id_app_user_id_fk",
           "tableFrom": "doctor_profile",
           "tableTo": "app_user",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2962,12 +2822,8 @@
           "name": "doctor_profile_department_id_department_id_fk",
           "tableFrom": "doctor_profile",
           "tableTo": "department",
-          "columnsFrom": [
-            "department_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["department_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -2975,12 +2831,8 @@
           "name": "doctor_profile_signature_file_id_document_id_fk",
           "tableFrom": "doctor_profile",
           "tableTo": "document",
-          "columnsFrom": [
-            "signature_file_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["signature_file_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3229,12 +3081,8 @@
           "name": "drug_facility_id_facility_id_fk",
           "tableFrom": "drug",
           "tableTo": "facility",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["facility_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3495,12 +3343,8 @@
           "name": "lab_test_facility_id_facility_id_fk",
           "tableFrom": "lab_test",
           "tableTo": "facility",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["facility_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -3508,12 +3352,8 @@
           "name": "lab_test_service_id_service_id_fk",
           "tableFrom": "lab_test",
           "tableTo": "service",
-          "columnsFrom": [
-            "service_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["service_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3675,12 +3515,8 @@
           "name": "locality_facility_id_facility_id_fk",
           "tableFrom": "locality",
           "tableTo": "facility",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["facility_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3878,12 +3714,8 @@
           "name": "payer_facility_id_facility_id_fk",
           "tableFrom": "payer",
           "tableTo": "facility",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["facility_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4056,12 +3888,8 @@
           "name": "reason_code_facility_id_facility_id_fk",
           "tableFrom": "reason_code",
           "tableTo": "facility",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["facility_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4312,12 +4140,8 @@
           "name": "service_facility_id_facility_id_fk",
           "tableFrom": "service",
           "tableTo": "facility",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["facility_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4325,12 +4149,8 @@
           "name": "service_department_id_department_id_fk",
           "tableFrom": "service",
           "tableTo": "department",
-          "columnsFrom": [
-            "department_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["department_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4338,12 +4158,8 @@
           "name": "service_linked_lab_test_id_lab_test_id_fk",
           "tableFrom": "service",
           "tableTo": "lab_test",
-          "columnsFrom": [
-            "linked_lab_test_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["linked_lab_test_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4351,12 +4167,8 @@
           "name": "service_linked_usg_procedure_id_usg_procedure_id_fk",
           "tableFrom": "service",
           "tableTo": "usg_procedure",
-          "columnsFrom": [
-            "linked_usg_procedure_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["linked_usg_procedure_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4566,12 +4378,8 @@
           "name": "service_rate_facility_id_facility_id_fk",
           "tableFrom": "service_rate",
           "tableTo": "facility",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["facility_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4579,12 +4387,8 @@
           "name": "service_rate_service_id_service_id_fk",
           "tableFrom": "service_rate",
           "tableTo": "service",
-          "columnsFrom": [
-            "service_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["service_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4592,12 +4396,8 @@
           "name": "service_rate_tariff_id_tariff_id_fk",
           "tableFrom": "service_rate",
           "tableTo": "tariff",
-          "columnsFrom": [
-            "tariff_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["tariff_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4775,12 +4575,8 @@
           "name": "tariff_facility_id_facility_id_fk",
           "tableFrom": "tariff",
           "tableTo": "facility",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["facility_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -4788,12 +4584,8 @@
           "name": "tariff_payer_id_payer_id_fk",
           "tableFrom": "tariff",
           "tableTo": "payer",
-          "columnsFrom": [
-            "payer_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["payer_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4963,12 +4755,8 @@
           "name": "usg_procedure_facility_id_facility_id_fk",
           "tableFrom": "usg_procedure",
           "tableTo": "facility",
-          "columnsFrom": [
-            "facility_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["facility_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }

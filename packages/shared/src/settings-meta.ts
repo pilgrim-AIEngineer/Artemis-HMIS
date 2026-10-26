@@ -51,6 +51,7 @@ export const SETTING_GROUPS = [
   'rx',
   'print',
   'vitals',
+  'anc',
   'usg',
   'pcpndt',
   'pmjay',

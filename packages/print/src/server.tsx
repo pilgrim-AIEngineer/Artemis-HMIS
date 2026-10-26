@@ -5,6 +5,8 @@
  */
 import {
   activeVitals,
+  ancSummary,
+  getPregnancyView,
   facilityCloseView,
   loadDayClose,
   loadReceipt,
@@ -21,13 +23,19 @@ import {
   patient,
   payer,
 } from '@hmis/db/schema';
-import { DEFAULT_QUICK_ORDERS, formatDate, visitQrPayload } from '@hmis/shared';
+import {
+  DEFAULT_QUICK_ORDERS,
+  formatDate,
+  formatGa as formatGaDays,
+  visitQrPayload,
+} from '@hmis/shared';
 import { and, desc, eq, lt, ne } from 'drizzle-orm';
 import type { ReactNode } from 'react';
 import { L } from './labels';
 import { initials, qrSvg } from './doc-utils';
 import { SampleDocument } from './templates/sample';
 import { ageSex, mobileLast4, sheetVitals } from './templates/format';
+import { AncCard, type AncCardData } from './templates/anc-card';
 import { OpdSheet, type OpdSheetData } from './templates/opd-sheet';
 import { PatientSticker, UhidCard, type PatientLabelData } from './templates/patient-labels';
 import {
@@ -38,6 +46,7 @@ import {
 } from './templates/day-close';
 import { Receipt, ReceiptA5, receiptStamp, type ReceiptPrintData } from './templates/receipt';
 import {
+  ANC_CARD_TEMPLATE,
   DAY_CLOSE_TEMPLATE,
   FACILITY_CLOSE_TEMPLATE,
   findTemplateMeta,
@@ -155,6 +164,12 @@ const opdSheet = impl<OpdSheetData>({
       .orderBy(desc(encounter.startedAt))
       .limit(1);
     const reading = await activeVitals(db, facilityId, entityId);
+    const anc = await ancSummary(
+      db,
+      { facilityId, userId: '', mtp: { view: false, edit: false } },
+      row.patientId,
+      row.startedAt,
+    );
     const s = await readSettings(db, facilityId, ['opd.quickOrders']);
     const configured = s['opd.quickOrders'][row.doctorId];
     return {
@@ -181,6 +196,20 @@ const opdSheet = impl<OpdSheetData>({
       },
       // Blank boxes until the vitals desk has saved a reading (OPD-01).
       ...(reading ? sheetVitals(reading) : { vitals: null }),
+      ...(anc
+        ? {
+            pregnancy: {
+              gaLabel: anc.gaLabel,
+              edd: formatDate(anc.eddFinal),
+              gpal: anc.gpalText,
+              risks: anc.risks.map((r) => r.code),
+              lastVisits: anc.lastVisits.map((v) => ({ ...v, date: formatDate(v.date) })),
+              testsDue: anc.testsDue.map((t) => ({ hi: t.labelHi, en: t.label })),
+              testsOverdue: anc.testsOverdue.map((t) => ({ hi: t.labelHi, en: t.label })),
+              td: anc.td,
+            },
+          }
+        : {}),
       lastVisit: last ? { date: formatDate(last.visitDate), doctor: last.doctor } : null,
       quickOrders: configured && configured.length > 0 ? configured : [...DEFAULT_QUICK_ORDERS],
     };
@@ -337,6 +366,79 @@ const facilityClose = impl<FacilityCloseSummaryData>({
   body: (data) => <FacilityCloseSummary data={data} />,
 });
 
+/**
+ * `/print/anc-card/<pregnancy id>`: the antenatal card (OPD-05). Read with no MTP rights, so a
+ * pregnancy closed as MTP is "not found" here and never printed (docs/11 §3.1).
+ */
+const ancCard = impl<AncCardData>({
+  meta: metaOf(ANC_CARD_TEMPLATE),
+  async load({ db, facilityId, entityId }) {
+    const none = { view: false, edit: false };
+    let v;
+    try {
+      v = await getPregnancyView(db, { facilityId, userId: '', mtp: none }, entityId, new Date());
+    } catch {
+      return null;
+    }
+    if (v.status === 'closed') return null;
+    const [pt] = await db
+      .select({ guardian: patient.guardianName })
+      .from(patient)
+      .where(eq(patient.id, v.patient.id));
+    const states = new Set(['done', 'due', 'overdue', 'upcoming', 'skipped']);
+    return {
+      patient: {
+        name: v.patient.fullName,
+        nameHi: v.patient.nameHi,
+        ageYears: v.patient.ageYears,
+        uhid: v.patient.uhid,
+        guardian: pt?.guardian ?? null,
+        mobileLast4: v.patient.mobileLast4,
+      },
+      bookingDate: v.bookingDate,
+      lmp: v.dating.lmp,
+      edd: v.dating.eddFinal,
+      datedBy: v.dating.basis,
+      gaLabel: v.ga?.label ?? null,
+      gpal: v.gpal.text,
+      bloodGroup: v.bloodGroupRh,
+      plurality: v.plurality,
+      risks: v.risks.map((r) => ({
+        code: r.code,
+        level: r.level,
+        text: r.text ?? null,
+        value: r.value ?? null,
+      })),
+      visits: v.visits.map((x) => ({
+        date: x.visitDate,
+        gaLabel: x.gaLabel,
+        weightKg: x.weightKg,
+        bp: x.bpSys === null ? null : `${x.bpSys}/${x.bpDia}`,
+        fundalHeightCm: x.fundalHeightCm,
+        fhr: x.fhr,
+        presentation: x.presentation,
+        oedema: x.oedema,
+        urineProtein: x.urineProtein,
+        urineSugar: x.urineSugar,
+        hb: x.hb,
+        remarks: x.remarks,
+      })),
+      schedule: v.schedule
+        .filter((s) => states.has(s.state))
+        .map((s) => ({
+          label: { hi: s.labelHi, en: s.label },
+          state: s.state as AncCardData['schedule'][number]['state'],
+          date: s.doneDate,
+          windowFrom: s.windowFrom,
+        })),
+      nextVisit: v.nextVisit
+        ? { date: v.nextVisit.date, gaLabel: formatGaDays(v.nextVisit.gaAtDate) }
+        : null,
+    };
+  },
+  body: (data, pm) => <AncCard data={data} meta={pm} />,
+});
+
 const IMPLS = new Map<string, TemplateImpl<unknown>>(
   [
     ...sampleTemplates,
@@ -347,6 +449,7 @@ const IMPLS = new Map<string, TemplateImpl<unknown>>(
     receiptA5,
     dayCloseSlip,
     facilityClose,
+    ancCard,
   ].map((t) => [t.meta.key, t]),
 );
 

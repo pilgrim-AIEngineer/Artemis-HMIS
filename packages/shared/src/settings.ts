@@ -1,5 +1,15 @@
 import { z } from 'zod';
 import { accentColorSchema } from './accent';
+import {
+  DEFAULT_REDATING_TABLE,
+  DEFAULT_RISK_RULES,
+  DEFAULT_VIABILITY_WEEKS,
+  DEFAULT_VISIT_INTERVALS,
+  DEFAULT_BOOKING_GRACE_DAYS,
+  redatingTableSchema,
+  riskRulesSchema,
+  visitIntervalsSchema,
+} from './anc';
 import { DEFAULT_QUICK_ORDER_SERVICES, displayKeyHashSchema } from './display';
 import { rxPhrasesOverrideSchema } from './rx-hindi';
 import { cidrSchema, DEFAULT_LAN_CIDRS } from './network';
@@ -133,6 +143,20 @@ export const SETTINGS = {
   'vitals.thresholds': def(vitalsThresholdsSchema, DEFAULT_VITALS_THRESHOLDS),
   /** Ask for height again when the last measurement is at least this many days old. */
   'vitals.heightPromptDays': def(z.number().int().min(30).max(3650), DEFAULT_HEIGHT_PROMPT_DAYS),
+
+  // --- ANC card (docs/11 §3): clinical seeds pending gynaecologist sign-off
+  /** The owner gynaecologist has reviewed the ANC schedule, re-dating table and risk rules. */
+  'anc.rulesSignedOff': def(z.boolean(), false),
+  /** Scan re-dating: the EDD difference (days) that suggests the scan dating, by GA at the scan. */
+  'anc.redatingThresholds': def(redatingTableSchema, DEFAULT_REDATING_TABLE),
+  /** Auto risk flag thresholds. */
+  'anc.riskRules': def(riskRulesSchema, DEFAULT_RISK_RULES),
+  /** Next-visit interval by GA. */
+  'anc.visitIntervals': def(visitIntervalsSchema, DEFAULT_VISIT_INTERVALS),
+  /** A previous delivery before this GA (weeks) is counted as an abortion in G P A L. */
+  'anc.viabilityWeeks': def(z.number().int().min(20).max(37), DEFAULT_VIABILITY_WEEKS),
+  /** Days after the booking visit before a booking test or Td dose is overdue. */
+  'anc.bookingGraceDays': def(z.number().int().min(0).max(60), DEFAULT_BOOKING_GRACE_DAYS),
 
   // --- Registration (docs/10 §3)
   /** Duplicate check: phonetic name similarity (percent) at or above which a patient on the same mobile is a possible duplicate. */

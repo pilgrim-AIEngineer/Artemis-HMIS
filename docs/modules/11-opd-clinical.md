@@ -22,10 +22,10 @@ Screen: vitals desk list (tokens `waiting`, oldest first, priority on top) → s
 Built (OPD-01):
 
 - Desk at `/nursing/vitals` (list) and `/nursing/vitals/<token id>` (form); permission `vitals.record`. The queue cards link to it ("Enter vitals"); the older "Vitals done" button still moves a token without readings.
-- The assistant picks the adult or pregnant form (an ANC visit, or a pregnant-form reading in the last 300 days, makes pregnant the default). Until the ANC pregnancy record (OPD-05) exists there is no "active pregnancy" to read; the pregnant form is open to any non-male patient of 10 years or more. Under 18 the child form is the default.
+- The assistant picks the adult or pregnant form (an ANC visit, an active pregnancy record (OPD-05), or a pregnant-form reading in the last 300 days, makes pregnant the default). The pregnant form stays open to any non-male patient of 10 years or more, so a woman without a pregnancy record can still have her BP taken. Under 18 the child form is the default.
 - Thresholds are the setting `vitals.thresholds` (defaults above); the yearly height prompt is `vitals.heightPromptDays` (365). Children are judged on temperature and SpO2 only; no paediatric BP / pulse bands are invented.
 - Temperature is stored in °C with two decimals so that the °F typed comes back unchanged on the sheet. A correction inserts a new row and marks the earlier one `superseded`; both stay on record.
-- "Raised BP in pregnancy" is a flag with level `alert` in `vitals.flags`; it shows on the form, the saved panel, the desk list and the OPD sheet. A separate patient-alert record arrives with OPD-05.
+- "Raised BP in pregnancy" is a flag with level `alert` in `vitals.flags`; it shows on the form, the saved panel, the desk list and the OPD sheet. With an active pregnancy record the readings also fill that day's ANC visit row (OPD-05) and the `high_risk_pregnancy` patient alert follows the ANC risk flags.
 
 ## 2. Rx transcription by assistant (OPD-02, OPD-03, OPD-04)
 
@@ -121,6 +121,21 @@ Columns: date, GA, weight, BP, fundal height, FHR, presentation, oedema, urine p
 
 - ANC card (A5, bilingual) for the patient: booking details, EDD, blood group, risk flags, visit table, tests done, Td doses, next visit.
 - ANC register report (active pregnancies, EDD this month/next, high-risk list) in `20`.
+
+### Built (OPD-05)
+
+All ANC rules below are the drafts of this file and `33 §4`: **pending gynaecologist sign-off**. Every ANC screen shows that notice until the setting `anc.rulesSignedOff` is ticked (Admin → Settings → ANC); the calculators remind and flag, they never decide treatment.
+
+- Screens: `/assistant/anc` (search by name / mobile / UHID with the keyboard, list of active pregnancies with GA, EDD, G P A L, risk chips, next visit) and `/assistant/anc/<patient id>` (the card: summary, dating, visits, schedule, blood group + manual flags, earlier pregnancies + G P A L, closing). Reading needs `patient.view`; every change needs `clinical.anc.edit` (assistant, doctor, owner). Reception can read but not open a record (open question, see PR notes).
+- Tables (migration 0024/0025): `pregnancy` (partial unique index = one `active` per patient, invariant 04 §15.4), `obstetric_history`, `anc_visit`, `anc_schedule_item` (seeded from the draft in `33 §4` by `seedMasters`; the built-in draft is used until then), `anc_schedule_status`, `patient_alert`, and `encounter.pregnancy_id`. Differences from `04 §5`: `pregnancy` also keeps `scan_date`, `scan_ga_days`, `dating_basis`, `redating_decision`, `booking_date`, `plurality`, `gpal_manual`, `manual_risks` (jsonb, replaces `risk_flags text[]`) and the closing fields; `obstetric_history.babies_alive` is a count (twins) plus `neonatal_death`; rows are replaced by cancelling, never deleted.
+- Calculators in `packages/shared/src/anc.ts` (pure, `YYYY-MM-DD` and whole days): EDD = LMP + 280 days; GA from the final EDD (`280 − days to EDD`, so scan-dated pregnancies work the same); scan EDD = scan date + (280 − GA at scan). Re-dating compares the two EDDs: the table `anc.redatingThresholds` is picked by the **GA found at the scan** and the scan EDD is suggested only when the difference is **more than** the limit (equal keeps the LMP). The suggestion is never applied by itself: "Use scan EDD" / "Keep LMP EDD" are confirmed by a person and the old and new EDD are in `audit_log`. A pregnancy dated by scan only has no LMP.
+- G P A L from the earlier pregnancies plus the current one; a delivery before `anc.viabilityWeeks` (default 28, a draft) counts as an abortion, ectopic and abortion always do, a stillbirth is a birth. It can be typed by hand (must add up) and restored from the history. Closing a pregnancy adds its row to the history so the next pregnancy is right.
+- Risk flags (auto, recomputed on every read from `anc.riskRules`; manual ones kept until removed): the defaults of §3.2, with BP ≥ 160/110 as the serious `alert` band. Any flag raises the `high_risk_pregnancy` alert; closing the pregnancy clears it. "Multiple pregnancy" comes from the number of babies the assistant ticks after the scan report; nothing else about the baby is recorded.
+- Schedule: `due` / `overdue` / `upcoming` / `done` / `skipped` per item from the GA windows; booking tests and Td-1 are due from the booking date and overdue after `anc.bookingGraceDays` (14); Td-2 runs four weeks after Td-1 was given; anti-D / Coombs only when the blood group is Rh-negative. An item is ticked by hand, or by itself when a completed order for one of its service codes falls in its window (±7 days). Next visit = last visit + the interval of its GA (`anc.visitIntervals`: 4 / 2 / 1 weeks).
+- Closing outcomes: delivered (mode asked), abortion, MTP, ectopic, lost to follow-up, transferred. **MTP** needs `mtp.register.edit`; without `mtp.register.view` the pregnancy reads as "closed" with no date or reason on every screen, and is not printable; a permitted read is written to `access_log`. The history row it leaves is an ordinary `abortion`.
+- Visit type: a woman with an active pregnancy seeing a gynaecologist is suggested `anc` at the reception (`10 §4`).
+- Prints: ANC card `anc-card` (A5, bilingual, entity = pregnancy, permission `clinical.anc.edit`, no DUPLICATE mark) with booking details, EDD, blood group, risk flags, visit table, tests / scans / Td, next visit; the OPD sheet gets a pregnancy block (GA, EDD, G P A L, risks in bold, last three BP / weights, tests due / overdue, Td).
+- Not built yet: the ANC register report (`20`), WhatsApp ANC reminders (`21`), a screen to edit the schedule master (rows are in `anc_schedule_item`), ANC suggested date inside the Rx follow-up tab.
 
 ## 4. Paediatrics (OPD-06)
 
