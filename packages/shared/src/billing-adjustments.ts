@@ -10,6 +10,7 @@ import { allocatePaise, applyPercentBp, divRound, sumPaise, type Paise } from '.
 import { idempotencyKeySchema, uuidSchema, positivePaiseSchema } from './primitives';
 import type { DiscountLimit } from './settings';
 import { MONEY_CEILING_PAISE } from './billing';
+import { reportRangeSchema } from './reports';
 
 export const DISCOUNT_MODES = ['percent', 'amount'] as const;
 export type DiscountMode = (typeof DISCOUNT_MODES)[number];
@@ -186,10 +187,8 @@ export const voidDraftBillSchema = z.object({
 });
 export type VoidDraftBillInput = z.input<typeof voidDraftBillSchema>;
 
-export const adjustmentReportSchema = z.object({
-  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-});
+/** Discount and cancellation reports take the common bounded report range (docs/20 §1). */
+export const adjustmentReportSchema = reportRangeSchema;
 
 /** What the bill still allows to be credited: patient share − credited so far. */
 export const creditableOf = (b: { patientSharePaise: Paise; creditedPaise: Paise }): Paise =>

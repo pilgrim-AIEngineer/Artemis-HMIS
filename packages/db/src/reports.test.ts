@@ -541,7 +541,7 @@ describe('owner dashboard (RPT-02)', () => {
           expectedCashPaise: '25000',
           differenceReason: 'short change',
           idempotencyKey: uuidv7(),
-        } as never,
+        },
         IST('2026-10-25T18:00:00'),
       ),
     );

@@ -14,7 +14,7 @@ export function AppHeader({ navLabels }: { navLabels: NavLabels }) {
   const tApp = useTranslations('app');
   const { me, lock, switchUser } = useSession();
   return (
-    <header className="border-b bg-card">
+    <header className="border-b bg-card print:hidden">
       <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-2">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
           <Link href="/" className="text-lg font-bold tracking-tight">

@@ -1067,7 +1067,9 @@
       "duplicateOrder": "The same order is listed twice.",
       "scanTooLarge": "The photo is too large (more than 10 MB).",
       "scanInvalid": "The photo could not be read."
-    }
+    },
+    "dateRange": "Choose a start date that is not after the end date.",
+    "rangeTooLong": "Choose at most one year at a time."
   },
   "mobile": {
     "invalid": "Enter a 10-digit mobile number starting with 6, 7, 8 or 9."
@@ -2729,6 +2731,205 @@
       "ecg": "ECG",
       "other": "Document",
       "form_f_signed": "Document"
+    }
+  },
+  "reports": {
+    "title": "Reports",
+    "hint": "Collection, OPD counts, ANC, vaccines and discounts. Every report can be saved as CSV or printed.",
+    "tiles": {
+      "dashboard": {
+        "title": "Owner dashboard",
+        "hint": "Today at a glance, on your phone"
+      },
+      "collection": {
+        "title": "Daily collection",
+        "hint": "Cash, UPI and card by user, doctor and department"
+      },
+      "opd": {
+        "title": "OPD counts",
+        "hint": "Visits by doctor and visit type, arrival hours, waiting time"
+      },
+      "anc": {
+        "title": "ANC register",
+        "hint": "Active pregnancies, due dates and women to call"
+      },
+      "vaccines": {
+        "title": "Vaccines due",
+        "hint": "Due this week and overdue, with phone numbers"
+      },
+      "adjustments": {
+        "title": "Discounts and cancellations",
+        "hint": "Who gave what, why, and who approved"
+      }
+    },
+    "rangeLine": "{from} to {to}",
+    "asOf": "As of {date}",
+    "printedAt": "Printed {at}",
+    "exportCsv": "Save as CSV",
+    "print": "Print",
+    "from": "From",
+    "to": "To",
+    "quick": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "last7": "Last 7 days",
+      "thisMonth": "This month"
+    },
+    "total": "Total",
+    "empty": "Nothing to show for this period.",
+    "mode": {
+      "cash": "Cash",
+      "upi": "UPI",
+      "card": "Card",
+      "other": "Other"
+    },
+    "kind": {
+      "payment": "Payment",
+      "refund": "Refund",
+      "deposit": "Deposit"
+    },
+    "method": {
+      "pin": "PIN",
+      "self": "own authority"
+    },
+    "status": {
+      "active": "Given",
+      "cancelled": "Replaced or cleared"
+    },
+    "collection": {
+      "unlinked": "Not linked to a visit",
+      "refunds": "Refunds",
+      "net": "Net",
+      "receipts": "Receipts",
+      "receiptNo": "Receipt",
+      "at": "Time",
+      "uhid": "UHID",
+      "patient": "Patient",
+      "bill": "Bill",
+      "mode": "Mode",
+      "kind": "Type",
+      "amount": "Amount",
+      "receivedBy": "Received by",
+      "receiptList": "All receipts",
+      "byDay": "By day",
+      "byUser": "By user",
+      "byDoctor": "By doctor",
+      "byDepartment": "By department",
+      "day": "Day",
+      "user": "User",
+      "doctor": "Doctor",
+      "department": "Department",
+      "totals": "Totals",
+      "netCollection": "Net collection",
+      "refundNote": "Collected {collected}, refunded {refunded}.",
+      "reversedNote": "{count, plural, one {# receipt was reversed} other {# receipts were reversed}} ({amount}). Reversed receipts are not counted above.",
+      "truncated": "Only the first {count} receipts are listed. Choose a shorter period to see all of them. The totals above include every receipt."
+    },
+    "opd": {
+      "doctor": "Doctor",
+      "avgWait": "Average wait",
+      "minutes": "{count, plural, one {# minute} other {# minutes}}",
+      "byHour": "Visits by hour of arrival",
+      "hour": "Hour",
+      "visits": "Visits",
+      "totals": "Totals",
+      "cancelled": "Cancelled visits",
+      "byDoctor": "By doctor and visit type"
+    },
+    "anc": {
+      "uhid": "UHID",
+      "name": "Name",
+      "age": "Age",
+      "mobile": "Mobile",
+      "ga": "GA today",
+      "edd": "EDD",
+      "gpal": "G P A L",
+      "risks": "Risk flags",
+      "lastVisit": "Last visit",
+      "nextVisit": "Next visit due",
+      "daysLate": "Days late",
+      "daysToEdd": "Days to EDD",
+      "overdue": "Missed visits",
+      "eddSoon": "EDD in 30 days",
+      "register": "All active pregnancies",
+      "totals": "Totals",
+      "active": "Active pregnancies",
+      "highRisk": "High risk",
+      "riskFilter": "Show only this risk",
+      "allRisks": "All pregnancies",
+      "overdueCaption": "To call: missed the visit by more than 7 days",
+      "eddCaption": "Due date in the next 30 days",
+      "noOverdue": "Nobody has missed a visit by more than 7 days.",
+      "noEdd": "No due dates in the next 30 days."
+    },
+    "vaccines": {
+      "uhid": "UHID",
+      "child": "Child",
+      "age": "Age",
+      "mobile": "Mobile",
+      "noMobile": "No mobile",
+      "dueOn": "Due on",
+      "daysLate": "Days overdue",
+      "inDays": "Due in (days)",
+      "overdue": "Overdue",
+      "thisWeek": "Due this week",
+      "totals": "Totals",
+      "noneOverdue": "No child is overdue.",
+      "noneWeek": "No vaccines are due this week."
+    },
+    "adjustments": {
+      "at": "Time",
+      "bill": "Bill",
+      "draft": "Draft",
+      "uhid": "UHID",
+      "scope": "Given on",
+      "line": "One item",
+      "wholeBill": "Whole bill",
+      "amount": "Amount",
+      "reason": "Reason",
+      "givenBy": "Given by",
+      "approvedBy": "Approved by",
+      "status": "Status",
+      "creditNote": "Credit note",
+      "patient": "Patient",
+      "credited": "Credited",
+      "refunded": "Refunded",
+      "kind": "Type",
+      "fullCancel": "Bill cancelled",
+      "partial": "Part credited",
+      "issuedBy": "Done by",
+      "discounts": "Discounts",
+      "cancellations": "Cancellations and refunds",
+      "totals": "Totals",
+      "discountTotal": "Discounts given",
+      "creditedTotal": "Credit notes",
+      "refundedTotal": "Refunded",
+      "noDiscounts": "No discounts in this period.",
+      "noCancellations": "No cancellations in this period."
+    },
+    "dashboard": {
+      "title": "Owner dashboard",
+      "refresh": "Refresh",
+      "alerts": "Needs attention",
+      "noAlerts": "Nothing needs attention.",
+      "alertDayClose": "Counter close {ref} is off by {amount}.",
+      "alertUpi": "UPI of {date} is not reconciled with the bank statement.",
+      "today": "Today",
+      "opdToday": "OPD visits",
+      "waiting": "Waiting now",
+      "collection": "Collected today",
+      "discounts": "Discounts today",
+      "refunds": "Refunded today",
+      "cancellations": "Cancellations today",
+      "noCancellations": "No cancellations today.",
+      "trend": "Last 30 days",
+      "trendOpd": "OPD visits per day",
+      "trendRevenue": "Collection per day",
+      "month": "This month",
+      "monthOpd": "OPD visits",
+      "monthRevenue": "Collected",
+      "monthCompare": "Same days last month: {opd} visits ({opdChange}), {revenue} ({revenueChange}).",
+      "lastMonthTotal": "Whole of last month: {opd} visits, {revenue}."
     }
   }
 }

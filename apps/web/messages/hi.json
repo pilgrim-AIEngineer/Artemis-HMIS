@@ -1067,7 +1067,9 @@
       "duplicateOrder": "एक ही ऑर्डर दो बार है।",
       "scanTooLarge": "फ़ोटो बहुत बड़ी है (10 MB से ज़्यादा)।",
       "scanInvalid": "फ़ोटो पढ़ी नहीं जा सकी।"
-    }
+    },
+    "dateRange": "शुरू की तारीख़ अंत की तारीख़ के बाद की न हो।",
+    "rangeTooLong": "एक बार में ज़्यादा से ज़्यादा एक साल चुनें।"
   },
   "mobile": {
     "invalid": "6, 7, 8 या 9 से शुरू होने वाला 10 अंकों का मोबाइल नंबर डालें।"
@@ -2729,6 +2731,205 @@
       "ecg": "ECG",
       "other": "दस्तावेज़",
       "form_f_signed": "दस्तावेज़"
+    }
+  },
+  "reports": {
+    "title": "रिपोर्ट",
+    "hint": "कलेक्शन, OPD गिनती, ANC, टीके और छूट। हर रिपोर्ट CSV में सेव या प्रिंट हो सकती है।",
+    "tiles": {
+      "dashboard": {
+        "title": "मालिक का डैशबोर्ड",
+        "hint": "आज का हाल, फ़ोन पर"
+      },
+      "collection": {
+        "title": "दैनिक कलेक्शन",
+        "hint": "यूज़र, डॉक्टर और विभाग के अनुसार कैश, UPI और कार्ड"
+      },
+      "opd": {
+        "title": "OPD गिनती",
+        "hint": "डॉक्टर और विज़िट के प्रकार के अनुसार मरीज़, आने का समय, इंतज़ार"
+      },
+      "anc": {
+        "title": "ANC रजिस्टर",
+        "hint": "चालू गर्भावस्थाएँ, डिलीवरी की तारीख़ और जिन्हें फ़ोन करना है"
+      },
+      "vaccines": {
+        "title": "बाकी टीके",
+        "hint": "इस हफ़्ते और छूटे हुए टीके, फ़ोन नंबर सहित"
+      },
+      "adjustments": {
+        "title": "छूट और रद्दीकरण",
+        "hint": "किसने क्या दिया, क्यों, और किसने मंज़ूर किया"
+      }
+    },
+    "rangeLine": "{from} से {to}",
+    "asOf": "{date} तक",
+    "printedAt": "प्रिंट का समय {at}",
+    "exportCsv": "CSV में सेव करें",
+    "print": "प्रिंट",
+    "from": "से",
+    "to": "तक",
+    "quick": {
+      "today": "आज",
+      "yesterday": "कल",
+      "last7": "पिछले 7 दिन",
+      "thisMonth": "इस महीने"
+    },
+    "total": "कुल",
+    "empty": "इस अवधि में दिखाने को कुछ नहीं है।",
+    "mode": {
+      "cash": "कैश",
+      "upi": "UPI",
+      "card": "कार्ड",
+      "other": "अन्य"
+    },
+    "kind": {
+      "payment": "भुगतान",
+      "refund": "रिफ़ंड",
+      "deposit": "जमा"
+    },
+    "method": {
+      "pin": "PIN",
+      "self": "खुद के अधिकार से"
+    },
+    "status": {
+      "active": "दी गई",
+      "cancelled": "बदली या हटाई गई"
+    },
+    "collection": {
+      "unlinked": "किसी विज़िट से जुड़ा नहीं",
+      "refunds": "रिफ़ंड",
+      "net": "शुद्ध",
+      "receipts": "रसीदें",
+      "receiptNo": "रसीद",
+      "at": "समय",
+      "uhid": "UHID",
+      "patient": "मरीज़",
+      "bill": "बिल",
+      "mode": "तरीका",
+      "kind": "प्रकार",
+      "amount": "राशि",
+      "receivedBy": "किसने लिया",
+      "receiptList": "सभी रसीदें",
+      "byDay": "दिन के अनुसार",
+      "byUser": "यूज़र के अनुसार",
+      "byDoctor": "डॉक्टर के अनुसार",
+      "byDepartment": "विभाग के अनुसार",
+      "day": "दिन",
+      "user": "यूज़र",
+      "doctor": "डॉक्टर",
+      "department": "विभाग",
+      "totals": "कुल",
+      "netCollection": "शुद्ध कलेक्शन",
+      "refundNote": "वसूली {collected}, रिफ़ंड {refunded}।",
+      "reversedNote": "{count, plural, one {# रसीद उलटी गई} other {# रसीदें उलटी गईं}} ({amount})। उलटी हुई रसीदें ऊपर की गिनती में नहीं हैं।",
+      "truncated": "सिर्फ़ पहली {count} रसीदें दिखाई गई हैं। सब देखने के लिए छोटी अवधि चुनें। ऊपर के कुल में सभी रसीदें शामिल हैं।"
+    },
+    "opd": {
+      "doctor": "डॉक्टर",
+      "avgWait": "औसत इंतज़ार",
+      "minutes": "{count, plural, one {# मिनट} other {# मिनट}}",
+      "byHour": "आने के घंटे के अनुसार मरीज़",
+      "hour": "घंटा",
+      "visits": "मरीज़",
+      "totals": "कुल",
+      "cancelled": "रद्द विज़िट",
+      "byDoctor": "डॉक्टर और विज़िट के प्रकार के अनुसार"
+    },
+    "anc": {
+      "uhid": "UHID",
+      "name": "नाम",
+      "age": "उम्र",
+      "mobile": "मोबाइल",
+      "ga": "आज GA",
+      "edd": "EDD",
+      "gpal": "G P A L",
+      "risks": "जोखिम के निशान",
+      "lastVisit": "पिछली विज़िट",
+      "nextVisit": "अगली विज़िट की तारीख़",
+      "daysLate": "कितने दिन देर",
+      "daysToEdd": "EDD में दिन",
+      "overdue": "छूटी विज़िट",
+      "eddSoon": "30 दिन में EDD",
+      "register": "सभी चालू गर्भावस्थाएँ",
+      "totals": "कुल",
+      "active": "चालू गर्भावस्थाएँ",
+      "highRisk": "ज़्यादा जोखिम",
+      "riskFilter": "सिर्फ़ यह जोखिम दिखाएँ",
+      "allRisks": "सभी गर्भावस्थाएँ",
+      "overdueCaption": "फ़ोन करना है: 7 दिन से ज़्यादा देर से",
+      "eddCaption": "अगले 30 दिन में डिलीवरी की तारीख़",
+      "noOverdue": "किसी की विज़िट 7 दिन से ज़्यादा नहीं छूटी।",
+      "noEdd": "अगले 30 दिन में कोई तारीख़ नहीं है।"
+    },
+    "vaccines": {
+      "uhid": "UHID",
+      "child": "बच्चा",
+      "age": "उम्र",
+      "mobile": "मोबाइल",
+      "noMobile": "मोबाइल नहीं",
+      "dueOn": "तारीख़",
+      "daysLate": "कितने दिन देर",
+      "inDays": "कितने दिन में",
+      "overdue": "छूटे हुए",
+      "thisWeek": "इस हफ़्ते देय",
+      "totals": "कुल",
+      "noneOverdue": "कोई बच्चा छूटा नहीं है।",
+      "noneWeek": "इस हफ़्ते कोई टीका देय नहीं है।"
+    },
+    "adjustments": {
+      "at": "समय",
+      "bill": "बिल",
+      "draft": "ड्राफ़्ट",
+      "uhid": "UHID",
+      "scope": "किस पर दी",
+      "line": "एक मद",
+      "wholeBill": "पूरा बिल",
+      "amount": "राशि",
+      "reason": "कारण",
+      "givenBy": "किसने दी",
+      "approvedBy": "किसने मंज़ूर किया",
+      "status": "स्थिति",
+      "creditNote": "क्रेडिट नोट",
+      "patient": "मरीज़",
+      "credited": "क्रेडिट",
+      "refunded": "रिफ़ंड",
+      "kind": "प्रकार",
+      "fullCancel": "बिल रद्द",
+      "partial": "आंशिक क्रेडिट",
+      "issuedBy": "किसने किया",
+      "discounts": "छूट",
+      "cancellations": "रद्दीकरण और रिफ़ंड",
+      "totals": "कुल",
+      "discountTotal": "दी गई छूट",
+      "creditedTotal": "क्रेडिट नोट",
+      "refundedTotal": "लौटाया गया",
+      "noDiscounts": "इस अवधि में कोई छूट नहीं।",
+      "noCancellations": "इस अवधि में कोई रद्दीकरण नहीं।"
+    },
+    "dashboard": {
+      "title": "मालिक का डैशबोर्ड",
+      "refresh": "ताज़ा करें",
+      "alerts": "ध्यान देने की बातें",
+      "noAlerts": "ध्यान देने लायक कुछ नहीं है।",
+      "alertDayClose": "काउंटर बंद {ref} में {amount} का फ़र्क है।",
+      "alertUpi": "{date} का UPI बैंक स्टेटमेंट से मिलाया नहीं गया है।",
+      "today": "आज",
+      "opdToday": "OPD मरीज़",
+      "waiting": "अभी इंतज़ार में",
+      "collection": "आज की वसूली",
+      "discounts": "आज की छूट",
+      "refunds": "आज लौटाया",
+      "cancellations": "आज के रद्दीकरण",
+      "noCancellations": "आज कोई रद्दीकरण नहीं।",
+      "trend": "पिछले 30 दिन",
+      "trendOpd": "रोज़ के OPD मरीज़",
+      "trendRevenue": "रोज़ की वसूली",
+      "month": "इस महीने",
+      "monthOpd": "OPD मरीज़",
+      "monthRevenue": "वसूली",
+      "monthCompare": "पिछले महीने इन्हीं दिनों में: {opd} मरीज़ ({opdChange}), {revenue} ({revenueChange})।",
+      "lastMonthTotal": "पूरा पिछला महीना: {opd} मरीज़, {revenue}।"
     }
   }
 }

@@ -29,6 +29,7 @@ describe('reportRangeSchema', () => {
     expect(msg({ from: '2026-10-27', to: '2026-10-26' })).toBe('validation.dateRange');
     expect(msg({ from: '2025-10-25', to: '2026-10-26' })).toBe('validation.rangeTooLong');
     expect(msg({ from: '26-10-2026', to: '2026-10-26' })).toBe('validation.date');
+    expect(msg({ from: '2026-02-31', to: '2026-03-02' })).toBe('validation.date');
     expect(REPORT_MAX_DAYS).toBe(366);
   });
 });

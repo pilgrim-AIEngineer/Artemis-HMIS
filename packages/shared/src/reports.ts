@@ -5,28 +5,37 @@
  */
 import { z } from 'zod';
 import { formatINR, type Paise } from './money';
-import { addDays, daysBetween, parseIsoDate, toIsoDate } from './dates';
+import { addDays, daysBetween, isValidCalendarDate, parseIsoDate, toIsoDate } from './dates';
+
+const ISO = /^(\d{4})-(\d{2})-(\d{2})$/;
+/** A real calendar day written `YYYY-MM-DD` (zod runs every check, so each must cope with junk). */
+const isRealIsoDate = (s: string) => {
+  const m = ISO.exec(s);
+  return !!m && isValidCalendarDate({ year: Number(m[1]), month: Number(m[2]), day: Number(m[3]) });
+};
 
 /** Longest range a report accepts, so one click cannot scan years of receipts at the counter. */
 export const REPORT_MAX_DAYS = 366;
 
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'validation.date');
+const isoDate = z.string().refine(isRealIsoDate, 'validation.date');
 
-/** `from` and `to` are IST calendar days, both inclusive. */
-export const reportRangeSchema = z.object({ from: isoDate, to: isoDate }).superRefine((r, ctx) => {
+/** `from` ≤ `to` and at most `REPORT_MAX_DAYS` days; skipped while either date is malformed. */
+function checkRange(r: { from: string; to: string }, ctx: z.RefinementCtx) {
+  if (!isRealIsoDate(r.from) || !isRealIsoDate(r.to)) return;
   const span = daysBetween(parseIsoDate(r.from), parseIsoDate(r.to));
   if (span < 0) ctx.addIssue({ code: 'custom', message: 'validation.dateRange', path: ['to'] });
   else if (span >= REPORT_MAX_DAYS) {
     ctx.addIssue({ code: 'custom', message: 'validation.rangeTooLong', path: ['to'] });
   }
-});
+}
+
+/** `from` and `to` are IST calendar days, both inclusive. */
+export const reportRangeSchema = z.object({ from: isoDate, to: isoDate }).superRefine(checkRange);
 export type ReportRange = z.output<typeof reportRangeSchema>;
 
-export const opdCensusInputSchema = z.object({
-  from: isoDate,
-  to: isoDate,
-  doctorId: z.uuid().optional(),
-});
+export const opdCensusInputSchema = z
+  .object({ from: isoDate, to: isoDate, doctorId: z.uuid().optional() })
+  .superRefine(checkRange);
 
 export const ancRegisterInputSchema = z.object({
   /** Only pregnancies carrying this risk flag code (the high-risk list). */
@@ -114,6 +123,9 @@ export const csvRupees = (paise: Paise): string =>
  * Rows → CSV text with CRLF line ends and a UTF-8 BOM (Excel then reads Hindi names right).
  * Numbers and bigints are written as is: only strings are guarded against formulas.
  */
+/** Byte order mark: Excel reads the file as UTF-8 (Hindi names) when it starts with one. */
+const BOM = String.fromCharCode(0xfeff);
+
 export function toCsv(rows: readonly (readonly CsvCell[])[]): string {
-  return `﻿${rows.map((r) => r.map((c) => csvField(c)).join(',')).join('\r\n')}\r\n`;
+  return `${BOM}${rows.map((r) => r.map((c) => csvField(c)).join(',')).join('\r\n')}\r\n`;
 }
