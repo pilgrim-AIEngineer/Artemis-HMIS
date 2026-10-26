@@ -285,6 +285,8 @@ export async function applyDiscount(
         reasonCodeId: reason.id,
         reasonText: input.reasonText ?? null,
         approvalId,
+        // The grantor, whose limit recomputeBill re-applies when lines are removed later.
+        createdBy: actor.userId,
       });
       return mutationResult(await recomputeBill(tx, b), input.lineId ?? null);
     },

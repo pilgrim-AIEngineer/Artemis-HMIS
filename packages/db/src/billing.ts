@@ -13,6 +13,9 @@
 import {
   allocateDiscounts,
   billHeaderTotals,
+  discountWithinLimit,
+  effectiveDiscountLimit,
+  ROLE_KEYS,
   checkTenders,
   computeGstLine,
   istDateString,
@@ -72,6 +75,7 @@ import { runIdempotent } from './idempotency';
 import { getRate } from './masters';
 import { allocateNumber } from './number-series';
 import { advanceToken } from './queue';
+import { loadUserAccess } from './rbac';
 import { readSettings } from './settings';
 import type { Tx } from './tx';
 import { issueToken, type Actor } from './visits';
@@ -159,6 +163,47 @@ export const requireDraft = (b: BillRow) => {
 };
 
 /**
+ * A discount granted within its grantor's limit (no approval row) was checked against the gross
+ * of that moment. When lines go away the gross shrinks, so the kept rupee amount may now exceed
+ * the limit: scale the bill-level discount down to what the grantor may still give (BIL-03).
+ * Discounts that carry an approval were approved as an amount and are left alone.
+ */
+async function capUnapprovedDiscount(
+  tx: Tx,
+  b: BillRow,
+  stored: { id: string; amountPaise: bigint }[],
+  discounts: { billLineId: string | null; approvalId: string | null; createdBy: string | null }[],
+  lineDiscounts: Map<string, bigint>,
+  billLevel: bigint,
+): Promise<bigint> {
+  if (billLevel <= 0n) return billLevel;
+  const top = discounts.find((d) => !d.billLineId);
+  if (!top || top.approvalId || !top.createdBy || discounts.some((d) => d.approvalId)) {
+    return billLevel;
+  }
+  const gross = stored.reduce((a, l) => a + l.amountPaise, 0n);
+  const { perLine } = allocateDiscounts(stored, lineDiscounts, billLevel);
+  let total = 0n;
+  for (const v of perLine.values()) total += v;
+  const access = await loadUserAccess(tx, top.createdBy);
+  const cfg = await readSettings(tx, b.facilityId, ['billing.discountLimits']);
+  const roleKeys: readonly string[] = ROLE_KEYS;
+  const limit = effectiveDiscountLimit(
+    cfg['billing.discountLimits'],
+    access.roles.filter((r): r is (typeof ROLE_KEYS)[number] => roleKeys.includes(r)),
+  );
+  if (discountWithinLimit(limit, total, gross)) return billLevel;
+  // Largest whole-bill total the limit allows, then take the excess off the bill-level part.
+  let allowed =
+    limit.maxPercentBp === null ? total : (gross * BigInt(limit.maxPercentBp)) / 10_000n;
+  if (limit.maxAmountPaise !== null && allowed > BigInt(limit.maxAmountPaise)) {
+    allowed = BigInt(limit.maxAmountPaise);
+  }
+  const excess = total - allowed;
+  return excess >= billLevel ? 0n : billLevel - excess;
+}
+
+/**
  * Rewrites the header of a draft from its active lines (docs/04 §15.1) and returns it. A draft
  * that already holds payments may not drop below them (refunds are BIL-04).
  */
@@ -177,7 +222,12 @@ export async function recomputeBill(tx: Tx, b: BillRow): Promise<BillRow> {
     .from(billLine)
     .where(and(eq(billLine.billId, b.id), eq(billLine.status, 'active')));
   const discounts = await tx
-    .select({ billLineId: billDiscount.billLineId, amountPaise: billDiscount.amountPaise })
+    .select({
+      billLineId: billDiscount.billLineId,
+      amountPaise: billDiscount.amountPaise,
+      approvalId: billDiscount.approvalId,
+      createdBy: billDiscount.createdBy,
+    })
     .from(billDiscount)
     .where(and(eq(billDiscount.billId, b.id), eq(billDiscount.status, 'active')));
   // BIL-03: the approved discounts decide every line's discount (capped when lines were removed).
@@ -187,6 +237,7 @@ export async function recomputeBill(tx: Tx, b: BillRow): Promise<BillRow> {
     if (d.billLineId) lineDiscounts.set(d.billLineId, d.amountPaise);
     else billLevel = d.amountPaise;
   }
+  billLevel = await capUnapprovedDiscount(tx, b, stored, discounts, lineDiscounts, billLevel);
   const { perLine } = allocateDiscounts(stored, lineDiscounts, billLevel);
   const lines = [];
   for (const l of stored) {
