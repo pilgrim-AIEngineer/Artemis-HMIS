@@ -22,6 +22,16 @@ x-app-env: &app-env
   HMIS_SECRET_KEY: ${HMIS_SECRET_KEY:-}
   LOG_LEVEL: ${LOG_LEVEL:-info}
   TZ: Asia/Kolkata
+  # OPS-01: where /api/health and the ops.* jobs find the backup status (written by `backup`).
+  HMIS_BACKUP_STATUS_FILE: /backup/status/status.json
+  HMIS_DISK_PATHS: /data/files,/backup
+  OPS_BACKUP_MAX_AGE_HOURS: ${OPS_BACKUP_MAX_AGE_HOURS:-24}
+  OPS_FILES_MAX_AGE_HOURS: ${OPS_FILES_MAX_AGE_HOURS:-36}
+  OPS_CLOUD_MAX_LAG_HOURS: ${OPS_CLOUD_MAX_LAG_HOURS:-48}
+  OPS_USB_ROTATION_DAYS: ${OPS_USB_ROTATION_DAYS:-8}
+  OPS_DISK_WARN_USED_PCT: ${OPS_DISK_WARN_USED_PCT:-80}
+  OPS_DISK_CRITICAL_USED_PCT: ${OPS_DISK_CRITICAL_USED_PCT:-90}
+  OPS_QUEUE_BACKLOG_MAX: ${OPS_QUEUE_BACKLOG_MAX:-500}
 
 services:
   postgres:
@@ -51,6 +61,8 @@ services:
     volumes:
       # Photos of paper prescriptions (OPD-02) are written here; the worker shares the volume.
       - files:/data/files
+      # Read-only: /api/health reports the last backup age and the free disk space.
+      - backup:/backup:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -70,9 +82,18 @@ services:
       # MSG-01: Meta Cloud API login; empty keeps WhatsApp messages queued.
       WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
       WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}
+      # OPS-01 monitoring (all optional; empty = log only / no ping). Never commit real values.
+      HEALTHCHECK_PING_URL: ${HEALTHCHECK_PING_URL:-}
+      OPS_ALERT_WEBHOOK_URL: ${OPS_ALERT_WEBHOOK_URL:-}
+      OPS_TELEGRAM_BOT_TOKEN: ${OPS_TELEGRAM_BOT_TOKEN:-}
+      OPS_TELEGRAM_CHAT_ID: ${OPS_TELEGRAM_CHAT_ID:-}
+      OPS_ALERT_LABEL: ${OPS_ALERT_LABEL:-}
+      OPS_ALERT_REPEAT_HOURS: ${OPS_ALERT_REPEAT_HOURS:-6}
+      HMIS_HOSTNAME: ${HMIS_HOSTNAME:-hmis.local}
     volumes:
       # Rendered PDFs and Rx photos (docs/01 §2), shared with web. Backed up with the database (OPS-01).
       - files:/data/files
+      - backup:/backup:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -94,18 +115,43 @@ services:
         condition: service_healthy
 
   backup:
-    # Placeholder until OPS-01 (pgBackRest WAL archive + nightly full, restic for files;
-    # docs/31 §3). Same image as postgres so pg_dump/psql versions match.
-    image: ${PG_IMAGE:-postgres:17}
+    # OPS-01 (docs/31 §3): scheduled pg_dump + restic (encrypted) to /backup (second SSD volume),
+    # the rotating USB disk and an S3-compatible bucket. Same image family as postgres so
+    # pg_dump/pg_restore versions match.
+    build:
+      context: ./backup
+      args:
+        PG_IMAGE: ${PG_IMAGE:-postgres:17}
+    image: ${HMIS_IMAGE_PREFIX:-hmis}/backup:${HMIS_VERSION:-dev}
     restart: unless-stopped
     init: true
     environment:
       <<: *db-env
       PGHOST: postgres
-    command:
-      ['sh', '-c', 'echo "backup: placeholder, nothing scheduled (OPS-01)"; exec sleep infinity']
+      PGUSER: ${POSTGRES_USER:-hmis}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB:-hmis}
+      # Encrypts every restic repository. Losing it makes the backups unreadable: keep a copy offline.
+      BACKUP_PASSPHRASE: ${BACKUP_PASSPHRASE:?set BACKUP_PASSPHRASE in .env (install.sh generates one)}
+      BACKUP_AT: ${BACKUP_AT:-02:00}
+      BACKUP_DB_EVERY_MIN: ${BACKUP_DB_EVERY_MIN:-60}
+      BACKUP_USB_ENABLED: ${BACKUP_USB_ENABLED:-0}
+      # Offsite copy, e.g. s3:https://s3.ap-south-1.amazonaws.com/<bucket>/hmis (empty = off).
+      BACKUP_S3_REPOSITORY: ${BACKUP_S3_REPOSITORY:-}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-ap-south-1}
     volumes:
       - backup:/backup
+      - files:/data/files:ro
+      # The rotating USB disk, mounted on the host at BACKUP_USB_HOST_DIR (install.sh sets this
+      # up). rslave: a disk mounted after the container started still shows up.
+      - type: bind
+        source: ${BACKUP_USB_HOST_DIR:-/mnt/hmis-usb}
+        target: /usb
+        bind:
+          propagation: rslave
+          create_host_path: true
     depends_on:
       postgres:
         condition: service_healthy

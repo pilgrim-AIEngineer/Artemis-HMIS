@@ -21,6 +21,7 @@ export * from './money';
 export * from './navigation';
 export * from './network';
 export * from './number-series';
+export * from './ops';
 export * from './permissions';
 export * from './paeds';
 export * from './patients';

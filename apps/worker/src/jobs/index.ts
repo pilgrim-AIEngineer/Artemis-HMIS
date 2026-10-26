@@ -1,4 +1,6 @@
 import { noopJob } from './noop';
+import { opsBackupCheckJob } from './ops-backup-check';
+import { opsHealthPingJob } from './ops-health-ping';
 import { outboxWhatsappJob } from './outbox-whatsapp';
 import { pdfRenderJob } from './pdf-render';
 import { queueEndOfDayJob } from './queue-end-of-day';
@@ -11,4 +13,6 @@ export const JOBS: readonly JobDefinition[] = [
   queueEndOfDayJob,
   outboxWhatsappJob,
   reminderDailyJob,
+  opsBackupCheckJob,
+  opsHealthPingJob,
 ];

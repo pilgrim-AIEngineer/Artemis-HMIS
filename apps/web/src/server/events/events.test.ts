@@ -126,7 +126,9 @@ describe('SSE stream', () => {
   async function readUntil(reader: ReadableStreamDefaultReader<Uint8Array>, needle: RegExp) {
     const dec = new TextDecoder();
     let text = '';
-    for (let i = 0; i < 20 && !needle.test(text); i++) {
+    // Bounded by time, not by chunk count: 40 ms heartbeats would use up a count in under 1 s.
+    const deadline = Date.now() + 10_000;
+    while (!needle.test(text) && Date.now() < deadline) {
       const { value, done } = await reader.read();
       if (done) break;
       text += dec.decode(value);

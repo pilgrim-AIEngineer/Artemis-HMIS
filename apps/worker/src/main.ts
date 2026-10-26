@@ -2,6 +2,8 @@ import { createDb, resolveAppDatabaseUrl, resolveDatabaseUrl } from '@hmis/db';
 import { createLogger } from '@hmis/shared/logger';
 import { createBoss, registerJobs } from './boss';
 import { filesDirFromEnv } from './files';
+import { OPS_BACKUP_CHECK_CRON, OPS_BACKUP_CHECK_QUEUE } from './jobs/ops-backup-check';
+import { OPS_HEALTH_PING_CRON, OPS_HEALTH_PING_QUEUE } from './jobs/ops-health-ping';
 import { OUTBOX_WHATSAPP_CRON, OUTBOX_WHATSAPP_QUEUE } from './jobs/outbox-whatsapp';
 import { QUEUE_END_OF_DAY, QUEUE_END_OF_DAY_CRON } from './jobs/queue-end-of-day';
 import { REMINDER_DAILY_CRON, REMINDER_DAILY_QUEUE } from './jobs/reminder-daily';
@@ -25,6 +27,8 @@ await registerJobs(boss, { logger, db, filesDir: filesDirFromEnv() });
 await boss.schedule(QUEUE_END_OF_DAY, QUEUE_END_OF_DAY_CRON, {}, { tz: 'Asia/Kolkata' });
 await boss.schedule(OUTBOX_WHATSAPP_QUEUE, OUTBOX_WHATSAPP_CRON, {}, { tz: 'Asia/Kolkata' });
 await boss.schedule(REMINDER_DAILY_QUEUE, REMINDER_DAILY_CRON, {}, { tz: 'Asia/Kolkata' });
+await boss.schedule(OPS_BACKUP_CHECK_QUEUE, OPS_BACKUP_CHECK_CRON, {}, { tz: 'Asia/Kolkata' });
+await boss.schedule(OPS_HEALTH_PING_QUEUE, OPS_HEALTH_PING_CRON, {}, { tz: 'Asia/Kolkata' });
 logger.info('worker started');
 
 let stopping = false;

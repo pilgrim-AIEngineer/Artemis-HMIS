@@ -33,6 +33,10 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      # Ops scripts (OPS-01). shellcheck is preinstalled on ubuntu-24.04 runners.
+      - name: shellcheck
+        run: shellcheck -x -P infra/scripts --severity=warning infra/scripts/*.sh infra/docker/backup/*.sh
+
       - run: pnpm lint
 
       - run: pnpm typecheck
@@ -41,6 +45,8 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm --filter @hmis/web exec playwright install --with-deps chromium
 
+      # The infra project builds the backup image and runs backup / restore drill / rollback against
+      # a throwaway Postgres on its own Docker network (OPS-01).
       # Integration tests start their own Postgres 17 with Testcontainers (runner's Docker).
       - run: pnpm test
 
