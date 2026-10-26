@@ -134,7 +134,7 @@ export function Receipt({ data }: { data: ReceiptPrintData }) {
             {t.upiRef && ` · ${L.utr.en} ${maskRef(t.upiRef)}`}
             {t.cardLast4 && ` · ${L.cardEnding.en} …${t.cardLast4}`}
           </span>
-          <span>{formatINR(t.amountPaise)}</span>
+          <span className="receipt-amount">{formatINR(t.amountPaise)}</span>
         </div>
       ))}
       <p className="receipt-words">

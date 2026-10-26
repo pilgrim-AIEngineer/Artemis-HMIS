@@ -70,7 +70,8 @@ const TEMPLATE_CSS = `
 .receipt-k { color: #333; }
 .receipt-patient { border-top: 0.5pt dashed #000; border-bottom: 0.5pt dashed #000; padding: 1mm 0; }
 .receipt-name { font-weight: 700; font-size: 1.1em; }
-.receipt-paid { font-size: 1.35em; font-weight: 700; }
+.receipt-paid { font-size: 1.35em; font-weight: 700; align-items: baseline; }
+.receipt-paid > :last-child, .receipt-amount { white-space: nowrap; }
 .receipt-words { font-size: 0.85em; }
 .receipt-status { text-align: center; font-weight: 700; border: 1pt solid #000; padding: 0.5mm; }
 `;

@@ -1,6 +1,7 @@
 'use client';
 
 import type * as React from 'react';
+import { useRef } from 'react';
 import { Button } from './button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from './dialog';
 
@@ -43,9 +44,19 @@ export function ConfirmMoneyDialog({
   pending = false,
   error,
 }: ConfirmMoneyDialogProps) {
+  const confirmRef = useRef<HTMLButtonElement>(null);
   return (
     <Dialog open={open} onOpenChange={(o) => !pending && onOpenChange(o)}>
-      <DialogContent closeLabel={closeLabel} className="max-w-xl" data-testid="confirm-money">
+      <DialogContent
+        closeLabel={closeLabel}
+        className="max-w-xl"
+        data-testid="confirm-money"
+        // Radix would focus the first button (Cancel); Enter must confirm.
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          confirmRef.current?.focus();
+        }}
+      >
         <DialogTitle>{title}</DialogTitle>
         <DialogDescription asChild>
           <div className="space-y-1 text-foreground">
@@ -73,9 +84,9 @@ export function ConfirmMoneyDialog({
           </Button>
           <Button
             type="button"
+            ref={confirmRef}
             variant="money"
             size="lg"
-            autoFocus
             disabled={pending}
             onClick={onConfirm}
             data-testid="confirm-money-ok"

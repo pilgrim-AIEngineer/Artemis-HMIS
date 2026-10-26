@@ -171,7 +171,17 @@ function PaymentForm({
   const words = (p: bigint) => (p > 0n ? amountInWords(p, locale) : null);
 
   return (
-    <DialogContent closeLabel={tc('close')} className="max-w-2xl" data-testid="payment-dialog">
+    <DialogContent
+      closeLabel={tc('close')}
+      className="max-w-2xl"
+      data-testid="payment-dialog"
+      // Start in the amount field (pre-filled with the amount due), not on the first mode button.
+      onOpenAutoFocus={(e) => {
+        e.preventDefault();
+        const el = document.getElementById('pay-amount');
+        if (el instanceof HTMLInputElement) el.select();
+      }}
+    >
       <DialogTitle>{t('pay.title')}</DialogTitle>
       <DialogDescription asChild>
         <div className="space-y-1 rounded-lg border-2 border-money/50 bg-money/5 p-4 text-foreground">
@@ -216,7 +226,9 @@ function PaymentForm({
           <div className="grid gap-3 sm:grid-cols-3">
             {(['cash', 'upi', 'card'] as const).map((p) => (
               <div key={p} className="space-y-1">
-                <Label htmlFor={`split-${p}`}>{t(`modes.${p}`)}</Label>
+                <Label htmlFor={`split-${p}`}>
+                  {t('pay.splitAmount', { mode: t(`modes.${p}`) })}
+                </Label>
                 <MoneyInput
                   id={`split-${p}`}
                   value={split[p]}
@@ -243,7 +255,6 @@ function PaymentForm({
             <MoneyInput
               id="pay-amount"
               size="lg"
-              autoFocus
               value={amounts[mode]}
               onChange={(v) => setAmounts((a) => ({ ...a, [mode]: v }))}
               words={words(amountOf(mode))}
