@@ -65,6 +65,29 @@ describe('reminder.daily run (MSG-01)', () => {
     expect(await outbox(patientId)).toHaveLength(1);
   });
 
+  it('still queues the follow-up reminder when the run of the day before was missed (#82)', async () => {
+    const patientId = await fx.newPatient();
+    await agree(patientId);
+    const v = await fx.visit({ patientId }, BOOKED);
+    await fx.t.owner.insert(clinicalNote).values({
+      id: uuidv7(),
+      facilityId: fx.f.facilityId,
+      encounterId: v.encounterId,
+      patientId,
+      followUpDate: '2027-03-05',
+      enteredBy: fx.f.userId,
+    });
+    // The 3 Mar 19:00 run never happened; the 4 Mar run catches the visit of the 5th up.
+    const run = await queueDailyReminders(fx.t.app, fx.f.facilityId, at7pm('2027-03-04'));
+    expect(run.followUp).toBe(1);
+    const [msg] = await outbox(patientId);
+    expect(msg).toMatchObject({ templateKind: 'follow_up', status: 'queued' });
+    expect(msg!.sendAfter).toEqual(IST('2027-03-05T10:00:00'));
+    // The next runs neither repeat it nor message for a visit that is already today.
+    await queueDailyReminders(fx.t.app, fx.f.facilityId, at7pm('2027-03-05'));
+    expect(await outbox(patientId)).toHaveLength(1);
+  });
+
   it('does not queue anything for a patient without consent beyond the withheld record', async () => {
     const patientId = await fx.newPatient();
     const v = await fx.visit({ patientId }, BOOKED);
