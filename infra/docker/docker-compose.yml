@@ -48,6 +48,9 @@ services:
     restart: unless-stopped
     environment:
       <<: *app-env
+    volumes:
+      # Photos of paper prescriptions (OPD-02) are written here; the worker shares the volume.
+      - files:/data/files
     depends_on:
       postgres:
         condition: service_healthy
@@ -65,7 +68,7 @@ services:
     environment:
       <<: *app-env
     volumes:
-      # Rendered PDFs and (later) scans: docs/01 §2. Backed up with the database (OPS-01).
+      # Rendered PDFs and Rx photos (docs/01 §2), shared with web. Backed up with the database (OPS-01).
       - files:/data/files
     depends_on:
       postgres:

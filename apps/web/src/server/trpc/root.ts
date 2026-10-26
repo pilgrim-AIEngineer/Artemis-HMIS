@@ -8,6 +8,7 @@ import { mastersRouter } from './routers/masters';
 import { patientsRouter } from './routers/patients';
 import { printRouter } from './routers/print';
 import { queueRouter } from './routers/queue';
+import { rxRouter } from './routers/rx';
 import { visitsRouter } from './routers/visits';
 import { vitalsRouter } from './routers/vitals';
 
@@ -21,6 +22,7 @@ export const appRouter = router({
   visit: visitsRouter,
   queue: queueRouter,
   vitals: vitalsRouter,
+  rx: rxRouter,
   billing: billingRouter,
   dayClose: dayCloseRouter,
 });

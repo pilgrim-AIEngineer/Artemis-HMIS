@@ -17,3 +17,4 @@ export * from './visits';
 export * from './billing';
 export * from './billing-adjustments';
 export * from './vitals';
+export * from './rx';

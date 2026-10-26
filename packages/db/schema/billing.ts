@@ -37,6 +37,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
+import { clinicalOrder } from './clinical';
 import { auditColumns, cancelChecks, cancelColumns, idColumn, sqlIn } from './columns';
 import { doctorProfile, payer, reasonCode, service, serviceRate, tariff } from './masters';
 import { patient } from './patient';
@@ -183,6 +184,8 @@ export const billLine = pgTable(
     patientSharePaise: money(),
     serviceDate: date({ mode: 'string' }).notNull(),
     performedByDoctorId: uuid().references(() => doctorProfile.id),
+    /** The order this line charges (OPD-04: orders from Rx transcription flow into the bill). */
+    clinicalOrderId: uuid().references((): AnyPgColumn => clinicalOrder.id),
     /** `cancelled` = removed from the draft (with a reason); never deleted. */
     status: text().notNull().default('active'),
     cancelReason: text(),
@@ -192,6 +195,10 @@ export const billLine = pgTable(
   },
   (t) => [
     uniqueIndex('bill_line_seq_key').on(t.billId, t.seq),
+    // An order is charged by at most one live line.
+    uniqueIndex('bill_line_order_key')
+      .on(t.clinicalOrderId)
+      .where(sql`${t.status} = 'active' and ${t.clinicalOrderId} is not null`),
     check('bill_line_source', sqlIn(t.source, BILL_LINE_SOURCES)),
     check('bill_line_status', sqlIn(t.status, RECORD_STATUSES)),
     check('bill_line_qty_positive', sql`${t.qty} > 0`),

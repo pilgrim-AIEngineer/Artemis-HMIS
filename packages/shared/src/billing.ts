@@ -151,6 +151,18 @@ export const removeBillLineSchema = z.object({
 });
 export type RemoveBillLineInput = z.input<typeof removeBillLineSchema>;
 
+/** OPD-04: put orders from Rx transcription on the draft bill (docs/12 §2). */
+export const addOrdersToBillSchema = z.object({
+  billId: uuidSchema,
+  orderIds: z
+    .array(uuidSchema)
+    .min(1)
+    .max(40)
+    .refine((a) => new Set(a).size === a.length, 'validation.invalid'),
+  idempotencyKey: idempotencyKeySchema,
+});
+export type AddOrdersToBillInput = z.input<typeof addOrdersToBillSchema>;
+
 export const finalizeBillSchema = z.object({
   billId: uuidSchema,
   idempotencyKey: idempotencyKeySchema,

@@ -51,6 +51,7 @@ import {
   lockBill,
   mutationResult,
   recomputeBill,
+  releaseOrdersOfBill,
   requireDraft,
   type BillMutationResult,
   type BillRow,
@@ -364,6 +365,8 @@ export async function voidDraftBill(
           cancelledAt: now,
         })
         .where(eq(bill.id, b.id));
+      // OPD-04: the orders on the voided draft can go on the next one.
+      await releaseOrdersOfBill(tx, b.id);
       return { billId: b.id };
     },
   );

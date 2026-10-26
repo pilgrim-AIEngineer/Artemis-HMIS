@@ -13,6 +13,7 @@ import { Input } from '@hmis/ui/components/input';
 import { PatientHeader } from '@hmis/ui/components/patient-header';
 import { cn } from '@hmis/ui/lib/utils';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { inferRouterOutputs } from '@trpc/server';
 import { Ban, CheckCircle2, IndianRupee, Percent, Plus, Search, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale, useTranslations } from 'next-intl';
@@ -25,6 +26,7 @@ import { useAgeText } from '@/lib/use-age-text';
 import { useDebounced } from '@/lib/use-debounced';
 import { useErrorText } from '@/lib/use-error-text';
 import { useShortcut } from '@/lib/use-shortcut';
+import type { AppRouter } from '@/server/trpc/root';
 import { useTRPC } from '@/trpc/client';
 import { CancelBillDialog, DiscountDialog, VoidDraftDialog } from './bill-adjustments';
 import { PaymentDialog, type PaidResult } from './payment-dialog';
@@ -214,6 +216,15 @@ export function BillScreen({ billId }: { billId: string }) {
           )}
           <PrintOnMount key={paid.collectionId} template="receipt" entityId={paid.collectionId} />
         </section>
+      )}
+
+      {draft && b.unbilledOrders.length > 0 && can('billing.bill.create') && (
+        <UnbilledOrders
+          key={b.unbilledOrders.map((o) => o.id).join()}
+          billId={b.id}
+          orders={b.unbilledOrders}
+          onDone={() => void refresh()}
+        />
       )}
 
       <section aria-labelledby="bill-lines" className="space-y-3">
@@ -709,5 +720,99 @@ function AddService({
         <p className="text-muted-foreground">{t('noServices')}</p>
       )}
     </div>
+  );
+}
+
+type Unbilled = NonNullable<
+  inferRouterOutputs<AppRouter>['billing']['get']
+>['unbilledOrders'][number];
+
+/**
+ * Orders from Rx transcription not on a bill yet (OPD-04, docs/12 §2): pre-ticked; an order whose
+ * service has no rate in the tariff cannot be ticked (docs/12 §1) and says so.
+ */
+function UnbilledOrders({
+  billId,
+  orders,
+  onDone,
+}: {
+  billId: string;
+  orders: Unbilled[];
+  onDone: () => void;
+}) {
+  const t = useTranslations('billing.orders');
+  const tB = useTranslations('billing');
+  const locale = useLocale();
+  const errorText = useErrorText();
+  const trpc = useTRPC();
+  const [ticked, setTicked] = useState(
+    () => new Set(orders.filter((o) => o.ratePaise !== null).map((o) => o.id)),
+  );
+  const [message, setMessage] = useState<string | null>(null);
+  const add = useMutation(
+    trpc.billing.addOrders.mutationOptions({
+      onSuccess: (r) => {
+        setMessage(r.skipped.length > 0 ? t('skipped', { count: r.skipped.length }) : null);
+        onDone();
+      },
+      onError: (e) => setMessage(errorText(e)),
+    }),
+  );
+  return (
+    <section
+      aria-labelledby="bill-orders"
+      className="space-y-3 rounded-lg border-2 border-primary/50 bg-card p-4"
+      data-testid="unbilled-orders"
+    >
+      <h2 id="bill-orders" className="text-xl font-semibold">
+        {t('title')}
+      </h2>
+      <ul className="space-y-2">
+        {orders.map((o) => (
+          <li key={o.id}>
+            <label
+              className={cn(
+                'flex min-h-12 items-center gap-3 rounded-md border-2 px-3',
+                o.ratePaise === null && 'opacity-60',
+              )}
+            >
+              <input
+                type="checkbox"
+                className="size-6 accent-primary"
+                checked={ticked.has(o.id)}
+                disabled={o.ratePaise === null}
+                onChange={() =>
+                  setTicked((s) => {
+                    const n = new Set(s);
+                    if (n.has(o.id)) n.delete(o.id);
+                    else n.add(o.id);
+                    return n;
+                  })
+                }
+              />
+              <span className="flex-1 text-lg">
+                {locale === 'hi' && o.nameHi ? o.nameHi : o.name}
+              </span>
+              <span className="tabular-nums">
+                {o.ratePaise === null ? tB('noRate') : formatINR(o.ratePaise)}
+              </span>
+            </label>
+          </li>
+        ))}
+      </ul>
+      {message && <p role="status">{message}</p>}
+      <div className="flex justify-end">
+        <Button
+          type="button"
+          disabled={ticked.size === 0 || add.isPending}
+          onClick={() =>
+            add.mutate({ billId, orderIds: [...ticked], idempotencyKey: crypto.randomUUID() })
+          }
+        >
+          <Plus aria-hidden />
+          {t('add', { count: ticked.size })}
+        </Button>
+      </div>
+    </section>
   );
 }

@@ -13,7 +13,8 @@
     "./testing/platform": "./testing/platform.ts",
     "./testing/opd": "./testing/opd.ts",
     "./seed": "./seed/masters.ts",
-    "./seed/demo": "./seed/demo/index.ts"
+    "./seed/demo": "./seed/demo/index.ts",
+    "./files": "./src/files.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

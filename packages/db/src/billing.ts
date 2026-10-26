@@ -22,22 +22,40 @@ import {
   createOpdBillSchema,
   finalizeBillSchema,
   removeBillLineSchema,
+  addOrdersToBillSchema,
+  canTransition,
   type AddBillLineInput,
+  type AddOrdersToBillInput,
   type BillStatus,
   type CollectPaymentInput,
   type CreateOpdBillInput,
   type FinalizeBillInput,
+  type OrderKind,
   type PaymentMode,
   type RemoveBillLineInput,
   type Tender,
 } from '@hmis/shared';
-import { and, asc, desc, eq, ilike, max, ne, or, sql } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNotNull,
+  isNull,
+  max,
+  ne,
+  or,
+  sql,
+} from 'drizzle-orm';
 import { alias } from 'drizzle-orm/pg-core';
 import { uuidv7 } from 'uuidv7';
 import {
   appUser,
   approval,
   bill,
+  clinicalOrder,
   billDiscount,
   billLine,
   creditNote,
@@ -53,6 +71,7 @@ import type { Db } from './client';
 import { runIdempotent } from './idempotency';
 import { getRate } from './masters';
 import { allocateNumber } from './number-series';
+import { advanceToken } from './queue';
 import { readSettings } from './settings';
 import type { Tx } from './tx';
 import { issueToken, type Actor } from './visits';
@@ -275,6 +294,7 @@ async function insertLine(
   qty: string,
   serviceDate: string,
   performedByDoctorId: string | null,
+  clinicalOrderId: string | null = null,
 ): Promise<string> {
   const g = computeGstLine({
     ratePaise: svc.ratePaise,
@@ -312,6 +332,7 @@ async function insertLine(
     patientSharePaise: g.totalPaise,
     serviceDate,
     performedByDoctorId,
+    clinicalOrderId,
   });
   return id;
 }
@@ -377,30 +398,36 @@ export async function createOpdBill(
   return runIdempotent(
     tx,
     { ...idemBase(actor), procedure: 'billing.createOpdBill', key: idempotencyKey, payload: input },
-    async () => {
-      const enc = await lockEncounter(tx, actor.facilityId, input.encounterId);
-      if (!enc || enc.type !== 'opd') throw new BillingInputError('billing.encounterNotFound');
-      if (enc.status !== 'open') throw new BillingInputError('billing.encounterNotOpen');
-      const [draft] = await tx
-        .select({ id: bill.id })
-        .from(bill)
-        .where(and(eq(bill.encounterId, enc.id), eq(bill.kind, 'opd'), eq(bill.status, 'draft')));
-      if (draft) return { billId: draft.id };
-      const [anyBill] = await tx
-        .select({ id: bill.id })
-        .from(bill)
-        .where(and(eq(bill.encounterId, enc.id), ne(bill.status, 'cancelled')))
-        .limit(1);
-      const [e] = await tx
-        .select({ serviceId: encounter.consultationServiceId, basis: encounter.feeBasis })
-        .from(encounter)
-        .where(eq(encounter.id, enc.id));
-      // The consultation goes on the first bill of the visit only.
-      const consultation =
-        !anyBill && e?.serviceId && e.basis === 'tariff' ? { serviceId: e.serviceId } : null;
-      return { billId: await createOpdBillForVisit(tx, actor, enc, consultation) };
-    },
+    () => openDraftBill(tx, actor, input.encounterId),
   );
+}
+
+/**
+ * The visit's draft OPD bill, opened when there is none (also used by Rx transcription so that new
+ * orders always have a draft to land on, docs/11 §2.4 "billing sees them immediately").
+ */
+export async function openDraftBill(tx: Tx, actor: Actor, encounterId: string): Promise<BillRef> {
+  const enc = await lockEncounter(tx, actor.facilityId, encounterId);
+  if (!enc || enc.type !== 'opd') throw new BillingInputError('billing.encounterNotFound');
+  if (enc.status !== 'open') throw new BillingInputError('billing.encounterNotOpen');
+  const [draft] = await tx
+    .select({ id: bill.id })
+    .from(bill)
+    .where(and(eq(bill.encounterId, enc.id), eq(bill.kind, 'opd'), eq(bill.status, 'draft')));
+  if (draft) return { billId: draft.id };
+  const [anyBill] = await tx
+    .select({ id: bill.id })
+    .from(bill)
+    .where(and(eq(bill.encounterId, enc.id), ne(bill.status, 'cancelled')))
+    .limit(1);
+  const [e] = await tx
+    .select({ serviceId: encounter.consultationServiceId, basis: encounter.feeBasis })
+    .from(encounter)
+    .where(eq(encounter.id, enc.id));
+  // The consultation goes on the first bill of the visit only.
+  const consultation =
+    !anyBill && e?.serviceId && e.basis === 'tariff' ? { serviceId: e.serviceId } : null;
+  return { billId: await createOpdBillForVisit(tx, actor, enc, consultation) };
 }
 
 export const idemBase = (actor: Actor) => ({ facilityId: actor.facilityId, userId: actor.userId });
@@ -472,9 +499,205 @@ export async function removeBillLine(
         )
         .returning({ id: billLine.id });
       if (updated.length === 0) throw new BillingInputError('billing.lineNotFound');
+      // An order whose line is removed is unbilled again (it stays `ordered`, docs/12 §2).
+      await unlinkOrders(tx, [input.lineId]);
       return mutationResult(await recomputeBill(tx, b), input.lineId);
     },
   );
+}
+
+// ---------------------------------------------------------------- orders (OPD-04)
+
+/**
+ * A draft bill that is voided or cancelled with its visit gives its orders back: they are on no
+ * bill again (still `ordered`), so the next draft lists them.
+ */
+export async function releaseOrdersOfBill(tx: Tx, billId: string): Promise<void> {
+  const lines = await tx
+    .select({ id: billLine.id })
+    .from(billLine)
+    .where(eq(billLine.billId, billId));
+  await unlinkOrders(
+    tx,
+    lines.map((l) => l.id),
+  );
+}
+
+/** Orders of the cancelled / removed lines go back to "not on a bill". */
+async function unlinkOrders(tx: Tx, lineIds: string[]) {
+  if (lineIds.length === 0) return;
+  await tx
+    .update(clinicalOrder)
+    .set({ billLineId: null })
+    .where(and(inArray(clinicalOrder.billLineId, lineIds), eq(clinicalOrder.status, 'ordered')));
+}
+
+export interface UnbilledOrder {
+  id: string;
+  kind: OrderKind;
+  serviceId: string;
+  name: string;
+  nameHi: string | null;
+  /** In the bill's tariff today; null = no rate (cannot be added, docs/12 §1). */
+  ratePaise: bigint | null;
+}
+
+/**
+ * Orders of the visit from Rx transcription that are on no bill yet (docs/12 §2: shown pre-ticked
+ * on the billing screen). Admission advice has no service and is never billed from here.
+ */
+export async function unbilledOrders(
+  q: Queryable,
+  facilityId: string,
+  encounterId: string,
+  tariffId: string,
+  on: string,
+): Promise<UnbilledOrder[]> {
+  const rows = await q
+    .select({
+      id: clinicalOrder.id,
+      kind: clinicalOrder.kind,
+      serviceId: service.id,
+      name: service.name,
+      nameHi: service.nameHi,
+    })
+    .from(clinicalOrder)
+    .innerJoin(service, eq(service.id, clinicalOrder.serviceId))
+    .where(
+      and(
+        eq(clinicalOrder.facilityId, facilityId),
+        eq(clinicalOrder.encounterId, encounterId),
+        eq(clinicalOrder.status, 'ordered'),
+        isNull(clinicalOrder.billLineId),
+      ),
+    )
+    .orderBy(asc(clinicalOrder.createdAt), asc(clinicalOrder.id));
+  const out: UnbilledOrder[] = [];
+  for (const r of rows) {
+    const rate = await getRate(q, { facilityId, serviceId: r.serviceId, tariffId, on });
+    out.push({ ...r, kind: r.kind as OrderKind, ratePaise: rate?.ratePaise ?? null });
+  }
+  return out;
+}
+
+export interface AddOrdersResult extends BillMutationResult {
+  added: string[];
+  /** Orders left off: no rate in the tariff, or no longer unbilled. */
+  skipped: { orderId: string; reason: 'billing.noRate' | 'billing.orderNotUnbilled' }[];
+}
+
+/**
+ * Puts the ticked orders of the visit on its draft bill (docs/12 §2), each as a priced line that
+ * points at its order. An order without a rate is skipped and reported, so the others still go
+ * on; the screen says which.
+ */
+export async function addOrdersToBill(
+  tx: Tx,
+  actor: Actor,
+  raw: AddOrdersToBillInput,
+  now: Date,
+): Promise<AddOrdersResult> {
+  const { idempotencyKey, ...input } = addOrdersToBillSchema.parse(raw);
+  return runIdempotent(
+    tx,
+    { ...idemBase(actor), procedure: 'billing.addOrders', key: idempotencyKey, payload: input },
+    async () => {
+      const b = await lockBill(tx, actor.facilityId, input.billId);
+      requireDraft(b);
+      const today = istDateString(now);
+      const orders = await tx
+        .select()
+        .from(clinicalOrder)
+        .where(
+          and(
+            inArray(clinicalOrder.id, input.orderIds),
+            eq(clinicalOrder.facilityId, actor.facilityId),
+          ),
+        )
+        .for('update');
+      const byId = new Map(orders.map((o) => [o.id, o]));
+      const [enc] = await tx
+        .select({ doctorId: encounter.doctorId })
+        .from(encounter)
+        .where(eq(encounter.id, b.encounterId));
+      const added: string[] = [];
+      const skipped: AddOrdersResult['skipped'] = [];
+      let lastLine: string | null = null;
+      for (const orderId of input.orderIds) {
+        const o = byId.get(orderId);
+        if (
+          !o ||
+          o.encounterId !== b.encounterId ||
+          o.status !== 'ordered' ||
+          o.billLineId ||
+          !o.serviceId
+        ) {
+          skipped.push({ orderId, reason: 'billing.orderNotUnbilled' });
+          continue;
+        }
+        let svc: PricedService;
+        try {
+          svc = await priceService(tx, b, o.serviceId, today);
+        } catch (err) {
+          if (err instanceof BillingInputError && err.key === 'billing.noRate') {
+            skipped.push({ orderId, reason: 'billing.noRate' });
+            continue;
+          }
+          throw err;
+        }
+        lastLine = await insertLine(tx, b, svc, '1', today, enc?.doctorId ?? null, o.id);
+        await tx
+          .update(clinicalOrder)
+          .set({ billLineId: lastLine })
+          .where(eq(clinicalOrder.id, o.id));
+        added.push(orderId);
+      }
+      const after = added.length > 0 ? await recomputeBill(tx, b) : b;
+      return { ...mutationResult(after, lastLine), added, skipped };
+    },
+  );
+}
+
+/**
+ * On finalise: the bill's orders become `billed` (docs/12 §2), and a token waiting at
+ * `rx_entered` moves to `billed_orders` once no order of the visit is left unbilled (docs/10 §5).
+ */
+async function markOrdersBilled(tx: Tx, actor: Actor, b: BillRow, now: Date) {
+  const lines = await tx
+    .select({ id: billLine.id, orderId: billLine.clinicalOrderId })
+    .from(billLine)
+    .where(
+      and(
+        eq(billLine.billId, b.id),
+        eq(billLine.status, 'active'),
+        isNotNull(billLine.clinicalOrderId),
+      ),
+    );
+  for (const l of lines) {
+    await tx
+      .update(clinicalOrder)
+      .set({ status: 'billed', billLineId: l.id, billedAt: now })
+      .where(and(eq(clinicalOrder.id, l.orderId!), eq(clinicalOrder.status, 'ordered')));
+  }
+  if (lines.length === 0) return;
+  const [left] = await tx
+    .select({ n: sql<number>`count(*)::int` })
+    .from(clinicalOrder)
+    .where(
+      and(
+        eq(clinicalOrder.encounterId, b.encounterId),
+        eq(clinicalOrder.status, 'ordered'),
+        isNotNull(clinicalOrder.serviceId),
+      ),
+    );
+  if (left?.n) return;
+  const [token] = await tx
+    .select({ id: opdToken.id, state: opdToken.queueState })
+    .from(opdToken)
+    .where(eq(opdToken.encounterId, b.encounterId));
+  if (token?.state === 'rx_entered' && canTransition(token.state, 'billed_orders')) {
+    await advanceToken(tx, actor, token.id, 'billed_orders', now, 'billed');
+  }
 }
 
 // ---------------------------------------------------------------- finalise
@@ -516,6 +739,7 @@ async function finalizeLocked(
       finalizedAt: now,
     })
     .where(eq(bill.id, b.id));
+  await markOrdersBilled(tx, actor, b, now);
   const token = b.balancePaise === 0n ? await releaseToken(tx, actor, b.encounterId, now) : null;
   return { billNumber: num.formatted, token };
 }
@@ -705,6 +929,7 @@ export async function cancelBillsOfVisit(
       .update(bill)
       .set({ status: 'cancelled', cancelNote: reason, cancelledBy: actor.userId, cancelledAt: now })
       .where(eq(bill.id, b.id));
+    await releaseOrdersOfBill(tx, b.id);
   }
   return 'ok';
 }
@@ -725,6 +950,8 @@ export interface BillLineView {
   sgstPaise: bigint;
   patientSharePaise: bigint;
   sacHsn: string | null;
+  /** The order this line charges (OPD-04), if any. */
+  clinicalOrderId: string | null;
 }
 
 export interface PaymentView {
@@ -805,6 +1032,8 @@ export interface BillView {
   payments: PaymentView[];
   creditNotes: CreditNoteView[];
   discounts: DiscountView[];
+  /** Orders of the visit on no bill yet (drafts only; empty for final bills). */
+  unbilledOrders: UnbilledOrder[];
 }
 
 export async function getBillView(
@@ -852,6 +1081,7 @@ export async function getBillView(
       sgstPaise: billLine.sgstPaise,
       patientSharePaise: billLine.patientSharePaise,
       sacHsn: billLine.sacHsn,
+      clinicalOrderId: billLine.clinicalOrderId,
     })
     .from(billLine)
     .where(and(eq(billLine.billId, billId), eq(billLine.status, 'active')))
@@ -940,6 +1170,10 @@ export async function getBillView(
     payments: payments.map((p) => ({ ...p, mode: p.mode as PaymentMode })),
     creditNotes: notes,
     discounts,
+    unbilledOrders:
+      b.status === 'draft'
+        ? await unbilledOrders(q, facilityId, b.encounterId, b.tariffId, b.billDate)
+        : [],
   };
 }
 
@@ -996,6 +1230,12 @@ export async function pendingBills(
         eq(bill.facilityId, facilityId),
         or(
           and(eq(bill.status, 'draft'), sql`${bill.netPaise} > 0`),
+          // A draft that only waits for orders from Rx transcription (OPD-04) is work too.
+          and(
+            eq(bill.status, 'draft'),
+            sql`exists (select 1 from ${clinicalOrder} o where o.encounter_id = ${bill.encounterId}
+              and o.status = 'ordered' and o.bill_line_id is null and o.service_id is not null)`,
+          ),
           and(eq(bill.status, 'final'), sql`${bill.balancePaise} > 0`),
         ),
         like
