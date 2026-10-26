@@ -20,3 +20,4 @@ export * from './vitals';
 export * from './rx';
 export * from './anc';
 export * from './paeds';
+export * from './timeline';
