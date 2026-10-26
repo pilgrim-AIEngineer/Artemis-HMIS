@@ -1,4 +1,5 @@
-import { appUser, auditLog, session, setting } from '@hmis/db/schema';
+import { clearAllThrottles } from '@hmis/db/login-throttle';
+import { accessLog, appUser, auditLog, session, setting } from '@hmis/db/schema';
 import { withTx } from '@hmis/db';
 import { and, desc, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
@@ -152,6 +153,39 @@ describe('login (FND-02)', () => {
     const other = f.browser(clock);
     other.clientIp = '192.168.1.91';
     expect((await other.login(f.users.nurse.username)).next).toBe('home');
+  });
+
+  it('D-17: repeat lockouts of a pair double (15, 30 min), capped at 4 h', async () => {
+    const clock = createClock();
+    const br = f.browser(clock);
+    br.clientIp = '192.168.1.64';
+    const user = f.users.doctor.username;
+    const minutes = async () => {
+      let err: Awaited<ReturnType<typeof trpcError>> | undefined;
+      for (let i = 0; i < 5; i++) err = await trpcError(br.login(user, `bad-${i}`));
+      return (err!.cause as unknown as { params: { minutes: number } }).params.minutes;
+    };
+    expect(await minutes()).toBe(15);
+    clock.advance(16 * MINUTE);
+    expect(await minutes()).toBe(30);
+    clock.advance(31 * MINUTE);
+    expect(await minutes()).toBe(60);
+  });
+
+  it('D-17: an unlock clears pair locks and writes access_log without credentials', async () => {
+    const clock = createClock();
+    const br = f.browser(clock);
+    br.clientIp = '192.168.1.65';
+    const u = f.users.assistant;
+    for (let i = 0; i < 5; i++) await trpcError(br.login(u.username, `bad-${i}`));
+    expect((await trpcError(br.login(u.username))).message).toBe('errors.auth.lockedOut');
+    await withTx({ db: f.db, userId: null, facilityId: f.a.facilityId }, (tx) =>
+      clearAllThrottles(tx, u.id, clock.now),
+    );
+    expect((await br.login(u.username)).next).toBe('home');
+    const logs = await f.db.select().from(accessLog).where(eq(accessLog.entityId, u.id));
+    expect(logs.map((l) => l.purpose)).toContain('pair_lock:15min');
+    expect(JSON.stringify(logs)).not.toContain('bad-');
   });
 
   it('a new login in the same browser ends the previous session', async () => {

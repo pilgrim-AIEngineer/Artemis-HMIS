@@ -1,4 +1,9 @@
 import { loadUserAccess, readSettings, withTx, type Db } from '@hmis/db';
+import {
+  clearPairFailures,
+  recordSignInFailure,
+  signInBlockedUntil,
+} from '@hmis/db/login-throttle';
 import { burnHash, verifySecret } from '@hmis/db/auth';
 import { appUser, facility, session } from '@hmis/db/schema';
 import { ipInCidrs, LOCALE_COOKIE, type SettingValue } from '@hmis/shared';
@@ -39,31 +44,43 @@ const lockedOut = (until: Date, now: Date) =>
 const isLocked = (until: Date | null, now: Date): until is Date =>
   until !== null && until.getTime() > now.getTime();
 
+const isOwnerUser = async (db: Db, user: UserRow) =>
+  (await loadUserAccess(db, user.id)).roles.includes('owner');
+
+/**
+ * Throws `lockedOut` when this (user, source IP) pair, this IP, or (never for owners) the
+ * username is throttled (D-17). Other IPs of the same user are not affected.
+ */
+async function assertNotThrottled(ctx: Context, db: Db, user: UserRow, isOwner: boolean) {
+  const now = ctx.now();
+  const until = await signInBlockedUntil(db, user, ctx.clientIp, isOwner, now);
+  if (until) throw lockedOut(until, now);
+}
+
 /**
  * Counts a wrong password/TOTP code in its own committed transaction (the caller then throws).
- * At `auth.maxLoginFailures` the account locks for `auth.lockoutMinutes` and the count restarts.
- * Returns the lock expiry when this failure locked the account.
+ * Returns the lock expiry when this failure locked the pair (or, for non-owners, the username).
  */
 async function recordLoginFailure(
+  ctx: Context,
   db: Db,
   user: UserRow,
+  isOwner: boolean,
+  kind: 'password' | 'totp',
   settings: Pick<LoginSettings, 'auth.maxLoginFailures' | 'auth.lockoutMinutes'>,
-  now: Date,
 ): Promise<Date | null> {
-  return withTx({ db, userId: user.id, facilityId: user.facilityId }, async (tx) => {
-    const [row] = await tx
-      .update(appUser)
-      .set({ failedLoginCount: sql`${appUser.failedLoginCount} + 1` })
-      .where(eq(appUser.id, user.id))
-      .returning({ count: appUser.failedLoginCount });
-    if ((row?.count ?? 0) < settings['auth.maxLoginFailures']) return null;
-    const until = new Date(now.getTime() + settings['auth.lockoutMinutes'] * 60_000);
-    await tx
-      .update(appUser)
-      .set({ failedLoginCount: 0, lockedUntil: until })
-      .where(eq(appUser.id, user.id));
-    return until;
-  });
+  return withTx({ db, userId: user.id, facilityId: user.facilityId }, (tx) =>
+    recordSignInFailure(
+      tx,
+      user,
+      { ip: ctx.clientIp, kind, isOwner },
+      {
+        maxFailures: settings['auth.maxLoginFailures'],
+        lockoutMinutes: settings['auth.lockoutMinutes'],
+      },
+      ctx.now(),
+    ),
+  );
 }
 
 async function findUserByUsername(db: Db, username: string) {
@@ -96,12 +113,15 @@ export async function login(
   }
   const user = found.user;
   const settings: LoginSettings = await readSettings(db, user.facilityId, LOGIN_SETTINGS);
-  if (isLocked(user.lockedUntil, now)) {
+  const isOwner = await isOwnerUser(db, user);
+  try {
+    await assertNotThrottled(ctx, db, user, isOwner);
+  } catch (err) {
     await burnHash(input.password);
-    throw lockedOut(user.lockedUntil, now);
+    throw err;
   }
   if (!(await verifySecret(user.passwordHash, input.password))) {
-    const until = await recordLoginFailure(db, user, settings, now);
+    const until = await recordLoginFailure(ctx, db, user, isOwner, 'password', settings);
     if (until) throw lockedOut(until, now);
     throw appError('UNAUTHORIZED', 'errors.auth.invalidCredentials');
   }
@@ -123,6 +143,7 @@ export async function login(
     { db, userId: user.id, facilityId: user.facilityId, workstationId: ws?.id ?? null },
     async (tx) => {
       if (previous) await revokeSession(tx, previous.sessionId, 'replaced', now);
+      await clearPairFailures(tx, user.id, ctx.clientIp, now);
       await tx
         .update(appUser)
         .set({
@@ -167,13 +188,14 @@ export async function verifyTotpLogin(
     'auth.maxLoginFailures',
     'auth.lockoutMinutes',
   ]);
-  if (isLocked(user.lockedUntil, now)) {
+  const isOwner = await isOwnerUser(db, user);
+  await assertNotThrottled(ctx, db, user, isOwner).catch(async (err) => {
     await endSession(ctx, auth, 'lockout');
-    throw lockedOut(user.lockedUntil, now);
-  }
+    throw err;
+  });
   const step = verifyTotp(openSecret(user.totpSecretEnc), code, now, user.totpLastStep);
   if (step === null) {
-    const until = await recordLoginFailure(db, user, settings, now);
+    const until = await recordLoginFailure(ctx, db, user, isOwner, 'totp', settings);
     if (until) {
       await endSession(ctx, auth, 'lockout');
       throw lockedOut(until, now);
@@ -187,6 +209,7 @@ export async function verifyTotpLogin(
         .update(appUser)
         .set({ totpLastStep: step, failedLoginCount: 0, lastLoginAt: now })
         .where(eq(appUser.id, user.id));
+      await clearPairFailures(tx, user.id, ctx.clientIp, now);
       await tx
         .update(session)
         .set({ mfaVerifiedAt: now, lastSeenAt: now })
@@ -296,12 +319,13 @@ export async function unlockWithPassword(
     'auth.maxLoginFailures',
     'auth.lockoutMinutes',
   ]);
-  if (isLocked(user.lockedUntil, now)) {
+  const isOwner = await isOwnerUser(db, user);
+  await assertNotThrottled(ctx, db, user, isOwner).catch(async (err) => {
     await endSession(ctx, auth, 'lockout');
-    throw lockedOut(user.lockedUntil, now);
-  }
+    throw err;
+  });
   if (!(await verifySecret(user.passwordHash, password))) {
-    const until = await recordLoginFailure(db, user, settings, now);
+    const until = await recordLoginFailure(ctx, db, user, isOwner, 'password', settings);
     if (until) {
       await endSession(ctx, auth, 'lockout');
       throw lockedOut(until, now);
@@ -311,9 +335,7 @@ export async function unlockWithPassword(
   await withTx(
     { db, userId: user.id, facilityId: user.facilityId, workstationId: auth.workstationId },
     async (tx) => {
-      if (user.failedLoginCount !== 0) {
-        await tx.update(appUser).set({ failedLoginCount: 0 }).where(eq(appUser.id, user.id));
-      }
+      await clearPairFailures(tx, user.id, ctx.clientIp, now);
       await tx
         .update(session)
         .set({ lockedAt: null, lastSeenAt: now })
@@ -340,7 +362,14 @@ export async function confirmPassword(
       'auth.maxLoginFailures',
       'auth.lockoutMinutes',
     ]);
-    const until = await recordLoginFailure(db, user, settings, now);
+    const until = await recordLoginFailure(
+      ctx,
+      db,
+      user,
+      await isOwnerUser(db, user),
+      'password',
+      settings,
+    );
     if (until) {
       await endSession(ctx, auth, 'lockout');
       throw lockedOut(until, now);

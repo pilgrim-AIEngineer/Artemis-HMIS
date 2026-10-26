@@ -341,6 +341,37 @@ export const accessLog = pgTable(
   ],
 );
 
+/**
+ * Failed credential attempts for known users (D-17, issue #96). Throttling is derived from these
+ * rows: per (user, source IP) pair, per IP across users, and a username-wide lock that is applied
+ * to `app_user.locked_until`. `lock_until` is set on the failure that locked the pair. Rows are
+ * never deleted; a success or an admin unlock sets `cleared_at`. `client_ip` is 'unknown' when
+ * the proxy gave none. `actor_user_id` is the requester for `approval_pin` failures, so a wrong
+ * supervisor PIN only blocks that requester, never the approver's sign-in.
+ */
+export const loginFailure = pgTable(
+  'login_failure',
+  {
+    id: idColumn(),
+    facilityId: facilityRef(),
+    userId: uuid()
+      .notNull()
+      .references(() => appUser.id),
+    clientIp: text().notNull(),
+    kind: text().notNull(),
+    actorUserId: uuid().references(() => appUser.id),
+    at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    lockUntil: timestamp({ withTimezone: true }),
+    clearedAt: timestamp({ withTimezone: true }),
+    ...auditColumns(),
+  },
+  (t) => [
+    index('login_failure_pair_idx').on(t.userId, t.clientIp, t.at),
+    index('login_failure_ip_idx').on(t.clientIp, t.at),
+    check('login_failure_kind', sqlIn(t.kind, ['password', 'totp', 'approval_pin'])),
+  ],
+);
+
 /** docs/02 §7: client-generated key; a duplicate submit returns the stored result. */
 export const idempotency = pgTable(
   'idempotency',

@@ -225,6 +225,20 @@
       "when": 1793005445674,
       "tag": "0031_mig_import_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1793028547313,
+      "tag": "0032_login_failure",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1793028573981,
+      "tag": "0033_login_failure_audit",
+      "breakpoints": true
     }
   ]
 }
