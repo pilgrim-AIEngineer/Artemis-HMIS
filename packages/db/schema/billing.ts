@@ -9,9 +9,12 @@
  * credit note, payment reversal) arrive additively with the PRs that use them.
  */
 import {
+  APPROVAL_KINDS,
+  APPROVAL_METHODS,
   BILL_KINDS,
   BILL_LINE_SOURCES,
   BILL_STATUSES,
+  DISCOUNT_MODES,
   MONEY_CEILING_PAISE,
   PAYMENT_KINDS,
   PAYMENT_MODES,
@@ -20,6 +23,7 @@ import {
 } from '@hmis/shared';
 import { sql, type AnyColumn } from 'drizzle-orm';
 import {
+  type AnyPgColumn,
   bigint,
   boolean,
   check,
@@ -33,8 +37,8 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
-import { auditColumns, idColumn, sqlIn } from './columns';
-import { doctorProfile, payer, service, serviceRate, tariff } from './masters';
+import { auditColumns, cancelChecks, cancelColumns, idColumn, sqlIn } from './columns';
+import { doctorProfile, payer, reasonCode, service, serviceRate, tariff } from './masters';
 import { patient } from './patient';
 import { appUser, facilityRef, workstation } from './platform';
 import { encounter } from './visit';
@@ -83,6 +87,10 @@ export const bill = pgTable(
     payerSharePaise: money(),
     patientSharePaise: money(),
     paidPaise: money(),
+    /** Credit notes issued against the bill (BIL-04); credit notes and their tax add up here. */
+    creditedPaise: money(),
+    creditedCgstPaise: money(),
+    creditedSgstPaise: money(),
     balancePaise: money(),
     finalizedBy: uuid().references(() => appUser.id),
     finalizedAt: timestamp({ withTimezone: true }),
@@ -109,7 +117,9 @@ export const bill = pgTable(
       sql`${inRange(t.grossPaise)} and ${inRange(t.discountPaise)} and ${inRange(t.taxablePaise)}
         and ${inRange(t.cgstPaise)} and ${inRange(t.sgstPaise)} and ${inRange(t.netPaise)}
         and ${inRange(t.payerSharePaise)} and ${inRange(t.patientSharePaise)}
-        and ${inRange(t.paidPaise)} and ${inSignedRange(t.balancePaise)}`,
+        and ${inRange(t.paidPaise)} and ${inSignedRange(t.balancePaise)}
+        and ${inRange(t.creditedPaise)} and ${inRange(t.creditedCgstPaise)}
+        and ${inRange(t.creditedSgstPaise)}`,
     ),
     // docs/04 §15.1
     check(
@@ -120,9 +130,20 @@ export const bill = pgTable(
     check('bill_taxable_math', sql`${t.taxablePaise} = ${t.grossPaise} - ${t.discountPaise}`),
     check('bill_discount_le_gross', sql`${t.discountPaise} <= ${t.grossPaise}`),
     check('bill_round_off_range', sql`${t.roundOffPaise} between -50 and 50`),
-    check('bill_balance_math', sql`${t.balancePaise} = ${t.patientSharePaise} - ${t.paidPaise}`),
-    // No overpayment (docs/12 §9); refunds of a reduced bill go through a credit note (BIL-04).
-    check('bill_no_overpayment', sql`${t.paidPaise} <= ${t.patientSharePaise}`),
+    // Credit notes lower what the patient owes (BIL-04): balance = share − credited − paid.
+    check(
+      'bill_balance_credit_math',
+      sql`${t.balancePaise} = ${t.patientSharePaise} - ${t.creditedPaise} - ${t.paidPaise}`,
+    ),
+    // No overpayment (docs/12 §9); money paid beyond a credited bill goes back as a refund (BIL-04).
+    check(
+      'bill_no_overpayment_credit',
+      sql`${t.creditedPaise} <= ${t.patientSharePaise} and ${t.paidPaise} <= ${t.patientSharePaise} - ${t.creditedPaise}`,
+    ),
+    check(
+      'bill_credited_tax',
+      sql`${t.creditedCgstPaise} <= ${t.cgstPaise} and ${t.creditedSgstPaise} <= ${t.sgstPaise}`,
+    ),
     check('bill_final_has_number', sql`${t.status} <> 'final' or ${t.number} is not null`),
     check('bill_finalized_fields', sql`(${t.number} is null) = (${t.finalizedAt} is null)`),
     check(
@@ -233,6 +254,11 @@ export const payment = pgTable(
     status: text().notNull().default('valid'),
     /** The client-generated key of the submit that created the row (rule 9). */
     idempotencyKey: uuid().notNull(),
+    /** Refunds only: the approval on record (docs/04 §15.8), the credit note and the reason. */
+    approvalId: uuid().references((): AnyPgColumn => approval.id),
+    creditNoteId: uuid().references((): AnyPgColumn => creditNote.id),
+    reasonCodeId: uuid().references(() => reasonCode.id),
+    reasonText: text(),
     ...auditColumns(),
   },
   (t) => [
@@ -245,6 +271,15 @@ export const payment = pgTable(
     check('payment_mode', sqlIn(t.mode, PAYMENT_MODES)),
     check('payment_status', sqlIn(t.status, PAYMENT_STATUSES)),
     check('payment_amount_range', inSignedRange(t.amountPaise)),
+    // docs/04 §15.8: a refund is negative and has an approval and a reason on record.
+    check(
+      'payment_refund_approval',
+      sql`${t.kind} <> 'refund' or (${t.approvalId} is not null and ${t.reasonCodeId} is not null)`,
+    ),
+    check(
+      'payment_refund_only_fields',
+      sql`${t.kind} = 'refund' or (${t.approvalId} is null and ${t.creditNoteId} is null and ${t.reasonCodeId} is null and ${t.reasonText} is null)`,
+    ),
     check(
       'payment_amount_sign',
       sql`(${t.kind} = 'refund' and ${t.amountPaise} < 0) or (${t.kind} <> 'refund' and ${t.amountPaise} > 0)`,
@@ -265,6 +300,136 @@ export const payment = pgTable(
     check(
       'payment_card_fields',
       sql`${t.mode} = 'card' or (${t.cardLast4} is null and ${t.cardAuthCode} is null)`,
+    ),
+  ],
+);
+
+/**
+ * Who allowed a discount above the requester's limit, a credit note above the cancellation limit
+ * or a refund (BIL-03, BIL-04). Written in the same transaction as what it allows; never changed.
+ * `pin` = another user typed their PIN; `self` = the requester holds the approve permission;
+ * `within_limit` = refund under the PIN threshold, the requester answers for it.
+ */
+export const approval = pgTable(
+  'approval',
+  {
+    id: idColumn(),
+    facilityId: facilityRef(),
+    kind: text().notNull(),
+    billId: uuid()
+      .notNull()
+      .references(() => bill.id),
+    requestedBy: uuid()
+      .notNull()
+      .references(() => appUser.id),
+    approverId: uuid()
+      .notNull()
+      .references(() => appUser.id),
+    method: text().notNull(),
+    /** The discount, credit note or refund amount that was approved. */
+    amountPaise: money(),
+    ...auditColumns(),
+  },
+  (t) => [
+    index('approval_bill_idx').on(t.billId),
+    index('approval_approver_idx').on(t.facilityId, t.approverId, t.createdAt),
+    check('approval_kind', sqlIn(t.kind, APPROVAL_KINDS)),
+    check('approval_method', sqlIn(t.method, APPROVAL_METHODS)),
+    check('approval_amount_range', inRange(t.amountPaise)),
+    // A PIN approval is by someone else; the other methods are the requester's own.
+    check('approval_who', sql`(${t.method} = 'pin') = (${t.approverId} <> ${t.requestedBy})`),
+  ],
+);
+
+/**
+ * One discount set on a draft bill (BIL-03): on a line, or on the whole bill (`billLineId` null).
+ * `amountPaise` is what was approved; the bill lines carry the resulting `discount_paise`. Setting
+ * a new discount on the same scope cancels the old record (reason kept), clearing cancels it.
+ */
+export const billDiscount = pgTable(
+  'bill_discount',
+  {
+    id: idColumn(),
+    facilityId: facilityRef(),
+    billId: uuid()
+      .notNull()
+      .references(() => bill.id),
+    billLineId: uuid().references(() => billLine.id),
+    mode: text().notNull(),
+    percentBp: integer(),
+    amountPaise: money(),
+    reasonCodeId: uuid()
+      .notNull()
+      .references(() => reasonCode.id),
+    reasonText: text(),
+    /** Set when the discount was above the requester's limit (docs/03 §4). */
+    approvalId: uuid().references(() => approval.id),
+    ...cancelColumns(),
+    ...auditColumns(),
+  },
+  (t) => [
+    index('bill_discount_bill_idx').on(t.billId),
+    index('bill_discount_report_idx').on(t.facilityId, t.createdAt),
+    uniqueIndex('bill_discount_active_scope_key')
+      .on(t.billId, sql`coalesce(${t.billLineId}, '00000000-0000-0000-0000-000000000000'::uuid)`)
+      .where(sql`${t.status} = 'active'`),
+    check('bill_discount_mode', sqlIn(t.mode, DISCOUNT_MODES)),
+    check('bill_discount_amount_range', sql`${inRange(t.amountPaise)} and ${t.amountPaise} > 0`),
+    check(
+      'bill_discount_percent',
+      sql`(${t.mode} = 'percent') = (${t.percentBp} is not null) and (${t.percentBp} is null or ${t.percentBp} between 1 and 10000)`,
+    ),
+    ...cancelChecks('bill_discount', t),
+  ],
+);
+
+/**
+ * Credit note against a final bill (BIL-04, docs/12 §5): full (the bill is cancelled and keeps its
+ * number) or partial. Number from the `credit_note` series; immutable once written.
+ */
+export const creditNote = pgTable(
+  'credit_note',
+  {
+    id: idColumn(),
+    facilityId: facilityRef(),
+    number: text().notNull(),
+    billId: uuid()
+      .notNull()
+      .references(() => bill.id),
+    patientId: uuid()
+      .notNull()
+      .references(() => patient.id),
+    encounterId: uuid()
+      .notNull()
+      .references(() => encounter.id),
+    amountPaise: money(),
+    /** Value excluding tax (round-off and odd paise included); amount = taxable + cgst + sgst. */
+    taxablePaise: money(),
+    cgstPaise: money(),
+    sgstPaise: money(),
+    reasonCodeId: uuid()
+      .notNull()
+      .references(() => reasonCode.id),
+    reasonText: text(),
+    /** Set when the credit was above the cancellation limit. */
+    approvalId: uuid().references(() => approval.id),
+    issuedBy: uuid()
+      .notNull()
+      .references(() => appUser.id),
+    issuedAt: timestamp({ withTimezone: true }).notNull(),
+    /** True when this credit note took the bill to zero (the bill was cancelled by it). */
+    cancelsBill: boolean().notNull().default(false),
+    idempotencyKey: uuid().notNull(),
+    ...auditColumns(),
+  },
+  (t) => [
+    uniqueIndex('credit_note_number_key').on(t.facilityId, t.number),
+    index('credit_note_bill_idx').on(t.billId),
+    index('credit_note_report_idx').on(t.facilityId, t.issuedAt),
+    check('credit_note_amount_range', sql`${inRange(t.amountPaise)} and ${t.amountPaise} > 0`),
+    check(
+      'credit_note_split',
+      sql`${t.amountPaise} = ${t.taxablePaise} + ${t.cgstPaise} + ${t.sgstPaise} and ${t.cgstPaise} = ${t.sgstPaise}`,
     ),
   ],
 );

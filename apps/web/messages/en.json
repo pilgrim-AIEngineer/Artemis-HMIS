@@ -399,6 +399,10 @@
           "packageRoomChange": {
             "label": "Package when the room category changes",
             "hint": "How a package is priced if the patient moves to another room category."
+          },
+          "cancelApprovalAbovePaise": {
+            "label": "Bill cancellation needs approval above",
+            "hint": "Cancelling a paid bill above this amount needs a supervisor PIN."
           }
         },
         "ipd": {
@@ -962,7 +966,8 @@
       "mobileOrReason": "Enter the mobile number, or tick “No mobile number” and give the reason.",
       "altMobileSame": "The other mobile number is the same as the first one.",
       "overrideReasonRequired": "Please write why this is a different person."
-    }
+    },
+    "forbiddenText": "This text contains a word that cannot be used here. Please rephrase."
   },
   "mobile": {
     "invalid": "Enter a 10-digit mobile number starting with 6, 7, 8 or 9."
@@ -1060,7 +1065,28 @@
       "nothingDue": "Nothing is due on this bill.",
       "overpayment": "The amount is more than what is due. Give the change back in cash.",
       "upiRefRequired": "Enter the UTR (or its last digits) for this UPI payment.",
-      "finalizeNotAllowed": "You may take a part payment, but settling the bill needs permission to finalise bills."
+      "finalizeNotAllowed": "You may take a part payment, but settling the bill needs permission to finalise bills.",
+      "notFinal": "Only a final bill can be cancelled with a credit note. Void a draft instead.",
+      "discountNotFound": "There is no discount here to remove.",
+      "discountZero": "The discount comes to nothing. Check the value.",
+      "reasonNotFound": "Choose a reason from the list.",
+      "reasonTextRequired": "For the reason “Other”, write the details.",
+      "approvalRequired": "This is above your limit. A supervisor must approve it with their username and PIN.",
+      "approverLimit": "This is above what that supervisor may approve. Ask the owner.",
+      "nothingToCredit": "This bill has already been credited in full.",
+      "creditTooLarge": "The credit note is more than what is left on the bill.",
+      "refundRequired": "Money was paid on this bill, so choose how the refund is given.",
+      "refundMismatch": "The refund amount changed. Reload the bill and check the amount.",
+      "refundExceedsPaid": "A refund cannot be more than the amount paid.",
+      "refundNotDue": "Nothing has to be refunded on this credit note.",
+      "refundNotAllowed": "You may not give refunds. Ask the cashier in charge or the administrator.",
+      "hasPayments": "This draft has a payment on it. Collect or refund through a final bill instead."
+    },
+    "approval": {
+      "invalid": "The username or PIN is not correct.",
+      "locked": "That PIN is locked after too many wrong tries. Try again in {minutes, plural, one {# minute} other {# minutes}}.",
+      "notAuthorised": "This person cannot approve discounts, cancellations or refunds.",
+      "selfNotAllowed": "Another person must approve this, not you."
     }
   },
   "nav": {
@@ -1521,6 +1547,74 @@
       "confirm": "Yes, received",
       "back": "Go back",
       "splitAmount": "{mode} amount"
+    },
+    "removeDiscountLine": "Remove discount",
+    "adj": {
+      "discountButton": "Discount",
+      "lineDiscountButton": "Discount on {item}",
+      "discountTitle": "Give a discount",
+      "scope": "Discount on",
+      "scopeBill": "Whole bill",
+      "kind": "Give as",
+      "percent": "Percent",
+      "amount": "Amount",
+      "percentValue": "Percent (%)",
+      "amountValue": "Amount (₹)",
+      "reason": "Reason",
+      "reasonPick": "Choose a reason",
+      "reasonText": "Details (optional)",
+      "reasonTextNeeded": "Details (needed for “Other”)",
+      "limitNone": "You cannot give a discount without a supervisor’s approval.",
+      "limitSome": "You can give up to {percent}% or {amount}, whichever is less, without approval.",
+      "limitFree": "You can give any discount.",
+      "apply": "Give discount",
+      "enterValue": "Enter the discount.",
+      "pickReason": "Choose a reason.",
+      "approverTitle": "Supervisor approval",
+      "approverHint": "Ask the supervisor to type their username and PIN here.",
+      "approverUsername": "Supervisor username",
+      "approverPin": "Supervisor PIN",
+      "approverMissing": "Supervisor username and PIN are needed.",
+      "discounts": "Discounts given",
+      "discountOnLine": "{item}",
+      "discountOnBill": "Whole bill",
+      "discountRow": "{scope}: {amount} · {reason}",
+      "approvedBy": "approved by {name}",
+      "lineDiscount": "Discount −{amount}",
+      "cancelButton": "Cancel bill",
+      "voidButton": "Void draft",
+      "voidTitle": "Void this draft bill",
+      "voidHint": "The draft is closed with the reason you give. It never had a bill number.",
+      "voidConfirm": "Void draft",
+      "cancelTitle": "Cancel bill with credit note",
+      "creditAmount": "Credit note amount",
+      "creditFull": "Whole bill: {amount}",
+      "creditPartial": "Part of the bill",
+      "creditPartialAmount": "Amount to credit (₹)",
+      "creditEnter": "Enter the amount to credit.",
+      "creditTooMuch": "This is more than what is left on the bill ({amount}).",
+      "cancelReason": "Reason for cancelling",
+      "refundDue": "Refund to patient",
+      "refundNone": "Nothing to refund: no money is held beyond the new bill value.",
+      "refundMode": "Give the refund in",
+      "refundRef": "UTR / last digits (optional)",
+      "refundRefInvalid": "The UTR must be 4 to 12 digits.",
+      "refundNotAllowed": "You may cancel bills but not give refunds. Ask the cashier in charge.",
+      "needsApproval": "This needs a supervisor’s approval.",
+      "continue": "Continue",
+      "confirmCancelTitle": "Confirm credit note and refund",
+      "confirmCancelOk": "Yes, cancel and refund",
+      "confirmCreditOk": "Yes, issue credit note",
+      "back": "Go back",
+      "done": "Credit note {number} issued.",
+      "doneRefund": "Credit note {number} issued. Refund {amount} given.",
+      "cancelledBanner": "This bill is cancelled. Reason: {note}",
+      "creditNotes": "Credit notes",
+      "creditNoteRow": "{number} · {date}",
+      "credited": "Credited",
+      "refundRow": "Refund",
+      "printVoucher": "Print refund voucher",
+      "reasonTextMissing": "Write the details for the reason “Other”."
     }
   }
 }

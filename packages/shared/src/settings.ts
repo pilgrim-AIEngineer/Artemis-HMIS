@@ -119,6 +119,11 @@ export const SETTINGS = {
   } satisfies Partial<Record<RoleKey, DiscountLimit>>),
   /** Refunds above this need approver PIN (docs/12 §5: ₹1,000). */
   'billing.refundApprovalAbovePaise': def(paiseJson, 100_000),
+  /**
+   * Cancelling a final bill (credit note) above this needs approver PIN (docs/03 §3 "requires
+   * approval above limit"; the limit is not stated, so it follows the refund one: ₹1,000).
+   */
+  'billing.cancelApprovalAbovePaise': def(paiseJson, 100_000),
   /** IPD deposit balance below this raises a top-up alert (docs/12 §7.3 example: ₹5,000). */
   'billing.depositLowBalancePaise': def(paiseJson, 500_000),
   'billing.packageRoomChange': def(

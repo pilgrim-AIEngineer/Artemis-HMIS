@@ -113,6 +113,20 @@
       "when": 1792977101120,
       "tag": "0015_billing_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1792980071695,
+      "tag": "0016_discounts_credit_notes",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1792980080743,
+      "tag": "0017_discounts_credit_notes_audit",
+      "breakpoints": true
     }
   ]
 }

@@ -2,8 +2,15 @@
  * BIL-02 receipt on the 80 mm roll, rendered from the database: split payment, masked UPI/card
  * references, amount in words in both languages, DUPLICATE on reprint. Synthetic patients only.
  */
-import { addBillLine, collectPayment } from '@hmis/db';
-import { patient, service } from '@hmis/db/schema';
+import {
+  addBillLine,
+  cancelFinalBill,
+  collectPayment,
+  ensureFacilityRbac,
+  grantRoles,
+  withTx,
+} from '@hmis/db';
+import { patient, reasonCode, service } from '@hmis/db/schema';
 import { IST, setupOpdFixture, type OpdFixture } from '@hmis/db/testing/opd';
 import { and, eq } from 'drizzle-orm';
 import { uuidv7 } from 'uuidv7';
@@ -15,6 +22,8 @@ import { RECEIPT_TEMPLATE } from './templates/meta';
 let fx: OpdFixture;
 let collectionId: string;
 let partialId: string;
+let cancelledPaymentId: string;
+let refundId: string;
 const at = IST('2028-05-03T10:42:00');
 
 beforeAll(async () => {
@@ -71,6 +80,47 @@ beforeAll(async () => {
       ),
     )
   ).collectionId;
+
+  // A paid bill cancelled by the owner: its receipt shows BILL CANCELLED, the refund is a voucher.
+  await withTx({ db: fx.t.owner, userId: null }, async (tx) => {
+    await ensureFacilityRbac(tx, fx.f.facilityId);
+    await grantRoles(tx, fx.f.facilityId, fx.f.userId, ['owner']);
+  });
+  const v3 = await fx.visit({ patientId: await fx.newPatient() }, at);
+  cancelledPaymentId = (
+    await fx.run((tx) =>
+      collectPayment(
+        tx,
+        fx.actor(),
+        {
+          billId: v3.billId,
+          tenders: [{ mode: 'cash', amountPaise: 50_000n }],
+          idempotencyKey: uuidv7(),
+        },
+        at,
+        { mayFinalize: true },
+      ),
+    )
+  ).collectionId;
+  const [reason] = await fx.t.app
+    .select({ id: reasonCode.id })
+    .from(reasonCode)
+    .where(and(eq(reasonCode.facilityId, fx.f.facilityId), eq(reasonCode.code, 'patient_request')));
+  const cancelled = await fx.run((tx) =>
+    cancelFinalBill(
+      tx,
+      fx.actor(),
+      {
+        billId: v3.billId,
+        reasonCodeId: reason!.id,
+        refund: { mode: 'cash' },
+        idempotencyKey: uuidv7(),
+      },
+      at,
+      { approverId: null },
+    ),
+  );
+  refundId = cancelled.refundCollectionId!;
 });
 afterAll(async () => {
   await fx.t.close();
@@ -119,5 +169,26 @@ describe('payment receipt (BIL-02)', () => {
   it('marks a reprint DUPLICATE and refuses unknown ids', async () => {
     expect(renderPrintHtml((await prepare(collectionId, 2))!, '')).toContain('DUPLICATE');
     expect(await prepare(uuidv7())).toBeNull();
+  });
+});
+
+describe('refund voucher and cancelled bill (BIL-04)', () => {
+  it('prints the refund as money handed back, with the credit note number', async () => {
+    const html = renderPrintHtml((await prepare(refundId))!, '');
+    expect(html).toContain('Refund / Credit note');
+    expect(html).toMatch(/CN\/28-29\/\d{5}/);
+    expect(html).toContain('Amount refunded');
+    expect(html).toContain('₹500.00');
+    expect(html).not.toContain('-₹');
+    expect(html).toContain('पाँच सौ रुपये');
+    expect(html).toContain('Five hundred rupees');
+    expect(html).not.toContain('Amount received');
+  });
+
+  it('marks the original receipt of a cancelled bill', async () => {
+    const html = renderPrintHtml((await prepare(cancelledPaymentId))!, '');
+    expect(html).toContain('BILL CANCELLED');
+    expect(html).toContain('Amount received');
+    expect(renderPrintHtml((await prepare(collectionId))!, '')).not.toContain('BILL CANCELLED');
   });
 });
