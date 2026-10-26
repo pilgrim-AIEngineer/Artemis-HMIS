@@ -49,7 +49,7 @@ describe('tRPC HTTP handler', () => {
     const res = await login(f.users.reception.username);
     expect(res.status).toBe(200);
     expect(res.headers.get('cache-control')).toBe('no-store');
-    const cookie = res.headers.getSetCookie().find((c) => c.startsWith('hmis_session='));
+    const cookie = res.headers.getSetCookie().find((c) => c.startsWith('__Host-hmis_session='));
     expect(cookie).toMatch(/HttpOnly; SameSite=Lax/);
 
     const token = cookie!.split(';')[0]!;
@@ -64,7 +64,7 @@ describe('tRPC HTTP handler', () => {
     const res = await login(f.users.reception.username);
     const token = res.headers
       .getSetCookie()
-      .find((c) => c.startsWith('hmis_session='))!
+      .find((c) => c.startsWith('__Host-hmis_session='))!
       .split(';')[0]!;
     const me = await handler(
       new Request(`${base}/auth.me`, {

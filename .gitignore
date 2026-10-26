@@ -30,3 +30,4 @@ blob-report/
 # OS / editor
 .DS_Store
 *.log
+apps/web/load/results/

@@ -28,9 +28,9 @@ test('login: wrong password is explained, right password reaches home', async ({
   );
   await expect(page.getByTestId('current-user')).toHaveText(E2E_USERS.reception.fullName);
   // Session cookie is HttpOnly: invisible to page scripts.
-  expect(await page.evaluate(() => document.cookie)).not.toContain('hmis_session');
+  expect(await page.evaluate(() => document.cookie)).not.toContain('__Host-hmis_session');
   const cookies = await page.context().cookies();
-  expect(cookies.find((c) => c.name === 'hmis_session')).toMatchObject({
+  expect(cookies.find((c) => c.name === '__Host-hmis_session')).toMatchObject({
     httpOnly: true,
     secure: true,
     sameSite: 'Lax',

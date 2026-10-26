@@ -41,7 +41,9 @@
 
 - Owner, one receptionist, one assistant, one cashier, one nurse (P2) each complete the scripted UAT checklist in training mode and sign it.
 - Timing targets from `00 §5` measured with real staff, not developers.
-- Sign-off sheets stored in `docs/uat/` (scanned).
+- Sign-off sheets stored in `docs/uat/` (scanned). The scripts per role are `docs/uat/01-owner.md` … `07-doctor.md`; the method and the sign-off table are in `docs/uat/README.md`.
+- Load test: `pnpm load` runs `apps/web/load/k6/peak-opd.js` against a throwaway stack; results are kept in `docs/36-load-test.md`.
+- Security: `docs/34-asvs-l1.md` (OWASP ASVS L1 status per item) and `apps/web/e2e/asvs.spec.ts` (executable evidence).
 
 ## 5. Clinical/legal sign-offs required before the related feature goes live
 

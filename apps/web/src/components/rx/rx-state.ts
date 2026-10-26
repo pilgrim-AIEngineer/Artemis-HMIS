@@ -300,6 +300,25 @@ export function clearLocalDraft(encounterId: string): void {
   }
 }
 
+/**
+ * Removes every Rx draft this browser holds (ASVS 8.2.2): on sign-out and "switch user" a shared
+ * workstation must not keep the last person's clinical text. The server copy (every 20 s) stays,
+ * so the same user gets the draft back after signing in again.
+ */
+export function clearAllLocalDrafts(storage: Pick<Storage, 'length' | 'key' | 'removeItem'>): void {
+  try {
+    const prefix = draftStorageKey('');
+    const keys: string[] = [];
+    for (let i = 0; i < storage.length; i++) {
+      const k = storage.key(i);
+      if (k?.startsWith(prefix)) keys.push(k);
+    }
+    for (const k of keys) storage.removeItem(k);
+  } catch {
+    // Storage disabled: nothing was written either.
+  }
+}
+
 // ---------------------------------------------------------------- save input
 
 export function toSaveInput(

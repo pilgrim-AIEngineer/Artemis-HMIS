@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   isWeakPin,
   optionalMobileSchema,
+  isCommonPassword,
   passwordSchema,
   pinEntrySchema,
   pinSchema,
@@ -17,10 +18,15 @@ describe('auth schemas', () => {
     }
   });
 
-  it('passwords need 8–128 characters', () => {
-    expect(passwordSchema.safeParse('1234567').success).toBe(false);
-    expect(passwordSchema.safeParse('correct horse').success).toBe(true);
+  it('passwords need 12–128 characters and are not on the common list (ASVS 2.1.1, 2.1.7)', () => {
+    expect(passwordSchema.safeParse('a1b2c3d4e5f').success).toBe(false); // 11
+    expect(passwordSchema.safeParse('a1b2c3d4e5f6').success).toBe(true); // 12
+    expect(passwordSchema.safeParse('correct horse battery').success).toBe(true);
     expect(passwordSchema.safeParse('x'.repeat(129)).success).toBe(false);
+    for (const common of ['Password1234', 'PASSWORD-1234', 'qwerty 123456', 'aaaaaaaaaaaa']) {
+      expect(passwordSchema.safeParse(common).success, common).toBe(false);
+    }
+    expect(isCommonPassword('hospital-1234')).toBe(true);
   });
 
   it('PINs are 4–6 digits and not trivially guessable', () => {

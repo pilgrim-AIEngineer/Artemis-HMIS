@@ -1,7 +1,7 @@
 /** Cookie and header names shared by the server, the proxy and the browser (FND-02). */
 
 /** HttpOnly session token (hash stored in `session.token_hash`). */
-export const SESSION_COOKIE = 'hmis_session';
+export const SESSION_COOKIE = '__Host-hmis_session';
 /** HttpOnly workstation pairing cookie: `<workstation id>.<secret>` (docs/01 §5). */
 export const WORKSTATION_COOKIE = 'hmis_ws';
 /** Double-submit CSRF token: readable by the page, echoed in `CSRF_HEADER` on every mutation. */

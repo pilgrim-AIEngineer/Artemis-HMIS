@@ -94,14 +94,15 @@ export const demoPatients: DemoStep = {
           ...common,
         });
       }
-      if (married && rng() < 0.4) {
+      if (married && rng() < 0.55) {
         const childSex = rng() < 0.5 ? 'F' : 'M';
         const child = indianName(rng, childSex);
         await add({
           firstName: child.first,
           lastName: father.last,
           sex: childSex,
-          age: rng() < 0.3 ? `${int(rng, 1, 11)}m` : String(int(rng, 1, 12)),
+          // Mostly under 5 so the demo has children to immunise and weigh (children.ts).
+          age: rng() < 0.5 ? `${int(rng, 1, 23)}m` : String(int(rng, 2, 8)),
           guardianName: `${father.first} ${father.last}`,
           guardianRelation: 'father',
           relationToMobileOwner: 'son',

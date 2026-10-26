@@ -413,7 +413,7 @@ describe('rates and tariffs (docs/12 §1)', () => {
 });
 
 describe('demo seed skeleton', () => {
-  it('creates demo doctors, rates, patients and 30 days of OPD, idempotently', async () => {
+  it('creates demo doctors, rates, patients, 30 days of OPD, 50 pregnancies and 80 children, idempotently', async () => {
     const run = () => withTx(ctx(), (tx) => seedDemoData(tx, f.facilityId, m));
     const first = await run();
     expect(first[0]).toBe('doctors: 3 new demo doctor(s)');
@@ -423,7 +423,27 @@ describe('demo seed skeleton', () => {
       'rates: 0 synthetic demo rate(s) in the default tariff',
       'patients: 500 already present',
       expect.stringMatching(/^opd: \d+ visits already present$/),
+      'pregnancies: 50 already present',
+      'children: 80 already present',
     ]);
+    const counts = (
+      await t.owner.$client.query<{
+        pregnancies: number;
+        visits: number;
+        children: number;
+        doses: number;
+      }>(
+        `select (select count(*) from pregnancy where facility_id = $1)::int as pregnancies,
+                (select count(*) from anc_visit where facility_id = $1)::int as visits,
+                (select count(distinct patient_id) from growth_measurement where facility_id = $1)::int as children,
+                (select count(*) from immunisation_given where facility_id = $1)::int as doses`,
+        [f.facilityId],
+      )
+    ).rows[0]!;
+    expect(counts.pregnancies).toBe(50);
+    expect(counts.visits).toBeGreaterThan(100);
+    expect(counts.children).toBe(80);
+    expect(counts.doses).toBeGreaterThan(200);
     expect(first[3]).toMatch(/^opd: \d+ visits over 30 days$/);
     const opd = (
       await t.owner.$client.query<{ visits: number; tokens: number; open: number; dup: number }>(

@@ -17,6 +17,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "turbo run e2e",
+    "load": "pnpm --filter @hmis/web load",
     "lint": "eslint . --max-warnings=0 && prettier --check .",
     "format": "prettier --write .",
     "typecheck": "turbo run typecheck && tsc -p tsconfig.json",
