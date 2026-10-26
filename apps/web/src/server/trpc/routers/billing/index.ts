@@ -1,5 +1,6 @@
 import {
   addBillLine,
+  addOrdersToBill,
   applyDiscount,
   billableServices,
   BillingInputError,
@@ -26,6 +27,7 @@ import { ApprovalError, verifyApproverPin } from '@hmis/db/approvals';
 import { reasonCode } from '@hmis/db/schema';
 import {
   addBillLineSchema,
+  addOrdersToBillSchema,
   adjustmentReportSchema,
   applyDiscountSchema,
   approverSchema,
@@ -190,6 +192,25 @@ export const billingRouter = router({
       mapped(() =>
         ctx.tx((tx) =>
           addBillLine(
+            tx,
+            { facilityId: ctx.auth.facilityId, userId: ctx.auth.userId },
+            input,
+            ctx.now(),
+          ),
+        ),
+      ),
+    ),
+
+  /**
+   * Puts the ticked orders from Rx transcription on the draft (OPD-04, docs/12 §2). Unpriced
+   * orders are skipped and listed in the result, so the others still go on.
+   */
+  addOrders: create
+    .input(addOrdersToBillSchema)
+    .mutation(({ ctx, input }) =>
+      mapped(() =>
+        ctx.tx((tx) =>
+          addOrdersToBill(
             tx,
             { facilityId: ctx.auth.facilityId, userId: ctx.auth.userId },
             input,

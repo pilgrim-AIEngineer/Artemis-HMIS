@@ -21,10 +21,14 @@ FROM ${NODE_IMAGE} AS runtime
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     PORT=3000 \
-    HOSTNAME=0.0.0.0
+    HOSTNAME=0.0.0.0 \
+    HMIS_FILES_DIR=/data/files
 WORKDIR /app
+# Rx photos (OPD-02) go to the shared files volume (docs/01 §2); writable by the app user only.
+RUN mkdir -p /data/files && chown node:node /data/files
 COPY --from=build --chown=node:node /repo/apps/web/.next/standalone ./
 COPY --from=build --chown=node:node /repo/apps/web/.next/static ./apps/web/.next/static
+VOLUME ["/data/files"]
 USER node
 EXPOSE 3000
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=3 \
