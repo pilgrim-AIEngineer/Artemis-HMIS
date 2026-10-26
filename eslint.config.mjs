@@ -61,6 +61,12 @@ export default tseslint.config(
     files: ['infra/scripts/**', 'packages/*/src/**/*cli.ts', 'packages/db/seed/**', '**/build.mjs'],
     rules: { 'no-console': 'off' },
   },
+  {
+    // k6 scripts run in k6's own runtime (Go + goja), not Node or the browser.
+    files: ['apps/web/load/**'],
+    languageOptions: { globals: { __ENV: 'readonly', __VU: 'readonly', __ITER: 'readonly' } },
+    rules: { 'no-console': 'off' },
+  },
   ...nextVitals.map((c) => ({ ...c, files: webFiles })),
   {
     files: webFiles,

@@ -20,6 +20,7 @@
     "src",
     "test",
     "e2e",
+    "load/*.ts",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "*.ts",
