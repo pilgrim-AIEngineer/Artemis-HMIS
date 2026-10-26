@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { FORBIDDEN_TERMS } from './compliance/forbidden-terms';
 import {
   effectiveDiscountLimit,
   getSettingDefault,
@@ -154,5 +155,30 @@ describe('effectiveDiscountLimit', () => {
       maxPercentBp: null,
       maxAmountPaise: null,
     });
+  });
+
+  describe('forbidden-term guard on free text (D-10, rule 7)', () => {
+    const phrase = FORBIDDEN_TERMS.find((t) => t.tier === 'always')!.examples[0]!;
+    const bad = {
+      'print.header': { footerNoteEn: phrase },
+      'usg.reportFooter': phrase,
+      'opd.complaintChips': [phrase],
+      'opd.adviceChips': [phrase],
+      'opd.quickOrders': { '019a0000-0000-7000-8000-000000000000': [phrase] },
+      'opd.quickOrderServices': { [phrase]: ['X'] },
+    } as const;
+
+    it.each(Object.entries(bad))('%s rejects a forbidden phrase', (key, value) => {
+      const r = SETTINGS[key as keyof typeof bad].schema.safeParse(value);
+      expect(r.success).toBe(false);
+      if (!r.success) expect(r.error.issues.some((i) => i.message === 'validation.forbiddenTerm')).toBe(true);
+    });
+
+    it.each(['nameHi', 'taglineEn', 'taglineHi', 'addressHi', 'footerNoteEn', 'footerNoteHi'])(
+      'print.header.%s rejects a forbidden phrase',
+      (field) => {
+        expect(SETTINGS['print.header'].schema.safeParse({ [field]: phrase }).success).toBe(false);
+      },
+    );
   });
 });
