@@ -29,7 +29,7 @@ export const L = {
   stickerTitle: { hi: 'मरीज़ स्टिकर', en: 'Patient sticker' },
   uhidCardTitle: { hi: 'यूएचआईडी कार्ड', en: 'UHID card' },
   name: { hi: 'नाम', en: 'Name' },
-  ageSex: { hi: 'आयु/लिंग', en: 'Age/Sex' },
+  ageSex: { hi: 'आयु', en: 'Age/Sex' },
   token: { hi: 'टोकन', en: 'Token' },
   dateTime: { hi: 'दिनांक/समय', en: 'Date/time' },
   guardian: { hi: 'अभिभावक', en: 'Guardian' },
