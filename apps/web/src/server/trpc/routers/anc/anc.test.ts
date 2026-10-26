@@ -59,7 +59,7 @@ const create = (patientId: string, over: Record<string, unknown> = {}) =>
       idempotencyKey: uuidv7(),
       lmp: lmp(),
       ...over,
-    } as never),
+    }),
   );
 
 describe('ANC procedures (OPD-05, AGENTS.md rule 6)', () => {
@@ -67,9 +67,7 @@ describe('ANC procedures (OPD-05, AGENTS.md rule 6)', () => {
     const patientId = await woman();
     for (const k of ['reception', 'nurse', 'cashier', 'admin', 'noRoles'] as const) {
       const err = await trpcError(
-        who[k].call((c) =>
-          c.anc.create({ patientId, idempotencyKey: uuidv7(), lmp: lmp() } as never),
-        ),
+        who[k].call((c) => c.anc.create({ patientId, idempotencyKey: uuidv7(), lmp: lmp() })),
       );
       expect(err.code, k).toBe('FORBIDDEN');
     }
@@ -90,7 +88,7 @@ describe('ANC procedures (OPD-05, AGENTS.md rule 6)', () => {
     for (const k of ['reception', 'nurse', 'cashier'] as const) {
       const err = await trpcError(
         who[k].call((c) =>
-          c.anc.saveVisit({ pregnancyId, visitDate: lmp(), bpSys: 120, bpDia: 80 } as never),
+          c.anc.saveVisit({ pregnancyId, visitDate: lmp(), bpSys: 120, bpDia: 80 }),
         ),
       );
       expect(err.code, k).toBe('FORBIDDEN');
@@ -155,7 +153,7 @@ describe('ANC procedures (OPD-05, AGENTS.md rule 6)', () => {
     const scanDate = new Date(Date.now() - 56 * 86_400_000).toISOString().slice(0, 10);
     // On the scan day the LMP says 6w0d; the scan found 5w0d: seven days apart, the limit is five.
     const a = await who.assistant.call((c) =>
-      c.anc.assessScan({ pregnancyId, scanDate, ga: { weeks: 5, days: 0 } } as never),
+      c.anc.assessScan({ pregnancyId, scanDate, ga: { weeks: 5, days: 0 } }),
     );
     expect(a.assessment?.thresholdDays).toBe(5);
     expect(a.assessment?.suggestScan).toBe(true);
@@ -185,7 +183,7 @@ describe('ANC procedures (OPD-05, AGENTS.md rule 6)', () => {
       c.anc.close({ pregnancyId, outcome: 'aborted', outcomeDate: today } as never),
     );
     const closed = await trpcError(
-      who.assistant.call((c) => c.anc.saveVisit({ pregnancyId, visitDate: today } as never)),
+      who.assistant.call((c) => c.anc.saveVisit({ pregnancyId, visitDate: today })),
     );
     expect([closed.code, closed.message]).toEqual(['CONFLICT', 'errors.anc.notActive']);
   });

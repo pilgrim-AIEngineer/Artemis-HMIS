@@ -29,7 +29,6 @@ import {
   trimesterOf,
   visitIntervalDays,
   visitIntervalsSchema,
-  type AncItemState,
   type RiskInput,
   type ScheduleMark,
 } from './anc';
@@ -443,7 +442,7 @@ describe('ANC schedule', () => {
   const state = (code: string, today: string, marks: [string, ScheduleMark][] = [], o = {}) =>
     scheduleStates(DEFAULT_ANC_SCHEDULE, new Map(marks), ctx(today, o), edd).find(
       (v) => v.def.code === code,
-    )!.state as AncItemState;
+    )!.state;
 
   it('has the items of docs/33 §4 in order with unique codes', () => {
     const codes = DEFAULT_ANC_SCHEDULE.map((d) => d.code);

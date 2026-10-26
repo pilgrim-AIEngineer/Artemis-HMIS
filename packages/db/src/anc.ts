@@ -298,7 +298,13 @@ export interface PregnancyView {
     redatingPending: boolean;
   };
   /** GA today; null once the pregnancy is closed. */
-  ga: { days: number; label: string; weeks: number; extraDays: number; trimester: 1 | 2 | 3 } | null;
+  ga: {
+    days: number;
+    label: string;
+    weeks: number;
+    extraDays: number;
+    trimester: 1 | 2 | 3;
+  } | null;
   gpal: Gpal & { manual: boolean; text: string };
   plurality: Plurality;
   bloodGroupRh: string | null;
@@ -513,7 +519,9 @@ async function buildView(
     const hit = orders
       .filter(
         (o) =>
-          v.def.serviceCodes.includes(o.serviceCode) && o.date >= lo && (hi === null || o.date <= hi),
+          v.def.serviceCodes.includes(o.serviceCode) &&
+          o.date >= lo &&
+          (hi === null || o.date <= hi),
       )
       .sort((a, b) => (a.date < b.date ? -1 : 1))[0];
     if (hit) {
@@ -675,7 +683,12 @@ export interface PatientAnc {
   eligible: boolean;
   active: PregnancyView | null;
   /** Earlier pregnancies of this patient, newest first (MTP outcomes shown as "closed"). */
-  past: { id: string; status: PregnancyStatus | typeof MASKED_PREGNANCY_STATUS; outcomeDate: string | null; eddFinal: string }[];
+  past: {
+    id: string;
+    status: PregnancyStatus | typeof MASKED_PREGNANCY_STATUS;
+    outcomeDate: string | null;
+    eddFinal: string;
+  }[];
   /** Earlier pregnancies to pre-fill a new record with (docs/04 `obstetric_history`). */
   history: AncHistoryRow[];
 }
@@ -799,13 +812,11 @@ async function refreshDerived(tx: Tx, actor: AncActor, pregnancyId: string, now:
     const { 'anc.viabilityWeeks': weeks } = await readSettings(tx, f, ['anc.viabilityWeeks']);
     const hist = await historyRows(tx, f, row.patientId);
     const g = computeGpal(
-      hist.map(
-        (h): ObHistoryEntry => ({
-          outcome: h.outcome as ObOutcome,
-          gestationWeeks: h.gestationWeeks,
-          babiesAlive: h.babiesAlive,
-        }),
-      ),
+      hist.map((h): ObHistoryEntry => ({
+        outcome: h.outcome as ObOutcome,
+        gestationWeeks: h.gestationWeeks,
+        babiesAlive: h.babiesAlive,
+      })),
       weeks,
     );
     if (g.g !== row.gravida || g.p !== row.para || g.a !== row.abortions || g.l !== row.living) {
@@ -1102,12 +1113,7 @@ export async function setGpal(
 
 // ---------------------------------------------------------------- visits
 
-async function assertEncounter(
-  tx: Tx,
-  facilityId: string,
-  encounterId: string,
-  patientId: string,
-) {
+async function assertEncounter(tx: Tx, facilityId: string, encounterId: string, patientId: string) {
   const [e] = await tx
     .select({ patientId: encounter.patientId })
     .from(encounter)
@@ -1348,8 +1354,7 @@ export async function closePregnancy(
       const babies = row.plurality === 'single' ? 1 : row.plurality === 'twins' ? 2 : 3;
       history = {
         outcome: input.obOutcome,
-        babiesAlive:
-          input.babiesAlive ?? (input.obOutcome === 'stillbirth' ? 0 : babies),
+        babiesAlive: input.babiesAlive ?? (input.obOutcome === 'stillbirth' ? 0 : babies),
         neonatalDeath: input.neonatalDeath,
       };
       break;
@@ -1380,10 +1385,7 @@ export async function closePregnancy(
       .select({ n: sql<number>`coalesce(max(${obstetricHistory.pregnancyNo}), 0)::int` })
       .from(obstetricHistory)
       .where(
-        and(
-          eq(obstetricHistory.patientId, row.patientId),
-          eq(obstetricHistory.status, 'active'),
-        ),
+        and(eq(obstetricHistory.patientId, row.patientId), eq(obstetricHistory.status, 'active')),
       );
     await tx.insert(obstetricHistory).values({
       id: uuidv7(),
@@ -1452,6 +1454,8 @@ export async function ancSummary(
       })),
     testsDue: open('due'),
     testsOverdue: open('overdue'),
-    td: (td?.state === 'not_applicable' ? 'upcoming' : (td?.state ?? 'upcoming')) as AncSummary['td'],
+    td: (td?.state === 'not_applicable'
+      ? 'upcoming'
+      : (td?.state ?? 'upcoming')) as AncSummary['td'],
   };
 }

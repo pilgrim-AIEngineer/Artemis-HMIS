@@ -934,7 +934,10 @@ export const saveAncVisitSchema = z
     remarks: optionalText(500),
   })
   .refine((v) => (v.bpSys === null) === (v.bpDia === null), 'validation.vitals.bpOrder')
-  .refine((v) => v.bpSys === null || v.bpDia === null || v.bpDia < v.bpSys, 'validation.vitals.bpOrder');
+  .refine(
+    (v) => v.bpSys === null || v.bpDia === null || v.bpDia < v.bpSys,
+    'validation.vitals.bpOrder',
+  );
 export type SaveAncVisitInput = z.output<typeof saveAncVisitSchema>;
 
 export const updatePregnancySchema = z.object({

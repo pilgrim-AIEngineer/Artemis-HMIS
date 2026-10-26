@@ -115,9 +115,7 @@ async function start(
 }
 const view = (id: string, a = actor()) => run((tx) => getPregnancyView(tx, a, id, NOW));
 const visit = (pregnancyId: string, over: Record<string, unknown> = {}) =>
-  run((tx) =>
-    saveAncVisit(tx, actor(), { pregnancyId, visitDate: '2026-10-26', ...over } as never, NOW),
-  );
+  run((tx) => saveAncVisit(tx, actor(), { pregnancyId, visitDate: '2026-10-26', ...over }, NOW));
 
 describe('opening a pregnancy record (docs/11 §3.1)', () => {
   it('derives EDD and GA from the LMP and starts at G1 P0 A0 L0', async () => {
@@ -298,7 +296,7 @@ describe('scan re-dating (docs/11 §3.1)', () => {
       confirmDating(
         tx,
         actor(),
-        { pregnancyId, basis: 'scan', scanDate: '2026-09-01', ga: { weeks: 5, days: 0 } } as never,
+        { pregnancyId, basis: 'scan', scanDate: '2026-09-01', ga: { weeks: 5, days: 0 } },
         NOW,
       ),
     );
@@ -329,7 +327,7 @@ describe('scan re-dating (docs/11 §3.1)', () => {
       confirmDating(
         tx,
         actor(),
-        { pregnancyId, basis: 'lmp', scanDate: '2026-09-01', ga: { weeks: 6, days: 0 } } as never,
+        { pregnancyId, basis: 'lmp', scanDate: '2026-09-01', ga: { weeks: 6, days: 0 } },
         NOW,
       ),
     );
@@ -354,7 +352,7 @@ describe('scan re-dating (docs/11 §3.1)', () => {
       confirmDating(
         tx,
         actor(),
-        { pregnancyId, basis: 'lmp', scanDate: '2026-09-01', ga: { weeks: 5, days: 0 } } as never,
+        { pregnancyId, basis: 'lmp', scanDate: '2026-09-01', ga: { weeks: 5, days: 0 } },
         NOW,
       ),
     );
@@ -377,7 +375,7 @@ describe('scan re-dating (docs/11 §3.1)', () => {
               basis: 'lmp',
               scanDate: '2026-10-01',
               ga: { weeks: 10, days: 0 },
-            } as never,
+            },
             NOW,
           ),
         ),
@@ -390,7 +388,7 @@ describe('scan re-dating (docs/11 §3.1)', () => {
           confirmDating(
             tx,
             actor(),
-            { pregnancyId, basis: 'scan', scanDate, ga: { weeks: 8, days: 0 } } as never,
+            { pregnancyId, basis: 'scan', scanDate, ga: { weeks: 8, days: 0 } },
             NOW,
           ),
         ),
@@ -479,7 +477,7 @@ describe('ANC visits, risk flags and the high-risk alert (docs/11 §3.2–3.3)',
   });
 
   it('manual flags are kept until removed; BMI, height, Rh and age drive the others', async () => {
-    const { pregnancyId } = await start({ bloodGroupRh: 'O-' } as never);
+    const { pregnancyId } = await start({ bloodGroupRh: 'O-' });
     await run((tx) =>
       updatePregnancy(
         tx,
@@ -668,27 +666,17 @@ describe('schedule (docs/11 §3.4, docs/33 §4)', () => {
       state: 'upcoming',
     });
     await run((tx) =>
-      markScheduleItem(
-        tx,
-        actor(),
-        { pregnancyId, code: 'nt_scan', status: 'skipped' } as never,
-        NOW,
-      ),
+      markScheduleItem(tx, actor(), { pregnancyId, code: 'nt_scan', status: 'skipped' }, NOW),
     );
     expect((await stateOf(pregnancyId, 'nt_scan')).state).toBe('skipped');
     await run((tx) =>
-      markScheduleItem(tx, actor(), { pregnancyId, code: 'td_1', status: 'due' } as never, NOW),
+      markScheduleItem(tx, actor(), { pregnancyId, code: 'td_1', status: 'due' }, NOW),
     );
     expect((await stateOf(pregnancyId, 'td_1')).state).toBe('due');
     expect(
       await errKey(
         run((tx) =>
-          markScheduleItem(
-            tx,
-            actor(),
-            { pregnancyId, code: 'nope', status: 'done' } as never,
-            NOW,
-          ),
+          markScheduleItem(tx, actor(), { pregnancyId, code: 'nope', status: 'done' }, NOW),
         ),
       ),
     ).toBe('anc.scheduleItemNotFound');
@@ -746,12 +734,7 @@ describe('schedule (docs/11 §3.4, docs/33 §4)', () => {
     // Late in pregnancy it is weekly.
     const late = await start({ lmp: '2026-02-01' });
     await run((tx) =>
-      saveAncVisit(
-        tx,
-        actor(),
-        { pregnancyId: late.pregnancyId, visitDate: '2026-10-20' } as never,
-        NOW,
-      ),
+      saveAncVisit(tx, actor(), { pregnancyId: late.pregnancyId, visitDate: '2026-10-20' }, NOW),
     );
     const lv = await view(late.pregnancyId);
     expect(lv.nextVisit).toMatchObject({ date: '2026-10-27', intervalDays: 7 });
@@ -760,9 +743,7 @@ describe('schedule (docs/11 §3.4, docs/33 §4)', () => {
 
 describe('closing a pregnancy and MTP privacy (docs/11 §3.1, acceptance §5)', () => {
   const close = (pregnancyId: string, over: Record<string, unknown>, a = actor()) =>
-    run((tx) =>
-      closePregnancy(tx, a, { pregnancyId, outcomeDate: '2026-10-26', ...over } as never, NOW),
-    );
+    run((tx) => closePregnancy(tx, a, { pregnancyId, outcomeDate: '2026-10-26', ...over }, NOW));
 
   it('a delivery closes the record, ends the alert, and the next pregnancy starts at G2 P1', async () => {
     const { patientId, pregnancyId } = await start({ lmp: '2026-01-25' }); // 274 days

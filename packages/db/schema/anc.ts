@@ -194,13 +194,22 @@ export const ancVisit = pgTable(
       .on(t.pregnancyId, t.visitDate)
       .where(sql`${t.status} = 'active'`),
     index('anc_visit_encounter_idx').on(t.encounterId),
-    check('anc_visit_presentation', sql`${t.presentation} is null or ${sqlIn(t.presentation, PRESENTATIONS)}`),
-    check('anc_visit_oedema', sql`${t.oedema} is null or ${t.oedema} in ('none', 'plus1', 'plus2')`),
+    check(
+      'anc_visit_presentation',
+      sql`${t.presentation} is null or ${sqlIn(t.presentation, PRESENTATIONS)}`,
+    ),
+    check(
+      'anc_visit_oedema',
+      sql`${t.oedema} is null or ${t.oedema} in ('none', 'plus1', 'plus2')`,
+    ),
     check(
       'anc_visit_urine_protein',
       sql`${t.urineProtein} is null or ${sqlIn(t.urineProtein, DIPSTICK)}`,
     ),
-    check('anc_visit_urine_sugar', sql`${t.urineSugar} is null or ${sqlIn(t.urineSugar, DIPSTICK)}`),
+    check(
+      'anc_visit_urine_sugar',
+      sql`${t.urineSugar} is null or ${sqlIn(t.urineSugar, DIPSTICK)}`,
+    ),
     check(
       'anc_visit_bp_pair',
       sql`(${t.bpSys} is null) = (${t.bpDia} is null) and (${t.bpDia} is null or ${t.bpDia} < ${t.bpSys})`,
@@ -228,7 +237,10 @@ export const ancScheduleItem = pgTable(
     afterCode: text(),
     afterDays: smallint().notNull().default(0),
     /** Service codes whose completed order marks the item done. */
-    serviceCodes: text().array().notNull().default(sql`'{}'::text[]`),
+    serviceCodes: text()
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     sortOrder: smallint().notNull().default(0),
     isActive: boolean().notNull().default(true),
     ...auditColumns(),
@@ -296,7 +308,10 @@ export const patientAlert = pgTable(
       .on(t.pregnancyId)
       .where(sql`${t.active} and ${t.kind} = 'high_risk_pregnancy'`),
     index('patient_alert_patient_idx').on(t.patientId, t.active),
-    check('patient_alert_kind', sqlIn(t.kind, ['high_risk_pregnancy', 'allergy', 'vip', 'mlc', 'other'])),
+    check(
+      'patient_alert_kind',
+      sqlIn(t.kind, ['high_risk_pregnancy', 'allergy', 'vip', 'mlc', 'other']),
+    ),
     check('patient_alert_resolved', sql`${t.active} = (${t.resolvedAt} is null)`),
   ],
 );

@@ -85,9 +85,7 @@ export const ancRouter = router({
   rules: read.query(({ ctx }) => ctx.tx((tx) => ancRules(tx, ctx.auth.facilityId))),
 
   /** Active pregnancies, soonest EDD first (the ANC desk list). */
-  active: read.query(({ ctx }) =>
-    ctx.tx((tx) => activePregnancies(tx, ancActor(ctx), ctx.now())),
-  ),
+  active: read.query(({ ctx }) => ctx.tx((tx) => activePregnancies(tx, ancActor(ctx), ctx.now()))),
 
   /** One woman's ANC state: the active pregnancy, earlier ones and the history to pre-fill. */
   forPatient: read
