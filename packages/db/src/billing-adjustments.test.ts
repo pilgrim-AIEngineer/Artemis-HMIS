@@ -24,6 +24,7 @@ import { IST, setupOpdFixture, type OpdFixture } from '../testing/opd';
 import { ApprovalError, verifyApproverPin } from './approvals';
 import {
   addBillLine,
+  removeBillLine,
   BillingInputError,
   collectPayment,
   finalizeBill,
@@ -295,6 +296,26 @@ describe('discount limits by role (BIL-03, docs/03 §4)', () => {
     await discountBy(owner, v.billId, { mode: 'percent', percentBp: 5000 });
     expect((await view(v.billId)).netPaise).toBe(25_000n);
     expect(await fx.t.app.select().from(approval).where(eq(approval.billId, v.billId))).toEqual([]);
+  });
+
+  it('re-checks the limit when lines are removed, so a kept ₹ discount cannot exceed it (#69)', async () => {
+    const v = await draft([big]); // gross ₹2,500; ₹250 = 10% is within the cashier's limit
+    await discountBy(cashier, v.billId, { mode: 'amount', amountPaise: 25_000n });
+    const before = await view(v.billId);
+    const bigLine = before.lines.find((l) => l.amountPaise === 200_000n)!;
+    await fx.run((tx) =>
+      removeBillLine(
+        tx,
+        as(cashier),
+        { billId: v.billId, lineId: bigLine.id, reason: 'Not needed', idempotencyKey: uuidv7() },
+        AT,
+      ),
+    );
+    const b = await view(v.billId);
+    const approvals = await fx.t.app.select().from(approval).where(eq(approval.billId, v.billId));
+    expect(b.grossPaise).toBe(50_000n);
+    expect(b.discountPaise * 10_000n <= 1_000n * b.grossPaise || approvals.length > 0).toBe(true);
+    expect(b.discountPaise).toBe(5_000n); // scaled down to the 10% the cashier may give
   });
 
   it('counts the whole bill discount, so line discounts cannot be split under the limit', async () => {
