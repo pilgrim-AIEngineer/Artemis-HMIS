@@ -7,7 +7,9 @@
  */
 import { spawn } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { cpSync, existsSync } from 'node:fs';
+import { cpSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createDb, ensureAppLoginRole, ensureFacilityRbac, setServiceRate, withTx } from '@hmis/db';
 import { rupeesToPaise } from '@hmis/shared';
@@ -59,6 +61,10 @@ await withTx({ db: owner, userId: null }, async (tx) => {
     ['CONS-PAED-FU', 0],
     ['PROC-SUTURE-REM', '350.50'],
     ['PROC-IUCD-INS', 1500],
+    // Orders from Rx transcription (flow 4).
+    ['LAB-CBC', 300],
+    ['LAB-TSH', 450],
+    ['USG-OB-EARLY', 900],
   ] as const) {
     const [svc] = await tx
       .select({ id: service.id })
@@ -79,6 +85,9 @@ const appUrl = new URL(pg.url);
 appUrl.username = appUser;
 appUrl.password = appPassword;
 
+// Rx photos (OPD-02) go to a throwaway files directory, removed on exit.
+const filesDir = mkdtempSync(join(tmpdir(), 'hmis-e2e-files-'));
+
 const child = spawn(process.execPath, [server], {
   stdio: 'inherit',
   env: {
@@ -86,6 +95,7 @@ const child = spawn(process.execPath, [server], {
     APP_DATABASE_URL: appUrl.toString(),
     DATABASE_URL: pg.url,
     HMIS_SECRET_KEY: randomBytes(32).toString('hex'),
+    HMIS_FILES_DIR: filesDir,
     NODE_ENV: 'production',
   },
 });
@@ -96,5 +106,6 @@ const shutdown = () => {
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 child.on('exit', (code) => {
+  rmSync(filesDir, { recursive: true, force: true });
   void pg.stop().finally(() => process.exit(code ?? 0));
 });

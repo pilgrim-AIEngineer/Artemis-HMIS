@@ -56,6 +56,7 @@ import {
   service,
   vitals,
 } from '../schema';
+import { openDraftBill } from './billing';
 import type { Db } from './client';
 import { runIdempotent } from './idempotency';
 import { advanceToken } from './queue';
@@ -339,7 +340,7 @@ export interface RxContext {
   scans: { id: string; createdAt: Date }[];
   quickOrders: QuickOrder[];
   chips: { complaints: string[]; advice: string[] };
-  settings: { requirePhoto: boolean; hindiPhrases: Record<string, string> };
+  settings: { requirePhoto: boolean; notesRequired: boolean; hindiPhrases: Record<string, string> };
   hasLastRx: boolean;
 }
 
@@ -562,6 +563,7 @@ export async function rxContext(
     'opd.quickOrderServices',
     'opd.complaintChips',
     'opd.adviceChips',
+    'opd.notesRequired',
   ]);
   const [noteRow] = await tx
     .select()
@@ -629,6 +631,7 @@ export async function rxContext(
     chips: { complaints: cfg['opd.complaintChips'], advice: cfg['opd.adviceChips'] },
     settings: {
       requirePhoto: cfg['rx.requirePhoto'],
+      notesRequired: cfg['opd.notesRequired'],
       hindiPhrases: cfg['rx.hindiPhrases'],
     },
     hasLastRx: (await previousRxId(tx, e)) !== null,
@@ -1111,6 +1114,7 @@ export async function saveRx(
       const wanted = new Map(input.orders.map((o) => [o.serviceId, o]));
       let ordersAdded = 0;
       let ordersCancelled = 0;
+      let billableAdded = 0;
       for (const o of live.filter((x) => x.kind !== 'admission')) {
         const want = o.serviceId ? wanted.get(o.serviceId) : undefined;
         if (want) {
@@ -1145,6 +1149,7 @@ export async function saveRx(
           enteredBy: actor.userId,
         });
         ordersAdded++;
+        billableAdded++;
       }
       const admission = live.find((x) => x.kind === 'admission');
       if (input.admission.advised) {
@@ -1206,6 +1211,11 @@ export async function saveRx(
           status: 'final',
           enteredBy: actor.userId,
         });
+      }
+
+      // ---- new orders always have a draft bill to land on (docs/12 §2)
+      if (billableAdded > 0) {
+        await openDraftBill(tx, actor, e.id);
       }
 
       // ---- draft used, token on

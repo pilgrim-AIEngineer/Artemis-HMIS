@@ -398,30 +398,36 @@ export async function createOpdBill(
   return runIdempotent(
     tx,
     { ...idemBase(actor), procedure: 'billing.createOpdBill', key: idempotencyKey, payload: input },
-    async () => {
-      const enc = await lockEncounter(tx, actor.facilityId, input.encounterId);
-      if (!enc || enc.type !== 'opd') throw new BillingInputError('billing.encounterNotFound');
-      if (enc.status !== 'open') throw new BillingInputError('billing.encounterNotOpen');
-      const [draft] = await tx
-        .select({ id: bill.id })
-        .from(bill)
-        .where(and(eq(bill.encounterId, enc.id), eq(bill.kind, 'opd'), eq(bill.status, 'draft')));
-      if (draft) return { billId: draft.id };
-      const [anyBill] = await tx
-        .select({ id: bill.id })
-        .from(bill)
-        .where(and(eq(bill.encounterId, enc.id), ne(bill.status, 'cancelled')))
-        .limit(1);
-      const [e] = await tx
-        .select({ serviceId: encounter.consultationServiceId, basis: encounter.feeBasis })
-        .from(encounter)
-        .where(eq(encounter.id, enc.id));
-      // The consultation goes on the first bill of the visit only.
-      const consultation =
-        !anyBill && e?.serviceId && e.basis === 'tariff' ? { serviceId: e.serviceId } : null;
-      return { billId: await createOpdBillForVisit(tx, actor, enc, consultation) };
-    },
+    () => openDraftBill(tx, actor, input.encounterId),
   );
+}
+
+/**
+ * The visit's draft OPD bill, opened when there is none (also used by Rx transcription so that new
+ * orders always have a draft to land on, docs/11 §2.4 "billing sees them immediately").
+ */
+export async function openDraftBill(tx: Tx, actor: Actor, encounterId: string): Promise<BillRef> {
+  const enc = await lockEncounter(tx, actor.facilityId, encounterId);
+  if (!enc || enc.type !== 'opd') throw new BillingInputError('billing.encounterNotFound');
+  if (enc.status !== 'open') throw new BillingInputError('billing.encounterNotOpen');
+  const [draft] = await tx
+    .select({ id: bill.id })
+    .from(bill)
+    .where(and(eq(bill.encounterId, enc.id), eq(bill.kind, 'opd'), eq(bill.status, 'draft')));
+  if (draft) return { billId: draft.id };
+  const [anyBill] = await tx
+    .select({ id: bill.id })
+    .from(bill)
+    .where(and(eq(bill.encounterId, enc.id), ne(bill.status, 'cancelled')))
+    .limit(1);
+  const [e] = await tx
+    .select({ serviceId: encounter.consultationServiceId, basis: encounter.feeBasis })
+    .from(encounter)
+    .where(eq(encounter.id, enc.id));
+  // The consultation goes on the first bill of the visit only.
+  const consultation =
+    !anyBill && e?.serviceId && e.basis === 'tariff' ? { serviceId: e.serviceId } : null;
+  return { billId: await createOpdBillForVisit(tx, actor, enc, consultation) };
 }
 
 export const idemBase = (actor: Actor) => ({ facilityId: actor.facilityId, userId: actor.userId });
@@ -1216,6 +1222,12 @@ export async function pendingBills(
         eq(bill.facilityId, facilityId),
         or(
           and(eq(bill.status, 'draft'), sql`${bill.netPaise} > 0`),
+          // A draft that only waits for orders from Rx transcription (OPD-04) is work too.
+          and(
+            eq(bill.status, 'draft'),
+            sql`exists (select 1 from ${clinicalOrder} o where o.encounter_id = ${bill.encounterId}
+              and o.status = 'ordered' and o.bill_line_id is null and o.service_id is not null)`,
+          ),
           and(eq(bill.status, 'final'), sql`${bill.balancePaise} > 0`),
         ),
         like

@@ -25,6 +25,7 @@ import {
   billsForEncounter,
   finalizeBill,
   getBillView,
+  pendingBills,
   removeBillLine,
   collectPayment,
 } from './billing';
@@ -740,6 +741,43 @@ describe('orders flow into billing (OPD-04, docs/12 §2)', () => {
     expect(lines.filter((l) => l.clinicalOrderId && l.status === 'active')).toHaveLength(2);
     const [tok] = await fx.t.app.select().from(opdToken).where(eq(opdToken.id, v.tokenId));
     expect(tok!.queueState).toBe('billed_orders');
+  });
+
+  it('opens a new draft bill for orders typed after the visit bill was paid', async () => {
+    const at = nextDay()();
+    const v = await seenVisit(at);
+    const [first] = await billsForEncounter(fx.t.app, fx.f.facilityId, v.encounterId);
+    await fx.run((tx) =>
+      collectPayment(
+        tx,
+        fx.actor(),
+        {
+          billId: first!.id,
+          tenders: [{ mode: 'cash', amountPaise: first!.balancePaise }],
+          idempotencyKey: uuidv7(),
+        },
+        at,
+        { mayFinalize: true },
+      ),
+    );
+    const { documentId } = await scan(v.encounterId, at);
+    await save(
+      {
+        encounterId: v.encounterId,
+        scanDocumentId: documentId,
+        items: [],
+        orders: [{ serviceId: ids.cbc }],
+      },
+      at,
+    );
+    const bills = await billsForEncounter(fx.t.app, fx.f.facilityId, v.encounterId);
+    expect(bills.map((b) => b.status)).toEqual(['draft', 'final']);
+    const view = (await getBillView(fx.t.app, fx.f.facilityId, bills[0]!.id))!;
+    // No second consultation line; the order waits pre-ticked, and the desk lists the draft.
+    expect(view.lines).toHaveLength(0);
+    expect(view.unbilledOrders.map((o) => o.serviceId)).toEqual([ids.cbc]);
+    const desk = await pendingBills(fx.t.app, fx.f.facilityId, {});
+    expect(desk.map((b) => b.id)).toContain(bills[0]!.id);
   });
 
   it('does not move the token while an order is still unbilled', async () => {
