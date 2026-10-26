@@ -1,9 +1,9 @@
 /**
  * Supervisor approval by PIN (docs/03 §4, BIL-03, BIL-04). The approver types their username and
  * PIN on the requester's screen; this checks them *before* the money transaction and in a
- * transaction of its own, so a wrong PIN still counts towards the approver's PIN lockout when the
- * money transaction is rolled back. The PIN lockout is the one of the approver's own account
- * (`auth.maxPinFailures`, `auth.pinLockoutMinutes`). Neither the PIN nor the username reach an
+ * transaction of its own, so a wrong PIN still counts when the money transaction is rolled back.
+ * The counter is per (approver, requester) (`auth.maxPinFailures`, `auth.pinLockoutMinutes`, D-17):
+ * it never locks the approver's password sign-in or PIN unlock. Neither the PIN nor the username reach an
  * idempotency payload, a log line or an error message (AGENTS.md rule 15).
  */
 import { APPROVER_PERMISSION } from '@hmis/shared';
@@ -11,6 +11,11 @@ import { and, eq, sql } from 'drizzle-orm';
 import { appUser } from '../schema';
 import type { Db } from './client';
 import { burnHash, verifySecret } from './password';
+import {
+  approvalPinBlockedUntil,
+  clearApprovalPinFailures,
+  recordApprovalPinFailure,
+} from './login-throttle';
 import { loadUserAccess } from './rbac';
 import { readSettings } from './settings';
 import { withTx } from './tx';
@@ -59,9 +64,10 @@ export async function verifyApproverPin(
     await burnHash(input.pin);
     throw new ApprovalError('approval.invalid');
   }
-  if (user.pinLockedUntil && user.pinLockedUntil.getTime() > now.getTime()) {
+  const blocked = await approvalPinBlockedUntil(db, user.id, input.requesterId, now);
+  if (blocked) {
     throw new ApprovalError('approval.locked', {
-      minutes: Math.max(1, Math.ceil((user.pinLockedUntil.getTime() - now.getTime()) / 60_000)),
+      minutes: Math.max(1, Math.ceil((blocked.getTime() - now.getTime()) / 60_000)),
     });
   }
   const actor = { db, userId: input.requesterId, facilityId: input.facilityId };
@@ -70,31 +76,18 @@ export async function verifyApproverPin(
       'auth.maxPinFailures',
       'auth.pinLockoutMinutes',
     ]);
-    const until = new Date(now.getTime() + cfg['auth.pinLockoutMinutes'] * 60_000);
-    // Atomic increment under the row lock: concurrent guesses cannot share a stale count.
-    await withTx(actor, async (tx) => {
-      const [row] = await tx
-        .update(appUser)
-        .set({ pinFailedCount: sql`${appUser.pinFailedCount} + 1` })
-        .where(eq(appUser.id, user.id))
-        .returning({ count: appUser.pinFailedCount });
-      if ((row?.count ?? 1) >= cfg['auth.maxPinFailures']) {
-        await tx
-          .update(appUser)
-          .set({ pinFailedCount: 0, pinLockedUntil: until })
-          .where(eq(appUser.id, user.id));
-      }
-    });
+    await withTx(actor, (tx) =>
+      recordApprovalPinFailure(
+        tx,
+        user,
+        input.requesterId,
+        { maxFailures: cfg['auth.maxPinFailures'], lockoutMinutes: cfg['auth.pinLockoutMinutes'] },
+        now,
+      ),
+    );
     throw new ApprovalError('approval.invalid');
   }
-  if (user.pinFailedCount !== 0 || user.pinLockedUntil) {
-    await withTx(actor, (tx) =>
-      tx
-        .update(appUser)
-        .set({ pinFailedCount: 0, pinLockedUntil: null })
-        .where(eq(appUser.id, user.id)),
-    );
-  }
+  await withTx(actor, (tx) => clearApprovalPinFailures(tx, user.id, input.requesterId, now));
   if (user.id === input.requesterId) throw new ApprovalError('approval.selfNotAllowed');
   const access = await loadUserAccess(db, user.id);
   if (!access.permissions.includes(APPROVER_PERMISSION)) {

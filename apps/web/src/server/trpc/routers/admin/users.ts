@@ -16,6 +16,7 @@ import { revokeSession, revokeUserSessions } from '../../../auth/session';
 import { appError, protectedProcedure, type Context } from '../../init';
 import type { AuthSession } from '../../../auth/session';
 import type { Tx } from '@hmis/db';
+import { clearAllThrottles } from '@hmis/db/login-throttle';
 import { assertMayChangeRoles, assertMayManageUser, assertUserManagerRemains } from './guards';
 
 const manage = protectedProcedure.meta({ permission: 'admin.users.manage' });
@@ -273,6 +274,7 @@ export const userProcedures = {
           .update(appUser)
           .set({ passwordHash, passwordMustChange: true, failedLoginCount: 0, lockedUntil: null })
           .where(eq(appUser.id, u.id));
+        await clearAllThrottles(tx, u.id, t);
         await revokeUserSessions(tx, u.id, 'password_reset', t, ctx.auth.sessionId);
       });
       return { ok: true as const };
@@ -300,6 +302,7 @@ export const userProcedures = {
         .update(appUser)
         .set({ failedLoginCount: 0, lockedUntil: null, pinFailedCount: 0, pinLockedUntil: null })
         .where(eq(appUser.id, u.id));
+      await clearAllThrottles(tx, u.id, now(ctx));
     });
     return { ok: true as const };
   }),

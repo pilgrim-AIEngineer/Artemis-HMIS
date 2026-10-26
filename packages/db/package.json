@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./approvals": "./src/approvals.ts",
+    "./login-throttle": "./src/login-throttle.ts",
     "./auth": "./src/auth.ts",
     "./migrate": "./src/migrate.ts",
     "./schema": "./schema/index.ts",
@@ -24,6 +25,7 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/migrate-cli.ts",
     "db:seed": "tsx seed/index.ts",
+    "admin:unlock": "tsx src/admin-unlock-cli.ts",
     "db:templates": "tsx seed/templates/generate.ts"
   },
   "dependencies": {

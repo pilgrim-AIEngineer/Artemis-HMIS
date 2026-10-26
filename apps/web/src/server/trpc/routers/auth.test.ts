@@ -1,4 +1,5 @@
-import { appUser, auditLog, session, setting } from '@hmis/db/schema';
+import { clearAllThrottles } from '@hmis/db/login-throttle';
+import { accessLog, appUser, auditLog, session, setting } from '@hmis/db/schema';
 import { withTx } from '@hmis/db';
 import { and, desc, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
@@ -84,9 +85,10 @@ describe('login (FND-02)', () => {
     await clearLock(f.users.nurse.id);
   });
 
-  it('locks the account for 15 minutes after 5 wrong passwords', async () => {
+  it('locks the (user, IP) pair for 15 minutes after 5 wrong passwords', async () => {
     const clock = createClock();
     const br = f.browser(clock);
+    br.clientIp = '192.168.1.61';
     const user = f.users.noRoles.username;
     for (let i = 1; i <= 4; i++) {
       expect((await trpcError(br.login(user, `wrong-${i}`))).message).toBe(
@@ -97,15 +99,93 @@ describe('login (FND-02)', () => {
     expect(fifth.code).toBe('TOO_MANY_REQUESTS');
     expect(fifth.message).toBe('errors.auth.lockedOut');
     expect((fifth.cause as unknown as { params: object }).params).toEqual({ minutes: 15 });
-    // Even the right password is refused while locked.
+    // Even the right password is refused from that IP while locked.
     clock.advance(14 * MINUTE);
     const still = await trpcError(br.login(user));
     expect(still.message).toBe('errors.auth.lockedOut');
     expect((still.cause as unknown as { params: object }).params).toEqual({ minutes: 1 });
     clock.advance(1 * MINUTE + 1000);
     expect((await br.login(user)).next).toBe('home');
-    const [u] = await f.db.select().from(appUser).where(eq(appUser.id, f.users.noRoles.id));
-    expect(u).toMatchObject({ failedLoginCount: 0, lockedUntil: null });
+  });
+
+  it('D-17: an attacker locking a user from one IP does not block that user elsewhere', async () => {
+    const clock = createClock();
+    const attacker = f.browser(clock);
+    attacker.clientIp = '192.168.1.62';
+    const user = f.users.reception.username;
+    for (let i = 1; i <= 5; i++) await trpcError(attacker.login(user, `bad-${i}`));
+    expect((await trpcError(attacker.login(user))).message).toBe('errors.auth.lockedOut');
+    const real = f.browser(clock);
+    real.clientIp = '192.168.1.63';
+    expect((await real.login(user)).next).toBe('home');
+    const [u] = await f.db.select().from(appUser).where(eq(appUser.id, f.users.reception.id));
+    expect(u?.lockedUntil).toBeNull();
+  });
+
+  it('D-17: the owner is never locked username-wide, even from many IPs', async () => {
+    const clock = createClock();
+    for (const who of [f.users.owner, f.users.cashier]) {
+      for (let ip = 71; ip < 75; ip++) {
+        const br = f.browser(clock);
+        br.clientIp = `192.168.1.${ip}`;
+        for (let i = 0; i < 5; i++) await trpcError(br.login(who.username, `bad-${i}`));
+      }
+      const fresh = f.browser(clock);
+      fresh.clientIp = '192.168.1.80';
+      if (who === f.users.owner) expect((await fresh.login(who.username)).next).toBe('home');
+      else {
+        expect((await trpcError(fresh.login(who.username))).message).toBe('errors.auth.lockedOut');
+      }
+    }
+  });
+
+  it('D-17: one IP guessing across many usernames is blocked after 20 failures', async () => {
+    const clock = createClock();
+    const br = f.browser(clock);
+    br.clientIp = '192.168.1.90';
+    const names = [f.users.nurse, f.users.doctor, f.users.assistant, f.users.noPin];
+    for (const u of names) for (let i = 0; i < 4; i++) await trpcError(br.login(u.username, 'x'));
+    for (let i = 0; i < 4; i++) await trpcError(br.login(f.users.admin.username, 'x'));
+    for (let i = 0; i < 4; i++) await trpcError(br.login(f.users.cashier.username, 'x'));
+    const blocked = await trpcError(br.login(f.users.nurse.username));
+    expect(blocked.message).toBe('errors.auth.lockedOut');
+    // Another workstation is not affected.
+    const other = f.browser(clock);
+    other.clientIp = '192.168.1.91';
+    expect((await other.login(f.users.nurse.username)).next).toBe('home');
+  });
+
+  it('D-17: repeat lockouts of a pair double (15, 30 min), capped at 4 h', async () => {
+    const clock = createClock();
+    const br = f.browser(clock);
+    br.clientIp = '192.168.1.64';
+    const user = f.users.doctor.username;
+    const minutes = async () => {
+      let err: Awaited<ReturnType<typeof trpcError>> | undefined;
+      for (let i = 0; i < 5; i++) err = await trpcError(br.login(user, `bad-${i}`));
+      return (err!.cause as unknown as { params: { minutes: number } }).params.minutes;
+    };
+    expect(await minutes()).toBe(15);
+    clock.advance(16 * MINUTE);
+    expect(await minutes()).toBe(30);
+    clock.advance(31 * MINUTE);
+    expect(await minutes()).toBe(60);
+  });
+
+  it('D-17: an unlock clears pair locks and writes access_log without credentials', async () => {
+    const clock = createClock();
+    const br = f.browser(clock);
+    br.clientIp = '192.168.1.65';
+    const u = f.users.assistant;
+    for (let i = 0; i < 5; i++) await trpcError(br.login(u.username, `bad-${i}`));
+    expect((await trpcError(br.login(u.username))).message).toBe('errors.auth.lockedOut');
+    await withTx({ db: f.db, userId: null, facilityId: f.a.facilityId }, (tx) =>
+      clearAllThrottles(tx, u.id, clock.now),
+    );
+    expect((await br.login(u.username)).next).toBe('home');
+    const logs = await f.db.select().from(accessLog).where(eq(accessLog.entityId, u.id));
+    expect(logs.map((l) => l.purpose)).toContain('pair_lock:15min');
+    expect(JSON.stringify(logs)).not.toContain('bad-');
   });
 
   it('a new login in the same browser ends the previous session', async () => {
