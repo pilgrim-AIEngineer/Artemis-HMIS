@@ -188,6 +188,40 @@ async function scheduleItems(
     : DEFAULT_ANC_SCHEDULE.map((def) => ({ id: null, def }));
 }
 
+// ---------------------------------------------------------------- rules in force
+
+export interface AncRules {
+  /** The owner gynaecologist has reviewed and signed the rules off. */
+  signedOff: boolean;
+  redatingThresholds: { fromDays: number; thresholdDays: number }[];
+  riskRules: Record<string, number>;
+  visitIntervals: { uptoDays: number | null; everyDays: number }[];
+  viabilityWeeks: number;
+  bookingGraceDays: number;
+  schedule: AncScheduleDef[];
+}
+
+/** The ANC rules a screen shows next to the "pending sign-off" notice (docs/11 intro, docs/33 §4). */
+export async function ancRules(q: Queryable, facilityId: string): Promise<AncRules> {
+  const s = await readSettings(q, facilityId, [
+    'anc.rulesSignedOff',
+    'anc.redatingThresholds',
+    'anc.riskRules',
+    'anc.visitIntervals',
+    'anc.viabilityWeeks',
+    'anc.bookingGraceDays',
+  ]);
+  return {
+    signedOff: s['anc.rulesSignedOff'],
+    redatingThresholds: s['anc.redatingThresholds'],
+    riskRules: s['anc.riskRules'],
+    visitIntervals: s['anc.visitIntervals'],
+    viabilityWeeks: s['anc.viabilityWeeks'],
+    bookingGraceDays: s['anc.bookingGraceDays'],
+    schedule: (await scheduleItems(q, facilityId)).map((i) => i.def),
+  };
+}
+
 // ---------------------------------------------------------------- views
 
 export interface AncHistoryRow {

@@ -34,6 +34,7 @@ import {
   queueEvent,
   service,
 } from '../schema';
+import { activePregnancyId } from './anc';
 import { createOpdBillForVisit } from './billing';
 import { runIdempotent } from './idempotency';
 import { getRate, pickTariff } from './masters';
@@ -279,7 +280,14 @@ export async function previewVisit(
     policy,
     today,
   );
-  const suggestedVisitType = suggestVisitType({ followUp });
+  // docs/10 §4: `anc` when the woman has an active pregnancy and the doctor is a gynaecologist.
+  const [dept] = await tx
+    .select({ code: department.code })
+    .from(department)
+    .where(eq(department.id, doctor.departmentId));
+  const ancActive =
+    dept?.code === 'GYN' && (await activePregnancyId(tx, facilityId, q.patientId)) !== null;
+  const suggestedVisitType = suggestVisitType({ followUp, ancActive });
   const visitType = q.visitType ?? suggestedVisitType;
 
   const payerId = await defaultPayerId(tx, facilityId);

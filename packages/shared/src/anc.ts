@@ -933,8 +933,8 @@ export const saveAncVisitSchema = z
     hb: z.number().min(2).max(20).nullable().default(null),
     remarks: optionalText(500),
   })
-  .refine((v) => (v.bpSys === null) === (v.bpDia === null), 'vitals.bpPair')
-  .refine((v) => v.bpSys === null || v.bpDia === null || v.bpDia < v.bpSys, 'vitals.bpPair');
+  .refine((v) => (v.bpSys === null) === (v.bpDia === null), 'validation.vitals.bpOrder')
+  .refine((v) => v.bpSys === null || v.bpDia === null || v.bpDia < v.bpSys, 'validation.vitals.bpOrder');
 export type SaveAncVisitInput = z.output<typeof saveAncVisitSchema>;
 
 export const updatePregnancySchema = z.object({

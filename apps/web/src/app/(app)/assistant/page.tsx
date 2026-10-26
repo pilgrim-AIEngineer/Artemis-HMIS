@@ -1,5 +1,5 @@
 import { Button } from '@hmis/ui/components/button';
-import { NotebookPen } from 'lucide-react';
+import { Baby, NotebookPen } from 'lucide-react';
 import Link from 'next/link';
 import { getTranslations } from 'next-intl/server';
 import { QueueBoard } from '@/components/queue/queue-board';
@@ -13,6 +13,7 @@ import { requirePagePermission } from '@/server/auth/page-session';
 export default async function Page() {
   const auth = await requirePagePermission('patient.view');
   const t = await getTranslations('rx');
+  const tAnc = await getTranslations('anc');
   return (
     <div className="space-y-6">
       {auth.permissions.has('rx.transcribe') && (
@@ -31,6 +32,18 @@ export default async function Page() {
           </Button>
         </section>
       )}
+      <section
+        aria-label={tAnc('deskTitle')}
+        className="flex flex-wrap items-center justify-between gap-4 rounded-lg border-2 bg-card p-4"
+      >
+        <p className="text-lg font-medium">{tAnc('deskHint')}</p>
+        <Button asChild size="lg" variant="outline">
+          <Link href="/assistant/anc">
+            <Baby aria-hidden />
+            {tAnc('assistantLink')}
+          </Link>
+        </Button>
+      </section>
       <QueueBoard mode="room" />
     </div>
   );

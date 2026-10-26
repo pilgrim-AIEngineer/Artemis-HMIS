@@ -1,5 +1,6 @@
 import {
   activePregnancies,
+  ancRules,
   AncInputError,
   assessScan,
   cancelAncVisit,
@@ -80,6 +81,9 @@ const ancActor = (ctx: {
 });
 
 export const ancRouter = router({
+  /** The rules in force and whether the gynaecologist has signed them off. */
+  rules: read.query(({ ctx }) => ctx.tx((tx) => ancRules(tx, ctx.auth.facilityId))),
+
   /** Active pregnancies, soonest EDD first (the ANC desk list). */
   active: read.query(({ ctx }) =>
     ctx.tx((tx) => activePregnancies(tx, ancActor(ctx), ctx.now())),

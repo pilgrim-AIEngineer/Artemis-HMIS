@@ -42,7 +42,7 @@ import {
   ancSummary,
   type AncActor,
 } from './anc';
-import { issueToken } from './visits';
+import { issueToken, previewVisit } from './visits';
 import { recordVitals } from './vitals';
 
 type Tx0 = Parameters<typeof closeRaw>[0];
@@ -532,7 +532,7 @@ describe('ANC visits, risk flags and the high-risk alert (docs/11 §3.2–3.3)',
     const { pregnancyId } = await start();
     const bad = await errKey(visit(pregnancyId, { remarks: 'fetal sex requested' }));
     expect(bad).toMatch(/ZodError|forbidden/i);
-    expect(await errKey(visit(pregnancyId, { bpSys: 80, bpDia: 90 }))).toMatch(/ZodError|bpPair/);
+    expect(await errKey(visit(pregnancyId, { bpSys: 80, bpDia: 90 }))).toMatch(/ZodError|bpOrder/);
   });
 });
 
@@ -872,5 +872,30 @@ describe('closing a pregnancy and MTP privacy (docs/11 §3.1, acceptance §5)', 
       (await run((tx) => activePregnancies(tx, actor(), NOW))).find((p) => p.id === pregnancyId),
     ).toBeUndefined();
     expect(await run((tx) => ancSummary(tx, actor(), patientId, NOW))).toBeNull();
+  });
+});
+
+describe('visit type suggestion (docs/10 §4)', () => {
+  const suggested = (patientId: string, doctorId: string) =>
+    run((tx) => previewVisit(tx, fx.f.facilityId, { patientId, doctorId }, NOW)).then(
+      (p) => p.suggestedVisitType,
+    );
+
+  it('suggests an ANC visit for a woman with an active pregnancy and a gynae doctor', async () => {
+    const { patientId, pregnancyId } = await start();
+    expect(await suggested(patientId, fx.doctorA)).toBe('anc');
+    await run((tx) =>
+      closePregnancy(
+        tx,
+        actor(),
+        closePregnancySchema.parse({ pregnancyId, outcome: 'aborted', outcomeDate: '2026-10-20' }),
+        NOW,
+      ),
+    );
+    expect(await suggested(patientId, fx.doctorA)).toBe('new');
+  });
+
+  it('leaves other patients on new', async () => {
+    expect(await suggested(await fx.newPatient(), fx.doctorA)).toBe('new');
   });
 });
