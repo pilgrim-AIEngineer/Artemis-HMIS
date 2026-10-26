@@ -169,6 +169,20 @@
       "when": 1792988452397,
       "tag": "0023_rx_orders_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1792992053515,
+      "tag": "0024_anc_pregnancy",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1792992057311,
+      "tag": "0025_anc_audit",
+      "breakpoints": true
     }
   ]
 }
