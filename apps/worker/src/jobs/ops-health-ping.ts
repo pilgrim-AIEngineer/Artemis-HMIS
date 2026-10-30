@@ -2,7 +2,8 @@ import { checkDbHealth, getOutboxLag } from '@hmis/db';
 import { isBackupAlert, type OpsAlert } from '@hmis/shared';
 import { collectOpsChecks } from '@hmis/shared/ops-node';
 import { z } from 'zod';
-import { AlertThrottle, alertSinksFromEnv, dispatchAlerts, formatAlertText } from '../ops/alerts';
+import { AlertThrottle, alertSinksFromEnv, dispatchAlerts } from '../ops/alerts';
+import { buildHeartbeatPayload, installIdFromEnv } from '../ops/heartbeat-payload';
 import { defineJob } from './types';
 
 export const OPS_HEALTH_PING_QUEUE = 'ops.healthPing';
@@ -58,7 +59,16 @@ export const opsHealthPingJob = defineJob({
       try {
         const res = await fetch(url, {
           method: 'POST',
-          body: critical.length > 0 ? formatAlertText(sinks.label, critical) : 'ok',
+          headers: { 'content-type': 'application/json' },
+          // Allow-listed counts and codes plus a random install ID; never the hospital label.
+          body: JSON.stringify(
+            buildHeartbeatPayload({
+              installId: installIdFromEnv(process.env),
+              now,
+              alerts,
+              checks,
+            }),
+          ),
           signal: AbortSignal.timeout(PING_TIMEOUT_MS),
         });
         pinged = res.ok;
