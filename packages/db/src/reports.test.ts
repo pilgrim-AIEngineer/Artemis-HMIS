@@ -6,7 +6,6 @@
  */
 import {
   createPregnancySchema,
-  istDateString,
   recordDoseSchema,
   saveAncVisitSchema,
   type RoleKey,
@@ -470,9 +469,11 @@ describe('discounts and cancellations reports reconcile (RPT-01)', () => {
         { approverId: null },
       ),
     );
-    // The discount row is stamped by the database clock, so ask for the real today.
-    const real = istDateString(new Date());
-    const d = await discountReport(fx.t.app, fx.f.facilityId, { from: real, to: real });
+    // The discount row is stamped with the business time it was given at.
+    const d = await discountReport(fx.t.app, fx.f.facilityId, {
+      from: '2026-07-14',
+      to: '2026-07-14',
+    });
     const [b] = await fx.t.owner.select().from(bill).where(eq(bill.id, v.billId));
     expect(d.rows).toHaveLength(1);
     expect(b!.discountPaise).toBe(10_000n);
