@@ -1,0 +1,57 @@
+name: office-merge
+
+# Merges an open claude/* PR only when ALL of these hold:
+#   1. the office's review team approved that exact commit (tag office-approved/<sha>);
+#   2. the workflows in REQUIRED passed on it, and no other check failed;
+#   3. it is not a draft, has no "hold" label, is from this repo, and merges cleanly;
+#   4. it touches no risky path (login, payments, database changes, deploy files, rules).
+# Risky changes wait for Sumit. To stop any PR, add the label "hold". To stop all, disable this workflow.
+on:
+  push:
+    tags: ['office-approved/*']
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+  actions: read
+
+concurrency:
+  group: office-merge
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Merge approved, green, low-risk PRs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          REQUIRED: 'CI'
+          RISKY: '(^|/)(auth|login|session|payments?|razorpay|billing|migrations?|secrets?)(/|\.|$)|^supabase/|\.env|^\.github/|^infra/|^deploy/|^middleware\.|^(AGENTS|CLAUDE)\.md$|^docs/30-|^docs/34-|^docs/35-'
+        run: |
+          set -uo pipefail
+          gh pr list -R "$REPO" --state open --base main --limit 50             --json number,headRefName,headRefOid,isDraft,isCrossRepository,mergeable,labels             --jq '.[] | select(.headRefName | startswith("claude/")) | [.number, .headRefOid, .isDraft, .isCrossRepository, .mergeable, ([.labels[].name] | join(","))] | @tsv' > prs.tsv
+          while IFS=$'\t' read -r num sha draft cross mergeable labels; do
+            note() { echo "#$num: $1"; echo "- #$num: $1" >> "$GITHUB_STEP_SUMMARY"; }
+            [ "$draft" = "false" ] && [ "$cross" = "false" ] || { note "draft or from a fork, skipped"; continue; }
+            grep -qw hold <<<"$labels" && { note "on hold"; continue; }
+            [ "$mergeable" = "MERGEABLE" ] || { note "not mergeable ($mergeable)"; continue; }
+            gh api "repos/$REPO/git/ref/tags/office-approved/$sha" >/dev/null 2>&1 || { note "not approved yet"; continue; }
+            if gh pr diff "$num" -R "$REPO" --name-only | grep -qE "$RISKY"; then note "touches a risky path, waiting for Sumit"; continue; fi
+            ok=1
+            for w in $REQUIRED; do
+              c=$(gh run list -R "$REPO" --commit "$sha" --workflow "$w" --limit 1 --json conclusion --jq '.[0].conclusion // ""')
+              [ "$c" = "success" ] || { note "$w is '$c'"; ok=0; }
+            done
+            bad=$(gh api "repos/$REPO/commits/$sha/check-runs?per_page=100" --jq '[.check_runs[] | select(.name != "merge") | select(.status != "completed" or (.conclusion | IN("failure","cancelled","timed_out","action_required","startup_failure")))] | length')
+            [ "$bad" = "0" ] || { note "$bad checks pending or failed"; ok=0; }
+            [ "$ok" = "1" ] || continue
+            gh pr merge "$num" -R "$REPO" --squash --delete-branch --match-head-commit "$sha" && note "merged"
+          done < prs.tsv
