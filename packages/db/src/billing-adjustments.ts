@@ -287,6 +287,8 @@ export async function applyDiscount(
         approvalId,
         // The grantor, whose limit recomputeBill re-applies when lines are removed later.
         createdBy: actor.userId,
+        // Business time: discountReport buckets by this, so it must follow `now`, not the DB clock.
+        createdAt: now,
       });
       return mutationResult(await recomputeBill(tx, b), input.lineId ?? null);
     },
