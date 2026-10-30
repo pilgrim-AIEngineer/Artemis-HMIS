@@ -84,6 +84,7 @@ services:
       WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}
       # OPS-01 monitoring (all optional; empty = log only / no ping). Never commit real values.
       HEALTHCHECK_PING_URL: ${HEALTHCHECK_PING_URL:-}
+      HMIS_INSTALL_ID: ${HMIS_INSTALL_ID:-}
       OPS_ALERT_WEBHOOK_URL: ${OPS_ALERT_WEBHOOK_URL:-}
       OPS_TELEGRAM_BOT_TOKEN: ${OPS_TELEGRAM_BOT_TOKEN:-}
       OPS_TELEGRAM_CHAT_ID: ${OPS_TELEGRAM_CHAT_ID:-}
