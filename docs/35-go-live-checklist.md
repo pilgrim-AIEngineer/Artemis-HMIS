@@ -27,7 +27,8 @@ file is the one that is filled in**, committed on every change, and read at the 
 | GL-07 | Staff trained in training mode (reception, assistant, billing, vitals); each did 20 practice patients | Training copy is running the same version (see Section C, C-4). Each person finished their `docs/uat/` script and 20 practice patients; the signed sheets are scanned into `docs/uat/signed/` and the table in `docs/uat/README.md` is full | Vendor + admin | Open | | `31 §8`: the training instance (`training.hmis.local`) is not built yet; see C-4 |
 | GL-08 | Parallel run 3 days without blocking issue | Three OPD days with the system and the paper register both running. Daily: system OPD count equals paper count; cash and UPI totals equal the counted cash and the bank credits (`docs/00 §5`). Every issue is written down with a severity; no Blocker left open | Owner + admin | Open | | Success numbers to record: visits (system vs paper), cash and UPI difference, longest wait for a returning patient |
 | GL-09 | Downtime kit in place | Pre-printed OPD sheets, receipt book with DT-series numbers, downtime registers, and the one-page Hindi instruction are at reception and billing. Staff have done a 15-minute rehearsal with the server switched off | Admin | Open | | `31 §6`; the back-entry screen after recovery is described in `01 §3` |
-| GL-10 | Data processing agreement signed with the hospital | Signed copy filed; the owner holds a copy | Owner + vendor | Open | | Legal text is not in this repository |
+| GL-10 | Data processing agreement signed with the hospital | Signed copy filed; the owner holds a copy | Owner + vendor | Open | | Legal text is not in this repository. The agreement must include the heartbeat wording in Section H (reviewed by a lawyer) |
+| GL-11 | Heartbeat set up and explained to the owner | Set `HMIS_INSTALL_ID` (random, no hospital name) in the server `.env`; owner reads Section H and agrees; `ops.healthPing` shows the ID and version on the vendor side | Vendor + owner | Open | | Needs PR #121 (strict heartbeat payload) in the release |
 
 ## B. Software release gate (the vendor ticks these before the go/no-go meeting)
 
@@ -80,6 +81,37 @@ Phase 1 features only. Record the sign-off date and name; the signed paper goes 
 | Rx verification mode (Q15) | UAT 07 | |
 | Branding: name, logo, colours (Q20) and product name (Q22) | Print header, GL-03 | |
 | 60+ anonymised Rx lines; 10 real OPD bills; rate list; sample prints (`32 §3`) | Parser tuning, UAT 02/04/05 | |
+
+## H. Heartbeat: what leaves the building (`ops.healthPing`)
+
+Every 5 minutes the server sends the vendor one small JSON message so the vendor knows the
+system is alive. The message is built from a fixed list; nothing else can be added without a
+code change and a test change.
+
+It contains only: software version, a random install ID (`HMIS_INSTALL_ID`), time, overall
+status (ok / warn / critical), codes of open alerts, age of the last backup in minutes, disk %
+used, number of messages waiting in the outbox, and queue lag.
+
+It never contains: patient or staff names, phone numbers, UHIDs, bill or payment details,
+clinical data, the hospital name or address, or free text. The install ID is not the hospital
+name; keep a private list that maps ID to hospital on the vendor side.
+
+If the internet is down the ping is skipped and retried; the hospital keeps working.
+
+### Draft DPA wording (for the lawyer; not legal advice)
+
+> **Operational monitoring.** The Processor's software sends the Processor a technical status
+> message every five minutes. The message contains only the software version, an installation
+> identifier, a timestamp, system health status, alert codes, backup age, disk usage and queue
+> counts. It contains no personal data of patients or staff. The Processor uses it only to
+> detect and fix faults and to plan updates, keeps it for no more than 90 days, and does not
+> share it with anyone else. The Controller may ask for the message list to be shown at any
+> time, and may switch the monitoring off in writing; the Controller then accepts slower fault
+> detection. Any change to the contents of this message that adds personal data needs the
+> Controller's written agreement first.
+
+Open for the lawyer: the 90-day retention figure, and whether the install ID counts as
+identifying when the vendor holds the ID-to-hospital list.
 
 ## F. Go / no-go record
 

@@ -58,6 +58,7 @@ This is an engineering checklist, not legal advice. Each item names who must con
   - Breach response runbook (detect, contain, notify hospital without delay; hospital notifies Board/patients as required).
   - Data export for a patient (all records as PDF/JSON) and correction workflow.
   - Retention policy: clinical/legal records retained as required by the laws above (which override erasure requests for those records); marketing/consent data deletable.
+- Vendor monitoring heartbeat carries no personal data; its contents and the DPA clause are in `docs/35` Section H.
 - Children's data (paediatrics): processing for treatment; no tracking/marketing.
 
 ## 8. CERT-In directions (2022)
